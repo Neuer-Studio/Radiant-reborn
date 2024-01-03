@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Radiant/Core/Events/Event.hpp>
+
 namespace Radiant
 {
 	struct WindowSpecification
@@ -17,8 +19,16 @@ namespace Radiant
 	public:
 		virtual ~Window() {};
 
+		using EventCallbackFn = std::function<void(Event&)>;
+
 		virtual const std::string& GetTitle() const = 0;
 		virtual void SetTitle(const std::string& title) = 0;
+
+		virtual void SetSize(uint32_t width, uint32_t height) = 0;
+		virtual uint32_t GetWidth() const = 0;
+		virtual uint32_t GetHeight() const = 0;
+
+		virtual void SetEventCallback(const EventCallbackFn& e) = 0;
 
 		static Ref<Window> Create(const WindowSpecification& specification);
 	};

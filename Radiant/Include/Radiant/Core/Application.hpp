@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <Radiant/Core/Events/WindowEvents.hpp>
 
 #include "Window.hpp"
 
@@ -16,8 +17,10 @@ namespace Radiant
 	{
 	public:
 		Application(const ApplicationSpecification& specification);
-
 		void Run();
+	private:
+		bool OnClose(EventWindowClose& e){}
+		void ProcessEvents(Event& e);
 	private:
 		Ref<Window> m_Window;
 

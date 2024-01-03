@@ -1,5 +1,9 @@
 #include "WindowsWindow.hpp"
 
+#include <Radiant/Core/Application.hpp>
+#include <Radiant/Core/Events/Event.hpp>
+#include <Radiant/Core/Events/WindowEvents.hpp>
+
 namespace Radiant
 {
 	static void GLFWErrorCallback(int error, const char* description)
@@ -10,9 +14,9 @@ namespace Radiant
 	static bool s_GLFWInitialized = false;
 
 	WindowsWindow::WindowsWindow(const WindowSpecification& specification)
-		: m_Specification(specification)
 	{
-		RA_INFO("[Window(Windows)] Creating window {} ({}, {})", m_Specification.Title, m_Specification.Width, m_Specification.Height);
+		m_Data.Specification = specification;
+		RA_INFO("[Window(Windows)] Creating window {} ({}, {})", m_Data.Specification.Title, m_Data.Specification.Width, m_Data.Specification.Height);
 
 		if (!s_GLFWInitialized)
 		{
@@ -24,7 +28,7 @@ namespace Radiant
 			s_GLFWInitialized = true;
 		}
 
-		if (!m_Specification.Decorated)
+		if (!m_Data.Specification.Decorated)
 		{
 			// This removes titlebar on all platforms
 			// and all of the native window effects on non-Windows platforms
@@ -35,10 +39,24 @@ namespace Radiant
 #endif
 		}
 
-		m_Window = glfwCreateWindow((int)m_Specification.Width, (int)m_Specification.Height, m_Specification.Title.c_str(), nullptr, nullptr);
+		m_Window = glfwCreateWindow((int)m_Data.Specification.Width, (int)m_Data.Specification.Height, m_Data.Specification.Title.c_str(), nullptr, nullptr);
 		glfwMakeContextCurrent(m_Window);
+		glfwSetWindowUserPointer(m_Window, &m_Data);
 
-		//glfwSetWindowUserPointer(m_Window, &m_Data);
+		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
+			{
+				auto& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+				EventWindowClose event;
+				data.EventCallback(event);
+			});
+
+		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
+			{
+				auto& data = *(WindowData*)glfwGetWindowUserPointer(window);
+				EventWindowResize event((unsigned int)width, (unsigned int)height);
+				data.EventCallback(event);
+			});
 	}
 
 	WindowsWindow::~WindowsWindow()
@@ -48,7 +66,7 @@ namespace Radiant
 
 	const std::string& WindowsWindow::GetTitle() const
 	{
-		return m_Specification.Title;
+		return m_Data.Specification.Title;
 	}
 
 	void WindowsWindow::SetTitle(const std::string& title)
@@ -56,4 +74,9 @@ namespace Radiant
 
 	}
 
+	void WindowsWindow::SetSize(uint32_t width, uint32_t height)
+	{
+		m_Data.Specification.Width = width;
+		m_Data.Specification.Height = height;
+	}
 }
