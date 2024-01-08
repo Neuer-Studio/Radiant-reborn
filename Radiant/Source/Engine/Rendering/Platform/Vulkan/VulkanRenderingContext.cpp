@@ -25,6 +25,7 @@ namespace Radiant
 		m_PhysicalDevice = VulkanPhysicalDevice::Create();
 		m_LogicalDevice = VulkanDevice::Create(m_PhysicalDevice);
 		VulkanSwapChain swap(m_LogicalDevice);
+		swap.CreateSurface(s_VulkanInstance, m_Window);
 		swap.Create(10, 10);
 	}
 

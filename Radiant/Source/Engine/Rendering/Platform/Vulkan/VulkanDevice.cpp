@@ -136,6 +136,7 @@ namespace Radiant
 
 		std::vector<const char*> deviceExtensions;
 		RADIANT_VERIFY(m_PhysicalDevice->IsExtensionSupported(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
+		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 		if (deviceExtensions.size() > 0)
 		{

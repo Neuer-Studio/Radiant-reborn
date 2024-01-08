@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <Radiant/Rendering/Platform/Vulkan/VulkanDevice.hpp>
+#include <GLFW/glfw3.h>
 
 namespace Radiant
 {
@@ -16,6 +17,7 @@ namespace Radiant
 		};
 		VulkanSwapChain(const Memory::Shared<VulkanDevice>& device);
 		void Create(uint32_t Width, uint32_t Height);
+		void CreateSurface(VkInstance instance, GLFWwindow* window);
 	private:
 		VkSurfaceFormatKHR FindSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR FindPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);

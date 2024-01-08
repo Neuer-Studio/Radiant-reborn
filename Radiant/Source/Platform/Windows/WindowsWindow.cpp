@@ -4,6 +4,7 @@
 #include <Radiant/Core/Events/Event.hpp>
 #include <Radiant/Core/Events/WindowEvents.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Rendering/RenderingAPI.hpp>
 
 namespace Radiant
 {
@@ -27,6 +28,11 @@ namespace Radiant
 			glfwSetErrorCallback(GLFWErrorCallback);
 
 			s_GLFWInitialized = true;
+		}
+
+		if(RenderingAPI::GetAPI() == RenderingAPIType::Vulkan)
+		{ 
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		}
 
 		if (!m_Data.Specification.Decorated)

@@ -59,7 +59,13 @@ namespace Radiant
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(m_LogicalDevice->GetLogicalDevice(), &createInfo, nullptr, &m_SwapChain));
+//		VK_CHECK_RESULT(vkCreateSwapchainKHR(m_LogicalDevice->GetLogicalDevice(), &createInfo, nullptr, &m_SwapChain));
+	}
+
+	void VulkanSwapChain::CreateSurface(VkInstance instance, GLFWwindow* window)
+	{
+		VkPhysicalDevice physicalDevice = m_LogicalDevice->GetPhysicalDevice();
+		glfwCreateWindowSurface(instance, window, nullptr, &m_Surface);
 	}
 
 	VkSurfaceFormatKHR VulkanSwapChain::FindSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
