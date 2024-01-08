@@ -4,10 +4,10 @@
 
 namespace Radiant
 {
-	Ref<Window> Window::Create(const WindowSpecification& specification)
+	Memory::Shared<Window> Window::Create(const WindowSpecification & specification)
 	{
 #if defined(RADIANT_PLATFORM_WINDOWS)
-		return Ref<Window>(new WindowsWindow(specification));
+		return Memory::Shared<WindowsWindow>::Create(specification);
 #else 
 	#error "Current Platform doesn't supports"
 #endif

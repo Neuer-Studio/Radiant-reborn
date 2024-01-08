@@ -32,8 +32,16 @@ namespace Radiant
 	{
 		spdlog::error(InFormat, std::forward<Args>(InArgs)...);
 	}
+
+	template <typename... Args>
+	constexpr void LogTrace(spdlog::format_string_t<Args...> InFormat, Args&&... InArgs)
+	{
+		spdlog::trace(InFormat, std::forward<Args>(InArgs)...);
+	}
 }
 
 #define RA_INFO(...) Radiant::LogInfo(__VA_ARGS__);
-
+#define RA_WARN(...) Radiant::LogWarn(__VA_ARGS__);
 #define RA_ERROR(...) Radiant::LogError(__VA_ARGS__);
+#define RA_TRACE(...) Radiant::LogTrace(__VA_ARGS__);
+#define RA_DEBUG(...) Radiant::LogDebug(__VA_ARGS__);

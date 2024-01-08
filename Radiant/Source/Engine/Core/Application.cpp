@@ -3,6 +3,8 @@
 
 namespace Radiant
 {
+	static Memory::CommandBuffer s_CommandBuffer;
+
 	Application::Application(const ApplicationSpecification& specification)
 	{
 		m_Window = Window::Create({});
@@ -10,12 +12,17 @@ namespace Radiant
 			{
 				this->ProcessEvents(e);
 			});
+
+		RenderingAPI::SetAPI(specification.APIType);
 	}
 
 	void Application::Run()
 	{
 		while (m_Run)
 		{
+			s_CommandBuffer.Execute();
+
+			glfwSwapBuffers((GLFWwindow*)m_Window->GetNativeWindow());
 			glfwPollEvents();
 		}
 	}
@@ -34,6 +41,10 @@ namespace Radiant
 				m_Window->SetSize(e.width, e.height);
 				return true;
 			});
+	}
 
+	Memory::CommandBuffer& Application::GetCommandBuffer()
+	{
+		return s_CommandBuffer;
 	}
 }

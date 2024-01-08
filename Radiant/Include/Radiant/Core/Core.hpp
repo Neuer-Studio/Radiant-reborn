@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "Logger.hpp"
+#include <Radiant/Core/Memory/Shared.hpp>
 
 #define BUILD_ID "v0.1a"
 
@@ -32,7 +33,4 @@ namespace Radiant
 {
 	template <typename T>
 	using Unique = std::unique_ptr<T>;
-
-	template <typename T>
-	using Ref = std::shared_ptr<T>;
 }

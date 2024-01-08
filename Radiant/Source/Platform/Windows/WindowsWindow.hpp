@@ -20,6 +20,9 @@ namespace Radiant
 		virtual uint32_t GetWidth() const { return m_Data.Specification.Width; }
 		virtual uint32_t GetHeight() const { return m_Data.Specification.Height; }
 
+		virtual const void* GetNativeWindow() const override { return m_Window; }
+
+
 		virtual void SetEventCallback(const EventCallbackFn& e) override { m_Data.EventCallback = e; }
 	private:
 		struct WindowData

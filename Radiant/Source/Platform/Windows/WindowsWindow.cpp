@@ -3,6 +3,7 @@
 #include <Radiant/Core/Application.hpp>
 #include <Radiant/Core/Events/Event.hpp>
 #include <Radiant/Core/Events/WindowEvents.hpp>
+#include <Radiant/Rendering/Rendering.hpp>
 
 namespace Radiant
 {
@@ -57,6 +58,9 @@ namespace Radiant
 				EventWindowResize event((unsigned int)width, (unsigned int)height);
 				data.EventCallback(event);
 			});
+
+
+		Rendering::Create(m_Window);
 	}
 
 	WindowsWindow::~WindowsWindow()

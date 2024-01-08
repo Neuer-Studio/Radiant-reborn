@@ -14,10 +14,10 @@ namespace Radiant
 		bool VSync = true;
 	};
 
-	class Window
+	class Window : public Memory::RefCounted
 	{
 	public:
-		virtual ~Window() {};
+		virtual ~Window() = default;
 
 		using EventCallbackFn = std::function<void(Event&)>;
 
@@ -27,9 +27,10 @@ namespace Radiant
 		virtual void SetSize(uint32_t width, uint32_t height) = 0;
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
+		virtual const void* GetNativeWindow() const = 0;
 
 		virtual void SetEventCallback(const EventCallbackFn& e) = 0;
 
-		static Ref<Window> Create(const WindowSpecification& specification);
+		static Memory::Shared<Window> Create(const WindowSpecification& specification);
 	};
 }
