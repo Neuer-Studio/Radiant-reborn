@@ -9,10 +9,13 @@ namespace Radiant
 	{
 		None = 0,
 		Vulkan = 1,
+		OpenGL = 2
 	};
 
 	class RenderingAPI : public Memory::RefCounted
 	{
+	public:
+		virtual void Clear(float rgba[4]) const = 0;
 	public:
 		static const RenderingAPIType GetAPI();
 		static void SetAPI(RenderingAPIType api);

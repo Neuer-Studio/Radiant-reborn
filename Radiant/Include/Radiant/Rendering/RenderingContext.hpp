@@ -9,6 +9,9 @@ namespace Radiant
 	public:
 		virtual ~RenderingContext() = default;
 
+		virtual void BeginFrame() const = 0;
+		virtual void EndFrame() const = 0;
+
 		static Memory::Shared<RenderingContext> Create(GLFWwindow* window);
 	};
 }

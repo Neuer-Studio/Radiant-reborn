@@ -66,7 +66,7 @@ namespace Radiant
 			});
 
 
-		Rendering::Create(m_Window);
+		auto context = Rendering::Initialize(m_Window);
 	}
 
 	WindowsWindow::~WindowsWindow()

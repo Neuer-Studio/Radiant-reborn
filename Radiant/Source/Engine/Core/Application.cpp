@@ -1,29 +1,36 @@
 #include <Core/Application.hpp>
 #include <GLFW/glfw3.h>
+#include <Radiant/Rendering/Rendering.hpp>
 
 namespace Radiant
 {
-	static Memory::CommandBuffer s_CommandBuffer;
+	static Memory::Shared<RenderingContext> s_RenderingContext = nullptr;
 
 	Application::Application(const ApplicationSpecification& specification)
 	{
-		m_Window = Window::Create({});
+		RenderingAPI::SetAPI(specification.APIType);
+
+		WindowSpecification wspec;
+		wspec.Width = specification.WindowWidth;
+		wspec.Height = specification.WindowHeight;
+		wspec.Title = specification.Name;
+
+		m_Window = Window::Create(wspec);
 		m_Window->SetEventCallback([this](Event& e)
 			{
 				this->ProcessEvents(e);
 			});
 
-		RenderingAPI::SetAPI(specification.APIType);
+		s_RenderingContext = Rendering::GetRenderingContext();
 	}
 
 	void Application::Run()
 	{
 		while (m_Run)
 		{
-			s_CommandBuffer.Execute();
-
-			glfwSwapBuffers((GLFWwindow*)m_Window->GetNativeWindow());
-			glfwPollEvents();
+			s_RenderingContext->BeginFrame();
+			s_RenderingContext->EndFrame();
+			Rendering::GetRenderingCommandBuffer().Execute();		
 		}
 	}
 
@@ -41,10 +48,5 @@ namespace Radiant
 				m_Window->SetSize(e.width, e.height);
 				return true;
 			});
-	}
-
-	Memory::CommandBuffer& Application::GetCommandBuffer()
-	{
-		return s_CommandBuffer;
 	}
 }

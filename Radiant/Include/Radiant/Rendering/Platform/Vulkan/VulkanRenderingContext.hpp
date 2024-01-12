@@ -13,6 +13,9 @@ namespace Radiant
 		VulkanRenderingContext(GLFWwindow* window);
 		virtual ~VulkanRenderingContext() override;
 
+		virtual void BeginFrame() const override {}
+		virtual void EndFrame() const override {}
+
 		static const VkInstance GetVulkanInstance() { return s_VulkanInstance; }
 
 		VkResult CreateInstance();

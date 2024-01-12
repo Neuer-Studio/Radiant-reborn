@@ -17,6 +17,6 @@ Radiant::Application* Radiant::CreateApplication(int argc, char** argv)
 	specification.WindowHeight = 1600;
 	specification.WindowWidth = 1600;
 	specification.Name = "Title";
-	specification.APIType = RenderingAPIType::Vulkan;
+	specification.APIType = RenderingAPIType::OpenGL;
 	return new Sandbox(specification);
 }

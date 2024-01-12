@@ -41,6 +41,7 @@ project "Radiant"
         "../ThirdParty/VulkanSDK/shaderc/Include",
         "../ThirdParty/VulkanSDK/spirv_cross/Include",
         "../ThirdParty/VulkanSDK/include",
+        "../ThirdParty/Glad/include/",
         
         "../ThirdParty/",
     }

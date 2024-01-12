@@ -12,6 +12,7 @@ project "Sandbox"
 
         "../ThirdParty/spdlog/include/",
         "../ThirdParty/GLFW/include/",
+        "../ThirdParty/Glad/include/",
         "../ThirdParty/",
     }
 
@@ -20,6 +21,7 @@ project "Sandbox"
     links{
         "Radiant",
         "GLFW",
+        "Glad",
     }
     filter "configurations:Debug"
         defines { "RADIANT_CONFIG_DEBUG" }
