@@ -24,11 +24,13 @@ namespace Radiant::Memory
 			*(CommandFunc*)m_CommandBufferPtr = func;
 			m_CommandBufferPtr += sizeof(CommandFunc);
 
-		
+			*(uint32_t*)m_CommandBufferPtr = size;
+			m_CommandBufferPtr += sizeof(uint32_t);
+
 			void* memory = m_CommandBufferPtr;
 			m_CommandBufferPtr += size;
-			m_CommandCount++;
 
+			m_CommandCount++;
 			return memory;
 		}
 

@@ -9,9 +9,10 @@ namespace Radiant
 	class Rendering : public Memory::RefCounted
 	{
 	public:
-		~Rendering() = default;
+		virtual ~Rendering() = default;
 
 		static void Clear(float rgba[4]);
+		static void DrawPrimitive(Primitives primitive = Primitives::Triangle);
 	public:
 		static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
 		static Memory::Shared<RenderingContext> GetRenderingContext();

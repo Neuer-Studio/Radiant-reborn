@@ -12,10 +12,16 @@ namespace Radiant
 		OpenGL = 2
 	};
 
+	enum class Primitives
+	{
+		Triangle
+	};
+
 	class RenderingAPI : public Memory::RefCounted
 	{
 	public:
 		virtual void Clear(float rgba[4]) const = 0;
+		virtual void DrawPrimitive(Primitives primitive) const = 0;
 	public:
 		static const RenderingAPIType GetAPI();
 		static void SetAPI(RenderingAPIType api);

@@ -24,10 +24,11 @@
 
 #define RADIANT_VERIFY(cond, ...) \
 	if (!(cond))                                   \
-	{                                              \
+	{                     \
 		Radiant::LogError("Verify failed: {} at {}:{}", #cond, __FILE__, __LINE__); \
-		RADIANT_DEBUG_BREAK;                      \
+		__debugbreak();                     \
 	}
+
 
 namespace Radiant
 {

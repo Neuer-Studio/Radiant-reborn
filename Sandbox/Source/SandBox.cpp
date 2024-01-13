@@ -1,5 +1,5 @@
 #include <Radiant/Radiant.hpp>
-#include <Radiant/Core/Application.hpp>
+#include "EditorLayer.hpp"
 
 class Sandbox : public Radiant::Application
 {
@@ -7,7 +7,12 @@ public:
 	Sandbox(const Radiant::ApplicationSpecification& props)
 		: Radiant::Application(props)
 	{
-		
+
+	}
+
+	void OnInit() override
+	{
+		PushLayer(new Radiant::EditorLayer());
 	}
 };
 

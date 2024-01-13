@@ -24,13 +24,39 @@ namespace Radiant
 		s_RenderingContext = Rendering::GetRenderingContext();
 	}
 
+	Application::~Application()
+	{
+		for (Layer* layer : m_LayerStack)
+		{
+			layer->OnDetach();
+			delete layer;
+		}
+	}
+
+	void Application::PushLayer(Layer* layer)
+	{
+		m_LayerStack.PushLayer(layer);
+		layer->OnAttach();
+	}
+
+	void Application::PopLayer(Layer* layer)
+	{
+		m_LayerStack.PopLayer(layer);
+		layer->OnDetach();
+	}
+
 	void Application::Run()
 	{
+		OnInit();
+
 		while (m_Run)
 		{
+			for (Layer* layer : m_LayerStack)
+				layer->OnUpdate();
+
 			s_RenderingContext->BeginFrame();
-			s_RenderingContext->EndFrame();
 			Rendering::GetRenderingCommandBuffer().Execute();		
+			s_RenderingContext->EndFrame();
 		}
 	}
 

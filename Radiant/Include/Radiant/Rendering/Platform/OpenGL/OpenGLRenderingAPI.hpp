@@ -9,5 +9,6 @@ namespace Radiant
 	public:
 		OpenGLRenderingAPI() = default;
 		virtual void Clear(float rgba[4]) const override;
+		virtual void DrawPrimitive(Primitives primitive) const override;
 	};
 }
