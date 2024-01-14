@@ -19,6 +19,7 @@ namespace Radiant
 			};
 			VBO = VertexBuffer::Create((std::byte*)v, 4 * 6);
 			sh = Shader::Create("Resources/Shaders/test.radiantshader");
+			sh->SetUniform(RadiantShaderType::Fragment, 0, "is_1", true);
 		}
 		virtual void OnDetach()
 		{

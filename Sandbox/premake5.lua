@@ -13,6 +13,7 @@ project "Sandbox"
         "../ThirdParty/spdlog/include/",
         "../ThirdParty/GLFW/include/",
         "../ThirdParty/Glad/include/",
+        "../ThirdParty/glm/",
         "../ThirdParty/",
     }
 

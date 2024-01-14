@@ -20,7 +20,7 @@ namespace Radiant
 		: m_Buffer((void*)data, size), m_Usage(usage)
 	{
 		Memory::Shared<OpenGLVertexBuffer> instance(this);
-		Rendering::Submit([instance]() mutable
+		Rendering::SubmitCommand([instance]() mutable
 			{
 				RA_INFO("[OpenGLVertexBuffer] OpenGLVertexBuffer::OpenGLVertexBuffer");
 
@@ -47,7 +47,7 @@ namespace Radiant
 	void OpenGLVertexBuffer::Use() const
 	{
 		auto id = m_RenderingID;
-		Rendering::Submit([id]()
+		Rendering::SubmitCommand([id]()
 			{
 				glBindBuffer(GL_ARRAY_BUFFER, id);
 			});

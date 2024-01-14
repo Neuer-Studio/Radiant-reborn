@@ -34,7 +34,7 @@ namespace Radiant
 	OpenGLPipeline::~OpenGLPipeline()
 	{
 		GLuint rendererID = m_RendererID;
-		Rendering::Submit([rendererID]()
+		Rendering::SubmitCommand([rendererID]()
 			{
 				glDeleteVertexArrays(1, &rendererID);
 			});
@@ -45,7 +45,7 @@ namespace Radiant
 		RADIANT_VERIFY(m_Specification.Layout.GetElements().size(), "Layout is empty!");
 
 		Memory::Shared<OpenGLPipeline> instance = this;
-		Rendering::Submit([instance]() mutable
+		Rendering::SubmitCommand([instance]() mutable
 			{
 				auto& vertexArrayRendererID = instance->m_RendererID;
 
@@ -62,7 +62,7 @@ namespace Radiant
 	void OpenGLPipeline::Bind() const
 	{
 		const Memory::Shared<const OpenGLPipeline> instance = this;
-		Rendering::Submit([instance]()
+		Rendering::SubmitCommand([instance]()
 			{
 				glBindVertexArray(instance->m_RendererID);
 
@@ -98,7 +98,7 @@ namespace Radiant
 
 	void OpenGLPipeline::Unbind() const
 	{
-		Rendering::Submit([]()
+		Rendering::SubmitCommand([]()
 			{
 				glBindVertexArray(0);
 			});

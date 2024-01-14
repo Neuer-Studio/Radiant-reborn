@@ -3,6 +3,7 @@
 namespace Radiant
 {
 	typedef unsigned int RenderingID;
+	typedef unsigned int BindingPoint;
 
 	enum class OpenGLBufferUsage
 	{

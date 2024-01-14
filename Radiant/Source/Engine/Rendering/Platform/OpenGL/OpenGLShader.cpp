@@ -1,8 +1,6 @@
 #include <glad/glad.h>
 #include <shaderc/shaderc.hpp>
 
-#include <spirv_cross/spirv_glsl.hpp>
-
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLShader.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 
@@ -10,6 +8,32 @@ namespace Radiant
 {
 	namespace Utils
 	{
+		static RadiantShaderDataType SPIRTypeToShaderDataType(spirv_cross::SPIRType type)
+		{
+			switch (type.basetype)
+			{
+				case spirv_cross::SPIRType::Boolean:  return RadiantShaderDataType::Bool;
+				case spirv_cross::SPIRType::Int:     
+					if (type.vecsize == 1)            return RadiantShaderDataType::Int;
+					if (type.vecsize == 2)            return RadiantShaderDataType::Int2;
+					if (type.vecsize == 3)            return RadiantShaderDataType::Int3;
+					if (type.vecsize == 4)            return RadiantShaderDataType::Int4;
+
+				case spirv_cross::SPIRType::UInt:     return RadiantShaderDataType::UInt;
+				case spirv_cross::SPIRType::Float:
+					if (type.columns == 3)            return RadiantShaderDataType::Mat3;
+					if (type.columns == 4)            return RadiantShaderDataType::Mat4;
+
+					if (type.vecsize == 1)            return RadiantShaderDataType::Float;
+					if (type.vecsize == 2)            return RadiantShaderDataType::Float2;
+					if (type.vecsize == 3)            return RadiantShaderDataType::Float3;
+					if (type.vecsize == 4)            return RadiantShaderDataType::Float4;
+					break;
+			}
+			RADIANT_VERIFY(false, "Unknown type!");
+			return RadiantShaderDataType::None;
+		}
+
 		static RadiantShaderType ShaderTypeFromString(const std::string& type)
 		{
 			if (type == "vertex")
@@ -50,6 +74,20 @@ namespace Radiant
 			}
 			return (shaderc_shader_kind)0;
 		}
+
+		static std::string RadiantShaderToString(RadiantShaderType type)
+		{
+			switch (type)
+			{
+				case Radiant::RadiantShaderType::Vertex:
+					return "Vertex";
+				case Radiant::RadiantShaderType::Fragment:
+					return "Fragment";
+				case Radiant::RadiantShaderType::Compute:
+					return "Compute";
+			}
+			return "NONE";
+		}
 	}
 
 	OpenGLShader::OpenGLShader(const std::filesystem::path& path)
@@ -70,12 +108,68 @@ namespace Radiant
 	{
 		PreProcess(shader—ontent);
 		CompileToSPIR_V();
-		Upload();
+		Rendering::SubmitCommand([this]()
+			{
+				Upload();
+			});
 	
 	}
 
-	void OpenGLShader::Parse()
+	void OpenGLShader::ParseBuffers(RadiantShaderType shadertype, const std::vector<uint32_t>& data)
 	{
+		spirv_cross::Compiler compiler(data);
+		spirv_cross::ShaderResources res = compiler.get_shader_resources();
+
+		RA_TRACE("OpenGLShader::ParseBuffers - {0} {1}", m_FilePath.string(), Utils::RadiantShaderToString(shadertype));
+		RA_TRACE("   {0} Uniform Buffers", res.uniform_buffers.size());
+		RA_TRACE("   {0} Resources", res.sampled_images.size());
+		RA_TRACE("   {0} Constant Buffers", res.push_constant_buffers.size());
+
+		for (const spirv_cross::Resource& resource : res.push_constant_buffers)
+		{
+			RADIANT_VERIFY(false);
+			const auto& bufferName = resource.name;
+		}
+
+		glUseProgram(m_RenderingID);
+
+		// ======= Uniform buffer =======
+
+		uint32_t bufferIndex = 0;
+		for (const spirv_cross::Resource& resource : res.uniform_buffers)
+		{
+			auto& bufferType = compiler.get_type(resource.base_type_id);
+			int memberCount = bufferType.member_types.size();
+			uint32_t bindingPoint = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			uint32_t bufferSize = compiler.get_declared_struct_size(bufferType);
+
+
+			if (s_UniformBuffers[shadertype].find(bindingPoint) == s_UniformBuffers[shadertype].end())
+			{
+				ShaderUniformBuffer& buffer = s_UniformBuffers[shadertype][bindingPoint];
+				buffer.Name = resource.name;
+				buffer.Binding = bindingPoint;
+				buffer.Size = bufferSize;
+
+				buffer.Uniforms.reserve(memberCount);
+
+				glCreateBuffers(1, &buffer.RenderingID);
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferData(GL_UNIFORM_BUFFER, buffer.Size, nullptr, GL_DYNAMIC_DRAW);
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+
+				for (int i = 0; i < memberCount; i++)
+				{
+					auto type = compiler.get_type(bufferType.member_types[i]);
+					auto name = compiler.get_member_name(bufferType.self, i);
+					auto size = compiler.get_declared_struct_member_size(bufferType, i);
+					auto offset = compiler.type_struct_member_offset(bufferType, i);
+
+					RadiantShaderDataType uniformType = Utils::SPIRTypeToShaderDataType(type);
+					buffer.Uniforms[name] = {name, shadertype, uniformType , size, offset};
+				}
+			}
+		}
 	}
 
 	void OpenGLShader::CompileToSPIR_V()
@@ -143,6 +237,9 @@ namespace Radiant
 		// Always detach shaders after a successful link.
 		for (auto id : shaderRendererIDs)
 			glDetachShader(m_RenderingID, id);
+
+		for(auto& shaderData : m_ShaderBinary)
+			ParseBuffers(shaderData.first, shaderData.second);
 	}
 
 	void OpenGLShader::PreProcess(const std::string& content)
@@ -167,14 +264,77 @@ namespace Radiant
 		}
 	}
 
+	GLuint OpenGLShader::OGLGetUniformPosition(const std::string& name)
+	{
+		auto pos = glGetUniformLocation(m_RenderingID, name.c_str());
+		if(pos == -1)
+			RA_WARN("{0}: could not find uniform location {0}", name);
+		return pos;
+	}
+
 	void OpenGLShader::Use() const
 	{
 		auto id = m_RenderingID;
-		if (id == (uint32_t)-1)
-			return;
-		Rendering::Submit([id]()
+		Rendering::SubmitCommand([id]()
 			{
 				glUseProgram(1);
 			});
 	}
+
+	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const
+	{
+		Memory::Shared<const OpenGLShader> instance(this);
+		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+			{
+				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
+				MemberUniformBuffer uniform = buffer.Uniforms[name];
+
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			});
+	}
+
+	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec2& value) const
+	{
+		Memory::Shared<const OpenGLShader> instance(this);
+		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+			{
+				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
+				MemberUniformBuffer uniform = buffer.Uniforms[name];
+
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			});
+	}
+
+	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, float value) const
+	{
+		Memory::Shared<const OpenGLShader> instance(this);
+		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+			{
+				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
+				MemberUniformBuffer uniform = buffer.Uniforms[name];
+
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			});
+	}
+
+	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, bool value) const
+	{
+		Memory::Shared<const OpenGLShader> instance(this);
+		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+			{
+				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
+				MemberUniformBuffer uniform = buffer.Uniforms[name];
+
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			});
+	}
+
 }

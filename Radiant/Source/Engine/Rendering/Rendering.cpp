@@ -28,7 +28,7 @@ namespace Radiant
 	void Rendering::Clear(float rgba[4])
 	{
 		static float _rgba[4] = { rgba[0], rgba[1], rgba[2], rgba[3] };
-		Rendering::Submit([]()
+		Rendering::SubmitCommand([]()
 			{
 				s_RenderingAPIPlatform->Clear((float*)_rgba);
 			});
@@ -36,7 +36,7 @@ namespace Radiant
 
 	void Rendering::DrawPrimitive(Primitives primitive)
 	{
-		Rendering::Submit([primitive]()
+		Rendering::SubmitCommand([primitive]()
 			{
 				s_RenderingAPIPlatform->DrawPrimitive(primitive);
 			});

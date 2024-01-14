@@ -18,7 +18,7 @@ namespace Radiant
 		static Memory::Shared<RenderingContext> GetRenderingContext();
 	public:
 		template <typename FuncT>
-		static void Submit(FuncT&& func)
+		static void SubmitCommand(FuncT&& func)
 		{
 			auto renderCMD = [](void* ptr)
 			{

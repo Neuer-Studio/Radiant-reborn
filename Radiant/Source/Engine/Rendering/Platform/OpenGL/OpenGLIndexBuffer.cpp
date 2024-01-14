@@ -20,7 +20,7 @@ namespace Radiant
 		: m_Buffer((void*)data, size), m_Usage(usage)
 	{
 		Memory::Shared<OpenGLIndexBuffer> instance(this);
-		Rendering::Submit([instance]() mutable
+		Rendering::SubmitCommand([instance]() mutable
 			{
 				glGenBuffers(1, &instance->m_RenderingID);
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instance->m_RenderingID);
@@ -42,7 +42,7 @@ namespace Radiant
 	void OpenGLIndexBuffer::Use() const
 	{
 		auto id = m_RenderingID;
-		Rendering::Submit([id]()
+		Rendering::SubmitCommand([id]()
 			{
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
 			});
