@@ -8,6 +8,21 @@ namespace Radiant
 {
 	namespace Utils
 	{
+		static RadiantShaderSamplerDataType GetDimensionSampler(spv::Dim type)
+		{
+			switch (type)
+			{
+				case spv::Dim::Dim1D:
+					return RadiantShaderSamplerDataType::Sampler1D;
+				case spv::Dim::Dim2D:
+					return RadiantShaderSamplerDataType::Sampler2D;
+				case spv::Dim::Dim3D:
+					return RadiantShaderSamplerDataType::Sampler3D;
+			}
+
+			return RadiantShaderSamplerDataType::None;
+		}
+
 		static RadiantShaderDataType SPIRTypeToShaderDataType(spirv_cross::SPIRType type)
 		{
 			switch (type.basetype)
@@ -169,6 +184,23 @@ namespace Radiant
 					buffer.Uniforms[name] = {name, shadertype, uniformType , size, offset};
 				}
 			}
+
+			// ======== Sampler ========
+
+			int32_t sampler = 0;
+  			for (const spirv_cross::Resource& resource : res.sampled_images)
+			{
+				auto& type = compiler.get_type(resource.base_type_id);
+				auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+				const auto& name = resource.name;
+				GLint location = glGetUniformLocation(m_RenderingID, name.c_str());
+				RADIANT_VERIFY(location != -1);
+
+				glUniform1i(location, binding);
+
+				m_Resources[name] = { name, shadertype, Utils::GetDimensionSampler(type.image.dim), binding};
+			}
+
 		}
 	}
 
@@ -334,6 +366,8 @@ namespace Radiant
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+				 // glNamedBufferSubData
 			});
 	}
 

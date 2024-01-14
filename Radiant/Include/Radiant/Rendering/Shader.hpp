@@ -25,6 +25,12 @@ namespace Radiant
 		Bool
 	};
 
+	enum class RadiantShaderSamplerDataType
+	{
+		None = 0,
+		Sampler1D, Sampler2D, Sampler3D
+	};
+
 	struct MemberUniformBuffer
 	{
 		std::string Name;
@@ -32,6 +38,14 @@ namespace Radiant
 		RadiantShaderDataType DataType = RadiantShaderDataType::None;
 		size_t Size = 0;
 		uint32_t Offset = 0;
+	};
+
+	struct SamplerUniform
+	{
+		std::string Name;
+		RadiantShaderType ShaderType = RadiantShaderType::None;
+		RadiantShaderSamplerDataType DataType = RadiantShaderSamplerDataType::None;
+		BindingPoint Binding;
 	};
 
 	typedef std::unordered_map<std::string, MemberUniformBuffer> UniformBuffer;
