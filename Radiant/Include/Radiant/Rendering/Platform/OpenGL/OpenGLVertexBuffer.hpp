@@ -12,7 +12,7 @@ namespace Radiant
 		OpenGLVertexBuffer(uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Dynamic);
 
 		virtual void SetData() override;
-		virtual void Use() const override;
+		virtual void Use(BindUsage use = BindUsage::Bind) const override;
 
 		virtual unsigned int GetSize() const override { return m_Buffer.Size; }
 		virtual RenderingID GetRenderingID() const override { return m_RenderingID; }

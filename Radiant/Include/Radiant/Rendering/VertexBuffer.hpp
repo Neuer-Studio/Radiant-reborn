@@ -90,7 +90,7 @@ namespace Radiant
 	public:
 		virtual ~VertexBuffer() = default;
 		virtual void SetData() = 0;
-		virtual void Use() const = 0;
+		virtual void Use(BindUsage use) const = 0;
 
 		virtual unsigned int GetSize() const = 0;
 		virtual RenderingID GetRenderingID() const = 0;

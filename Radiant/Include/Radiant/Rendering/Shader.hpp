@@ -66,7 +66,7 @@ namespace Radiant
 	public:
 		virtual ~Shader() = default;
 
-		virtual void Use() const = 0;
+		virtual void Use(BindUsage use) const = 0;
 		virtual void Reload() = 0;
 
 		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const = 0;

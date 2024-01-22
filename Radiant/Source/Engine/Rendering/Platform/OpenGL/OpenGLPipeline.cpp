@@ -59,11 +59,17 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLPipeline::Bind() const
+	void OpenGLPipeline::Use(BindUsage use) const
 	{
 		const Memory::Shared<const OpenGLPipeline> instance = this;
-		Rendering::SubmitCommand([instance]()
+		Rendering::SubmitCommand([instance, use]()
 			{
+				if (use == BindUsage::Clear)
+				{
+					glBindVertexArray(0);
+					return;
+				}
+
 				glBindVertexArray(instance->m_RendererID);
 
 				const auto& layout = instance->m_Specification.Layout;
@@ -95,13 +101,4 @@ namespace Radiant
 				}
 			});
 	}
-
-	void OpenGLPipeline::Unbind() const
-	{
-		Rendering::SubmitCommand([]()
-			{
-				glBindVertexArray(0);
-			});
-	}
-
 }

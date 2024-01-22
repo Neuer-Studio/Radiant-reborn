@@ -304,12 +304,17 @@ namespace Radiant
 		return pos;
 	}
 
-	void OpenGLShader::Use() const
+	void OpenGLShader::Use(BindUsage use) const
 	{
 		auto id = m_RenderingID;
-		Rendering::SubmitCommand([id]()
+		Rendering::SubmitCommand([id , use]()
 			{
-				glUseProgram(1);
+				if (use == BindUsage::Clear)
+				{
+					glUseProgram(0);
+					return;
+				}
+				glUseProgram(id);
 			});
 	}
 

@@ -14,7 +14,7 @@ namespace Radiant
 		virtual ~OpenGLShader() override = default;
 
 		virtual void Reload() override;
-		virtual void Use() const override;
+		virtual void Use(BindUsage use = BindUsage::Bind) const override;
 
 		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const override;
 		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec2& value) const override;

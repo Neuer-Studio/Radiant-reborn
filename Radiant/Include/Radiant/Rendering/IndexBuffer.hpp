@@ -9,7 +9,7 @@ namespace Radiant
 	public:
 		virtual ~IndexBuffer() = default;
 		virtual void SetData() = 0;
-		virtual void Use() const = 0;
+		virtual void Use(BindUsage use) const = 0;
 
 		virtual unsigned int GetSize() const = 0;
 		virtual unsigned int GetCount() const = 0;

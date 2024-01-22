@@ -44,11 +44,16 @@ namespace Radiant
 		RADIANT_VERIFY(false);
 	}
 
-	void OpenGLVertexBuffer::Use() const
+	void OpenGLVertexBuffer::Use(BindUsage use) const
 	{
 		auto id = m_RenderingID;
-		Rendering::SubmitCommand([id]()
+		Rendering::SubmitCommand([id, use]()
 			{
+				if (use == BindUsage::Clear)
+				{
+					glBindBuffer(GL_ARRAY_BUFFER, 0);
+					return;
+				}
 				glBindBuffer(GL_ARRAY_BUFFER, id);
 			});
 	}

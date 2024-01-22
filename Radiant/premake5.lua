@@ -26,7 +26,10 @@ project "Radiant"
         "Source/Engine/**.cpp", 
         "Source/Engine/**.hpp",
 
-        "Include/**.hpp"
+        "Include/**.hpp",
+
+        -- stb
+        "../ThirdParty/stb/stb_image.cpp",
     }
 
     includedirs {
@@ -43,6 +46,7 @@ project "Radiant"
         "../ThirdParty/VulkanSDK/spirv_cross/Include",
         "../ThirdParty/VulkanSDK/include",
         "../ThirdParty/Glad/include/",
+        "../ThirdParty/stb/include/",
         
         "../ThirdParty/",
     }

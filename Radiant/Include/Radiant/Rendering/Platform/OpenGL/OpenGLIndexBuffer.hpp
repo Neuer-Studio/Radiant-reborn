@@ -12,7 +12,7 @@ namespace Radiant
 		OpenGLIndexBuffer(uint32_t size, OpenGLBufferUsage usage);
 
 		virtual void SetData() override;
-		virtual void Use() const override;
+		virtual void Use(BindUsage use = BindUsage::Bind) const override;
 
 		virtual unsigned int GetSize() const override { return m_Buffer.Size / sizeof(uint32_t); }
 		virtual unsigned int GetCount() const override { return m_Buffer.Size; }

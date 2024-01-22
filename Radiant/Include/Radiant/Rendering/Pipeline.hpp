@@ -19,8 +19,7 @@ namespace Radiant
 
 		virtual void Invalidate() = 0;
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
+		virtual void Use(BindUsage use) const = 0;
 
 		static Memory::Shared<Pipeline> Create(const PipelineSpecification& spec);
 	};

@@ -39,11 +39,16 @@ namespace Radiant
 		RADIANT_VERIFY(false);
 	}
 
-	void OpenGLIndexBuffer::Use() const
+	void OpenGLIndexBuffer::Use(BindUsage use) const
 	{
 		auto id = m_RenderingID;
-		Rendering::SubmitCommand([id]()
+		Rendering::SubmitCommand([id, use]()
 			{
+				if (use == BindUsage::Clear)
+				{
+					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+					return;
+				}
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
 			});
 	}

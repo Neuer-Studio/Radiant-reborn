@@ -10,4 +10,9 @@ namespace Radiant
 		None = 0, Static = 1, Dynamic = 2
 	};
 
+	enum class BindUsage
+	{
+		Bind = 0, Clear = 0
+	};
+
 }
