@@ -15,3 +15,5 @@
 #include <Radiant/Rendering/IndexBuffer.hpp>
 #include <Radiant/Rendering/Shader.hpp>
 #include <Radiant/Rendering/Pipeline.hpp>
+#include <Radiant/Rendering/Image.hpp>
+#include <Radiant/Rendering/Texture.hpp>

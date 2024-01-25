@@ -34,11 +34,11 @@ namespace Radiant
 			});
 	}
 
-	void Rendering::DrawPrimitive(Primitives primitive)
+	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count)
 	{
-		Rendering::SubmitCommand([primitive]()
+		Rendering::SubmitCommand([primitive, count]()
 			{
-				s_RenderingAPIPlatform->DrawPrimitive(primitive);
+				s_RenderingAPIPlatform->DrawPrimitive(primitive, count);
 			});
 	}
 

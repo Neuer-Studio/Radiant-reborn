@@ -64,7 +64,7 @@ namespace Radiant
 		const Memory::Shared<const OpenGLPipeline> instance = this;
 		Rendering::SubmitCommand([instance, use]()
 			{
-				if (use == BindUsage::Clear)
+				if (use == BindUsage::Unbind)
 				{
 					glBindVertexArray(0);
 					return;

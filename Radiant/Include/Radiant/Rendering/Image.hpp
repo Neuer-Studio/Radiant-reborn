@@ -8,6 +8,7 @@ namespace Radiant
 	{
 		None = 0,
 		RGB,
+		RGBA,
 	};
 
 	struct ImageSpecification
@@ -24,7 +25,7 @@ namespace Radiant
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
 		virtual ImageFormat GetImageFormat() const = 0;
-		virtual void Use(uint32_t slot = 0, BindUsage use) const = 0;
+		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const = 0;
 	};
 
 	class Image2D : public Image

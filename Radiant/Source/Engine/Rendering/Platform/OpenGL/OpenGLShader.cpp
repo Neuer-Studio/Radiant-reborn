@@ -309,7 +309,7 @@ namespace Radiant
 		auto id = m_RenderingID;
 		Rendering::SubmitCommand([id , use]()
 			{
-				if (use == BindUsage::Clear)
+				if (use == BindUsage::Unbind)
 				{
 					glUseProgram(0);
 					return;

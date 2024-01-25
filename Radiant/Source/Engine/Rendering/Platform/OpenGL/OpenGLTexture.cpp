@@ -1,6 +1,7 @@
 #include <stb_image/stb_image.h>
 
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLTexture.hpp>
+#include <Radiant/Rendering/Rendering.hpp>
 
 namespace Radiant
 {
@@ -19,15 +20,26 @@ namespace Radiant
 		{
 			RA_INFO("Loading texture {}, srgb = {}, HDR = {}", Utils::FileSystem::GetFileName(path), srgb, false);
 			unsigned char* data = stbi_load(path.string().c_str(), &width, &height, &nrChannels, srgb ? STBI_rgb : STBI_rgb_alpha);
+			RADIANT_VERIFY(data);
+			imageSpec.Data = (std::byte*)data;
+			imageSpec.Format = srgb ? ImageFormat::RGBA : ImageFormat::RGB;
 		}
 		imageSpec.Width = width;
 		imageSpec.Height = height;
-		m_Image2D = OpenGLImage2D::Create();
+		m_Image2D = Image2D::Create(imageSpec);
+
+		m_Image2D.As<OpenGLImage2D>()->Invalidate();
+
+		auto& image = m_Image2D;
+		Rendering::SubmitCommand([image]() mutable
+			{
+				//stbi_image_free(image->);
+			});
 	}
 
 	OpenGLTexture2D::~OpenGLTexture2D()
 	{
-		m_Image2D->Release();
+		m_Image2D.As<OpenGLImage2D>()->Release();
 	}
 
 	void OpenGLTexture2D::Use(uint32_t slot, BindUsage use) const

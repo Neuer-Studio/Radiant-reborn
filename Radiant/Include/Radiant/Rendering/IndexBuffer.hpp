@@ -9,13 +9,13 @@ namespace Radiant
 	public:
 		virtual ~IndexBuffer() = default;
 		virtual void SetData() = 0;
-		virtual void Use(BindUsage use) const = 0;
+		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
 
 		virtual unsigned int GetSize() const = 0;
 		virtual unsigned int GetCount() const = 0;
 		virtual RenderingID GetRenderingID() const = 0;
 
-		static Memory::Shared<IndexBuffer> Create(const std::byte* data, uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Static);
+		static Memory::Shared<IndexBuffer> Create(const void* data, uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Static);
 		static Memory::Shared<IndexBuffer> Create(uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Dynamic);
 
 	};

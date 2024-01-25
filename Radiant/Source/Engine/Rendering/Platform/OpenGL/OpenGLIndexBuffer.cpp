@@ -16,7 +16,7 @@ namespace Radiant
 		return 0;
 	}
 
-	OpenGLIndexBuffer::OpenGLIndexBuffer(const std::byte* data, uint32_t size, OpenGLBufferUsage usage)
+	OpenGLIndexBuffer::OpenGLIndexBuffer(const void* data, uint32_t size, OpenGLBufferUsage usage)
 		: m_Buffer((void*)data, size), m_Usage(usage)
 	{
 		Memory::Shared<OpenGLIndexBuffer> instance(this);
@@ -41,15 +41,15 @@ namespace Radiant
 
 	void OpenGLIndexBuffer::Use(BindUsage use) const
 	{
-		auto id = m_RenderingID;
-		Rendering::SubmitCommand([id, use]()
+		Memory::Shared<const OpenGLIndexBuffer> instance(this);
+		Rendering::SubmitCommand([instance, use]()
 			{
-				if (use == BindUsage::Clear)
+				if (use == BindUsage::Unbind)
 				{
 					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 					return;
 				}
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instance->m_RenderingID);
 			});
 	}
 }

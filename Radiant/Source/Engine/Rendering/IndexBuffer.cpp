@@ -3,7 +3,7 @@
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLIndexBuffer.hpp>
 
 namespace Radiant {
-	Memory::Shared<IndexBuffer> IndexBuffer::Create(const std::byte* data, uint32_t size, OpenGLBufferUsage usage)
+	Memory::Shared<IndexBuffer> IndexBuffer::Create(const void* data, uint32_t size, OpenGLBufferUsage usage)
 	{
 		switch (RenderingAPI::GetAPI())
 		{

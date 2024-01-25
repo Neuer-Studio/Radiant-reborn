@@ -11,15 +11,32 @@ namespace Radiant
 
 		virtual void OnAttach()
 		{
-			float* v = new float[6]
+			static float v []=
 			{
-				0.0f, 0.5f,
-					-0.5f, -0.5f,
-					0.5f, -0.5f
+				// positions           
+				0.5f, 0.5f, 0.0f,				1.0f, 1.0f, // top right
+				0.5f, -0.5f, 0.0f,				 1.0f, 0.0f, // bottom right
+				-0.5f, -0.5f, 0.0f,					 0.0f, 0.0f, // bottom left
+				-0.5f, 0.5f, 0.0f,					0.0f, 1.0f  // top left 
 			};
-			VBO = VertexBuffer::Create((std::byte*)v, 4 * 6);
+			static unsigned int indices[] = {
+				0, 1, 3, // first triangle
+				1, 2, 3  // second triangle
+			};
+			IBO = IndexBuffer::Create(indices, sizeof(indices));
+			VBO = VertexBuffer::Create((std::byte*)v, sizeof(v));
 			sh = Shader::Create("Resources/Shaders/test.radiantshader");
-			sh->SetUniform(RadiantShaderType::Fragment, 0, "is_1", true);
+			tex = Texture2D::Create("Resources/Textures/awesomeface.png");
+
+			VertexBufferLayout vertexLayout;
+			vertexLayout = {
+					{ ShaderDataType::Float3, "a_Position" },
+					{ ShaderDataType::Float2, "a_TexCoords" },
+			};
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = vertexLayout;
+			pip = Pipeline::Create(pipelineSpecification);
+
 		}
 		virtual void OnDetach()
 		{
@@ -27,12 +44,21 @@ namespace Radiant
 		}
 		virtual void OnUpdate() override
 		{
+			pip->Use();
 			VBO->Use();
+			IBO->Use();
 			sh->Use();
-			Rendering::DrawPrimitive(Primitives::Triangle);
+			tex->Use(1);
+			
+			Rendering::DrawPrimitive(Primitives::Triangle, IBO->GetCount());
 		}
 	private:
 		Memory::Shared<VertexBuffer> VBO;
 		Memory::Shared<Shader> sh;
+		Memory::Shared<Texture2D> tex;
+		Memory::Shared<Pipeline> pip;
+		Memory::Shared<IndexBuffer> IBO;
+
+
 	};
 }

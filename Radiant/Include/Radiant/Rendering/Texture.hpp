@@ -9,7 +9,7 @@ namespace Radiant
 	public:
 		virtual ~Texture() = default;
 
-		virtual void Use(uint32_t slot, BindUsage use) const = 0;
+		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const = 0;
 
 		virtual const std::filesystem::path& GetPath() const = 0;
 		virtual const std::string& GetName() const = 0;
@@ -21,6 +21,6 @@ namespace Radiant
 	public:
 		virtual const Memory::Shared<Image2D>& GetImage2D() const = 0;
 
-		Memory::Shared<Texture2D> Create(const std::filesystem::path& path, bool srgb = false);
+		static Memory::Shared<Texture2D> Create(const std::filesystem::path& path, bool srgb = false);
 	};
 }

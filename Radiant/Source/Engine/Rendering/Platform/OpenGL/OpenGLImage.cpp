@@ -13,6 +13,8 @@ namespace Radiant
 			{
 				case ImageFormat::RGB:
 					return GL_RGB;
+				case ImageFormat::RGBA:
+					return GL_RGBA;
 			}
 			RADIANT_VERIFY(false, "Unknown Radiant format");
 			return GL_NONE;
@@ -24,6 +26,8 @@ namespace Radiant
 			{
 			case ImageFormat::RGB:
 				return GL_RGB;
+			case ImageFormat::RGBA:
+				return GL_RGBA;
 			}
 			RADIANT_VERIFY(false, "Unknown Radiant format");
 			return GL_NONE;
@@ -34,6 +38,7 @@ namespace Radiant
 			switch (format)
 			{
 			case ImageFormat::RGB:
+			case ImageFormat::RGBA:
 				return GL_UNSIGNED_BYTE;
 			}
 			RADIANT_VERIFY(false, "Unknown Radiant format");
@@ -79,10 +84,10 @@ namespace Radiant
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, internalformat, instance->m_Specification.Width, instance->m_Specification.Height, 0, format, type, instance->m_Specification.Data);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, instance->m_Specification.Width, instance->m_Specification.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, instance->m_Specification.Data);
 				glGenerateMipmap(GL_TEXTURE_2D);
 			});
 	}

@@ -90,12 +90,12 @@ namespace Radiant
 	public:
 		virtual ~VertexBuffer() = default;
 		virtual void SetData() = 0;
-		virtual void Use(BindUsage use) const = 0;
+		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
 
 		virtual unsigned int GetSize() const = 0;
 		virtual RenderingID GetRenderingID() const = 0;
 
-		static Memory::Shared<VertexBuffer> Create(std::byte* data, uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Static);
+		static Memory::Shared<VertexBuffer> Create(void* data, uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Static);
 		static Memory::Shared<VertexBuffer> Create(uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Dynamic);
 
 	};

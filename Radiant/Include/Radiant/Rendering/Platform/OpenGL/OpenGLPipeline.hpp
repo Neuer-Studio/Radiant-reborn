@@ -18,6 +18,6 @@ namespace Radiant
 		virtual void Use(BindUsage use = BindUsage::Bind) const override;
 	private:
 		PipelineSpecification m_Specification;
-		RenderingID m_RendererID;
+		RenderingID m_RendererID = 0;
 	};
 }

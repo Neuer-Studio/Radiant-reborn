@@ -4,7 +4,7 @@
 
 namespace Radiant {
 
-	Memory::Shared<VertexBuffer> VertexBuffer::Create(std::byte* data, uint32_t size, OpenGLBufferUsage usage)
+	Memory::Shared<VertexBuffer> VertexBuffer::Create(void* data, uint32_t size, OpenGLBufferUsage usage)
 	{
 		switch (RenderingAPI::GetAPI())
 		{

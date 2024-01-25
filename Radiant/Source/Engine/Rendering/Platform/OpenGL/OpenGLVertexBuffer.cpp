@@ -16,7 +16,7 @@ namespace Radiant
 		return 0;
 	}
 
-	OpenGLVertexBuffer::OpenGLVertexBuffer(const std::byte* data, uint32_t size, OpenGLBufferUsage usage)
+	OpenGLVertexBuffer::OpenGLVertexBuffer(const void* data, uint32_t size, OpenGLBufferUsage usage)
 		: m_Buffer((void*)data, size), m_Usage(usage)
 	{
 		Memory::Shared<OpenGLVertexBuffer> instance(this);
@@ -27,9 +27,6 @@ namespace Radiant
 				glGenBuffers(1, &instance->m_RenderingID);
 				glBindBuffer(GL_ARRAY_BUFFER, instance->m_RenderingID);
 				glBufferData(GL_ARRAY_BUFFER, instance->m_Buffer.Size, instance->m_Buffer.Data, OpenGLUsage(instance->m_Usage));
-
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 			});
 	}
 
@@ -46,15 +43,15 @@ namespace Radiant
 
 	void OpenGLVertexBuffer::Use(BindUsage use) const
 	{
-		auto id = m_RenderingID;
-		Rendering::SubmitCommand([id, use]()
+		Memory::Shared<const OpenGLVertexBuffer> instance(this);
+		Rendering::SubmitCommand([instance, use]()
 			{
-				if (use == BindUsage::Clear)
+				if (use == BindUsage::Unbind)
 				{
 					glBindBuffer(GL_ARRAY_BUFFER, 0);
 					return;
 				}
-				glBindBuffer(GL_ARRAY_BUFFER, id);
+				glBindBuffer(GL_ARRAY_BUFFER, instance->m_RenderingID);
 			});
 	}
 

@@ -12,7 +12,7 @@ namespace Radiant
 		virtual ~Rendering() = default;
 
 		static void Clear(float rgba[4]);
-		static void DrawPrimitive(Primitives primitive = Primitives::Triangle);
+		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3);
 	public:
 		static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
 		static Memory::Shared<RenderingContext> GetRenderingContext();

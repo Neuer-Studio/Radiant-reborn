@@ -8,7 +8,7 @@ namespace Radiant
 	class OpenGLVertexBuffer : public VertexBuffer 
 	{
 	public:
-		OpenGLVertexBuffer(const std::byte* data, uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Static);
+		OpenGLVertexBuffer(const void* data, uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Static);
 		OpenGLVertexBuffer(uint32_t size, OpenGLBufferUsage usage = OpenGLBufferUsage::Dynamic);
 
 		virtual void SetData() override;

@@ -18,9 +18,9 @@ namespace Radiant
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
-	void OpenGLRenderingAPI::DrawPrimitive(Primitives primitive) const
+	void OpenGLRenderingAPI::DrawPrimitive(Primitives primitive, uint32_t count) const
 	{
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 	}
 
 }

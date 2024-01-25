@@ -12,7 +12,7 @@ namespace Radiant
 
 	enum class BindUsage
 	{
-		Bind = 0, Clear = 0
+		Bind = 0, Unbind = 1
 	};
 
 }
