@@ -17,6 +17,27 @@ namespace Radiant::Utils
 		return CreateDirectory(fs::path(directory));
 	}
 
+	void FileSystem::CreateFile(const std::string& path)
+	{
+		CreateFile(fs::path(path));
+	}
+
+	void FileSystem::CreateFile(const std::filesystem::path& path)
+	{
+		std::ofstream file(path);
+
+		if (file.is_open())
+		{
+			RA_INFO("Created File {}", path.string());
+			file.close();
+		}
+
+		else
+		{
+			RADIANT_VERIFY(false);
+		}
+	}
+
 	bool FileSystem::Exists(const std::filesystem::path& filepath)
 	{
 		return fs::exists(filepath);

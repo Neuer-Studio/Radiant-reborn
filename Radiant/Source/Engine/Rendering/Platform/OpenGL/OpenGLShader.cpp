@@ -4,6 +4,8 @@
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLShader.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 
+namespace fs = std::filesystem;
+
 namespace Radiant
 {
 	namespace Utils
@@ -21,6 +23,19 @@ namespace Radiant
 			}
 
 			return RadiantShaderSamplerDataType::None;
+		}
+
+		static fs::path GetBinaryPathByType(RadiantShaderType type, const fs::path& shaderFile)
+		{
+			switch (type)
+			{
+			case RadiantShaderType::Vertex :
+				return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_VERT);
+			case RadiantShaderType::Fragment:
+				return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_FRAG);
+			}
+
+			return {};
 		}
 
 		static RadiantShaderDataType SPIRTypeToShaderDataType(spirv_cross::SPIRType type)
@@ -122,7 +137,22 @@ namespace Radiant
 	void OpenGLShader::Load(const std::string& shader—ontent)
 	{
 		PreProcess(shader—ontent);
+
+		if (!Utils::FileSystem::Exists(Constants::Path::RESOURCE_SPIRV_BINARY))
+		{
+			if (!fs::exists(Constants::Path::RESOURCE_SPIRV_BINARY.parent_path())) {
+				fs::create_directories(Constants::Path::RESOURCE_SPIRV_BINARY.parent_path());
+			}
+			Utils::FileSystem::CreateDirectory(Constants::Path::RESOURCE_SPIRV_BINARY);
+		}
+
 		CompileToSPIR_V();
+
+		for (const auto& sh : m_ShaderBinary)
+		{
+			UpdateBinaryFile(m_FilePath, Utils::GetBinaryPathByType(sh.first, m_FilePath), sh.second);
+		}
+
 		Rendering::SubmitCommand([this]()
 			{
 				Upload();
@@ -221,6 +251,32 @@ namespace Radiant
 			m_ShaderBinary[source.first] = { module.cbegin(), module.cend() };
 		}
 
+	}
+
+	void OpenGLShader::UpdateBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary)
+	{
+		if (!Utils::FileSystem::Exists(binaryPath))
+		{
+			Utils::FileSystem::CreateFile(binaryPath);
+		}
+
+		auto fileSize = fs::file_size(binaryPath);
+		auto binaryFileTime = fs::last_write_time(binaryPath);
+		auto fileTime = fs::last_write_time(path);
+		if (!fileSize || binaryFileTime < fileTime)
+		{
+			std::ofstream file(binaryPath);
+
+			if (file.is_open())
+			{
+				file.write((const char*)binary.data(), binary.size());
+				file.close();
+			}
+			else
+			{
+				RADIANT_VERIFY(false);
+			}
+		}
 	}
 
 	void OpenGLShader::Upload()

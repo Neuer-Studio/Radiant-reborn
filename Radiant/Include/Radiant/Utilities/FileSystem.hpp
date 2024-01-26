@@ -8,6 +8,7 @@
 #undef DeleteFile
 #undef MoveFile
 #undef CopyFile
+#undef CreateFile
 #undef SetEnvironmentVariable
 #undef GetEnvironmentVariable
 #endif
@@ -25,6 +26,8 @@ namespace Radiant::Utils
 		static std::string ReadFileContent(const std::filesystem::path& filepath);
 		static bool CreateDirectory(const std::filesystem::path& directory);
 		static bool CreateDirectory(const std::string& directory);
+		static void CreateFile(const std::string& path);
+		static void CreateFile(const std::filesystem::path& path);
 		static bool Exists(const std::filesystem::path& filepath);
 		static bool Exists(const std::string& filepath);
 		static std::string GetFileDirectoryString(const std::filesystem::path& filepath);
