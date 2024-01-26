@@ -69,11 +69,6 @@ namespace Radiant
 		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
 		virtual void Reload() = 0;
 
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const = 0;
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec2& value) const = 0;
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, float value) const = 0;
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, bool value) const = 0;
-
 		static Memory::Shared<Shader> Create(const std::filesystem::path& path);
 	};
 }

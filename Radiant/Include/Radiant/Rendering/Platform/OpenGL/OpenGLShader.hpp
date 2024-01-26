@@ -15,11 +15,6 @@ namespace Radiant
 
 		virtual void Reload() override;
 		virtual void Use(BindUsage use = BindUsage::Bind) const override;
-
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const override;
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec2& value) const override;
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, float value) const override;
-		virtual void SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, bool value) const override;
 	private:
 	private:
 		void Load(const std::string& shader—ontent);
@@ -38,6 +33,8 @@ namespace Radiant
 		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
-		inline static std::unordered_map<RadiantShaderType, std::unordered_map<BindingPoint, ShaderUniformBuffer>> s_UniformBuffers;
+		std::unordered_map<RadiantShaderType, std::unordered_map<BindingPoint, ShaderUniformBuffer>> m_UniformBuffers;
+	private:
+		friend class OpenGLMaterial;
 	};
 }

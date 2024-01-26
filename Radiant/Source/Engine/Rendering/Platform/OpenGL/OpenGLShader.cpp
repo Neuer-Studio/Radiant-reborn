@@ -159,9 +159,9 @@ namespace Radiant
 			uint32_t bufferSize = compiler.get_declared_struct_size(bufferType);
 
 
-			if (s_UniformBuffers[shadertype].find(bindingPoint) == s_UniformBuffers[shadertype].end())
+			if (m_UniformBuffers[shadertype].find(bindingPoint) == m_UniformBuffers[shadertype].end())
 			{
-				ShaderUniformBuffer& buffer = s_UniformBuffers[shadertype][bindingPoint];
+				ShaderUniformBuffer& buffer = m_UniformBuffers[shadertype][bindingPoint];
 				buffer.Name = resource.name;
 				buffer.Binding = bindingPoint;
 				buffer.Size = bufferSize;
@@ -193,8 +193,8 @@ namespace Radiant
 				auto& type = compiler.get_type(resource.base_type_id);
 				auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 				const auto& name = resource.name;
-				GLint location = glGetUniformLocation(m_RenderingID, name.c_str());
-				RADIANT_VERIFY(location != -1);
+				GLint location = OGLGetUniformPosition(name.c_str());
+//				RADIANT_VERIFY(location != -1);
 
 				glUniform1i(location, binding);
 
@@ -317,63 +317,4 @@ namespace Radiant
 				glUseProgram(id);
 			});
 	}
-
-	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const
-	{
-		Memory::Shared<const OpenGLShader> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
-			{
-				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
-				MemberUniformBuffer uniform = buffer.Uniforms[name];
-
-				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
-				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
-				glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			});
-	}
-
-	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec2& value) const
-	{
-		Memory::Shared<const OpenGLShader> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
-			{
-				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
-				MemberUniformBuffer uniform = buffer.Uniforms[name];
-
-				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
-				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
-				glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			});
-	}
-
-	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, float value) const
-	{
-		Memory::Shared<const OpenGLShader> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
-			{
-				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
-				MemberUniformBuffer uniform = buffer.Uniforms[name];
-
-				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
-				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
-				glBindBuffer(GL_UNIFORM_BUFFER, 0);
-			});
-	}
-
-	void OpenGLShader::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, bool value) const
-	{
-		Memory::Shared<const OpenGLShader> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
-			{
-				ShaderUniformBuffer buffer = instance->s_UniformBuffers[shaderType][point];
-				MemberUniformBuffer uniform = buffer.Uniforms[name];
-
-				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
-				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
-				glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-				 // glNamedBufferSubData
-			});
-	}
-
 }

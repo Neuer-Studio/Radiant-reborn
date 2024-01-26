@@ -27,7 +27,6 @@ namespace Radiant
 			VBO = VertexBuffer::Create((std::byte*)v, sizeof(v));
 			sh = Shader::Create("Resources/Shaders/test.radiantshader");
 			tex = Texture2D::Create("Resources/Textures/awesomeface.png");
-
 			VertexBufferLayout vertexLayout;
 			vertexLayout = {
 					{ ShaderDataType::Float3, "a_Position" },
@@ -37,6 +36,10 @@ namespace Radiant
 			pipelineSpecification.Layout = vertexLayout;
 			pip = Pipeline::Create(pipelineSpecification);
 
+			MAT = Material::Create(sh);
+
+			MAT->SetUniform(RadiantShaderType::Fragment, 0, "color", glm::vec3(0.3f, 0.4f, 0.1f));
+			MAT->SetUniform("diffuseTexture", tex);
 		}
 		virtual void OnDetach()
 		{
@@ -44,11 +47,12 @@ namespace Radiant
 		}
 		virtual void OnUpdate() override
 		{
+
 			pip->Use();
 			VBO->Use();
 			IBO->Use();
 			sh->Use();
-			tex->Use(1);
+			//tex->Use(1);
 			
 			Rendering::DrawPrimitive(Primitives::Triangle, IBO->GetCount());
 		}
@@ -58,6 +62,7 @@ namespace Radiant
 		Memory::Shared<Texture2D> tex;
 		Memory::Shared<Pipeline> pip;
 		Memory::Shared<IndexBuffer> IBO;
+		Memory::Shared<Material> MAT;
 
 
 	};

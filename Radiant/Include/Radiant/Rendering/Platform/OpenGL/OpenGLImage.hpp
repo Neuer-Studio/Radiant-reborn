@@ -12,6 +12,7 @@ namespace Radiant
 		virtual uint32_t GetWidth() const override { return m_Specification.Width; }
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 		virtual ImageFormat GetImageFormat() const override { return m_Specification.Format; }
+		virtual RenderingID GetTextureID() const override { return m_RenderingID; }
 
 		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const override;
 	public:

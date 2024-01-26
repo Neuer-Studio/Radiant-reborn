@@ -17,3 +17,4 @@
 #include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Image.hpp>
 #include <Radiant/Rendering/Texture.hpp>
+#include <Radiant/Rendering/Material.hpp>
