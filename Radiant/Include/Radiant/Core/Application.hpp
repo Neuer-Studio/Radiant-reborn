@@ -31,6 +31,11 @@ namespace Radiant
 
 		void PushLayer(Layer* layer);
 		void PopLayer(Layer* layer);
+
+		const Memory::Shared<Window>& GetWindow() const { return m_Window;}
+
+	public:
+		static Application& GetInstance() { return *s_Instance; }
 	private:
 	private:
 		bool OnClose(EventWindowClose& e){}
@@ -38,6 +43,8 @@ namespace Radiant
 	private:
 		Memory::Shared<Window> m_Window;
 		LayerStack m_LayerStack;
+	private:
+		static Application* s_Instance;
 
 		bool m_Run;
 	};

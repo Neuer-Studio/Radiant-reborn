@@ -4,6 +4,9 @@
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLShader.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Radiant
 {
 
@@ -13,12 +16,12 @@ namespace Radiant
 		//m_BufferValues.Allocate()
 	}
 
-	void OpenGLMaterial::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec3& value) const
+	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, const glm::vec3& value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[shaderType][point];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
@@ -27,12 +30,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, const glm::vec2& value) const
+	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, const glm::vec2& value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[shaderType][point];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
@@ -41,12 +44,27 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, float value) const
+	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, const glm::mat4& value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[shaderType][point];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
+				MemberUniformBuffer uniform = buffer.Uniforms[name];
+
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, glm::value_ptr(value));
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			});
+	}
+
+	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, float value) const
+	{
+		Memory::Shared<const OpenGLMaterial> instance(this);
+		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
+			{
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
@@ -55,12 +73,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(RadiantShaderType shaderType, BindingPoint point, const std::string& name, bool value) const
+	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, bool value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([shaderType, point, name, value, instance]() mutable
+		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[shaderType][point];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);

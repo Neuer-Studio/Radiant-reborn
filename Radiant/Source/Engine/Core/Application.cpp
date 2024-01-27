@@ -4,10 +4,16 @@
 
 namespace Radiant
 {
+	Application* Application::s_Instance = nullptr;
 	static Memory::Shared<RenderingContext> s_RenderingContext = nullptr;
 
 	Application::Application(const ApplicationSpecification& specification)
 	{
+		if (s_Instance)
+		{
+			RADIANT_VERIFY(false);
+		}
+
 		RenderingAPI::SetAPI(specification.APIType);
 
 		WindowSpecification wspec;
@@ -22,6 +28,8 @@ namespace Radiant
 			});
 
 		s_RenderingContext = Rendering::GetRenderingContext();
+
+		s_Instance = this;
 	}
 
 	Application::~Application()

@@ -1,12 +1,15 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Radiant
 {
 	class EditorLayer : public Layer
 	{
 	public:
 		EditorLayer()
-			: Layer("EditorLayer")
+			: Layer("EditorLayer"), CAM(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f))
 		{}
 
 		virtual void OnAttach()
@@ -30,7 +33,8 @@ namespace Radiant
 			VertexBufferLayout vertexLayout;
 			vertexLayout = {
 					{ ShaderDataType::Float3, "a_Position" },
-					{ ShaderDataType::Float2, "a_TexCoords" },
+					{ ShaderDataType::Float3, "a_Normals" },
+					//{ ShaderDataType::Float2, "a_TexCoords" },
 			};
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Layout = vertexLayout;
@@ -38,8 +42,11 @@ namespace Radiant
 
 			MAT = Material::Create(sh);
 
-			MAT->SetUniform(RadiantShaderType::Fragment, 0, "color", glm::vec3(0.3f, 0.4f, 0.1f));
-			MAT->SetUniform("diffuseTexture", tex);
+			MAT->SetUniform("Props", "color", glm::vec3(0.3f, 0.4f, 0.1f));
+			//MAT->SetUniform("diffuseTexture", tex);
+
+			MESH = new Mesh("Resources/Meshes/Cube1m.fbx");
+
 		}
 		virtual void OnDetach()
 		{
@@ -47,14 +54,20 @@ namespace Radiant
 		}
 		virtual void OnUpdate() override
 		{
+			CAM.OnUpdate();
+
+			auto viewProjection = CAM.GetProjectionMatrix() * CAM.GetViewMatrix();
+			MAT->SetUniform("Camera", "u_ViewProjectionMatrix", viewProjection);
 
 			pip->Use();
-			VBO->Use();
-			IBO->Use();
+			MESH->Use();
 			sh->Use();
 			//tex->Use(1);
-			
-			Rendering::DrawPrimitive(Primitives::Triangle, IBO->GetCount());
+			Rendering::DrawPrimitive(Primitives::Triangle, MESH->GetIndexCount());
+
+			CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f));
+			CAM.SetViewportSize((uint32_t)1280.0f, (uint32_t)720.0f);
+
 		}
 	private:
 		Memory::Shared<VertexBuffer> VBO;
@@ -63,7 +76,8 @@ namespace Radiant
 		Memory::Shared<Pipeline> pip;
 		Memory::Shared<IndexBuffer> IBO;
 		Memory::Shared<Material> MAT;
-
+		Memory::Shared<Mesh> MESH;
+		Camera CAM;
 
 	};
 }

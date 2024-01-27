@@ -1,38 +1,28 @@
 #type vertex
 #version 450 core
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec2 TexCoords;
+layout (location = 1) in vec3 TexCoords;
 
-struct VertexOutput
+layout (std140, binding = 0) uniform Camera
 {
-	vec2 TexCoords;
+	mat4 u_ViewProjectionMatrix;
 };
-
-layout(location = 0) out VertexOutput Output;
 
 void main()
 {
-    Output.TexCoords = TexCoords;
-     gl_Position = vec4(aPos, 1.0);
+     gl_Position = u_ViewProjectionMatrix * vec4(aPos, 1.0);
 }
 
 #type fragment
 #version 450 core
 layout(location = 0) out vec4 FragColor;
 
-layout (std140, binding = 0) uniform Props
+layout (std140, binding = 1) uniform Props
 {
 	vec3 color;
 };
 
-layout (binding = 1) uniform sampler2D diffuseTexture;
-
-struct VertexOutput
-{
-	vec2 TexCoords;
-};
-layout(location = 0) in VertexOutput Output;
 void main()
 {
-   FragColor = vec4(texture(diffuseTexture, Output.TexCoords).rgb, 1.0);
+   FragColor = vec4(color, 1.0);
 }

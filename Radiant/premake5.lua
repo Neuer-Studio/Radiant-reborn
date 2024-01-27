@@ -17,6 +17,9 @@ project "Radiant"
     LibraryDir["shaderc_combined_Debug"] = "../ThirdParty/VulkanSDK/shaderc/Lib/shaderc_combinedd.lib"
     LibraryDir["shaderc_util_Debug"] = "../ThirdParty/VulkanSDK/shaderc/Lib/shaderc_utild.lib"
 
+
+    LibraryDir["assimp_Debug"] = "../ThirdParty/assimp/bin/Debug/assimp-vc142-mtd.lib"
+
     files { 
         -- Precompiled header
         "Source/rpch.cpp",
@@ -47,6 +50,7 @@ project "Radiant"
         "../ThirdParty/VulkanSDK/include",
         "../ThirdParty/Glad/include/",
         "../ThirdParty/stb/include/",
+        "../ThirdParty/assimp/include",
         
         "../ThirdParty/",
     }
@@ -60,6 +64,7 @@ project "Radiant"
         "%{LibraryDir.shaderc_combined_Debug}",
         "%{LibraryDir.shaderc_util_Debug}",
         "%{LibraryDir.vulkan1}",
+        "%{LibraryDir.assimp_Debug}",
         "%{LibraryDir.OGLCompiler_Debug}",
     }
 

@@ -187,12 +187,12 @@ namespace Radiant
 			int memberCount = bufferType.member_types.size();
 			uint32_t bindingPoint = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			uint32_t bufferSize = compiler.get_declared_struct_size(bufferType);
+			std::string bufferName = resource.name;
 
-
-			if (m_UniformBuffers[shadertype].find(bindingPoint) == m_UniformBuffers[shadertype].end())
+			if (m_UniformBuffers.find(bufferName) == m_UniformBuffers.end())
 			{
-				ShaderUniformBuffer& buffer = m_UniformBuffers[shadertype][bindingPoint];
-				buffer.Name = resource.name;
+				ShaderUniformBuffer& buffer = m_UniformBuffers[bufferName];
+				buffer.Name = bufferName;
 				buffer.Binding = bindingPoint;
 				buffer.Size = bufferSize;
 

@@ -34,7 +34,7 @@ namespace Radiant
 		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
-		std::unordered_map<RadiantShaderType, std::unordered_map<BindingPoint, ShaderUniformBuffer>> m_UniformBuffers;
+		std::unordered_map<std::string, ShaderUniformBuffer> m_UniformBuffers;
 	private:
 		friend class OpenGLMaterial;
 	};

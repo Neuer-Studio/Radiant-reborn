@@ -6,6 +6,7 @@
 #include <Radiant/Core/Memory/Buffer.hpp>
 #include <Radiant/Core/Memory/Shared.hpp>
 #include <Radiant/Core/Application.hpp>
+#include <Radiant/Core/Camera.hpp>
 #include <Radiant/EntryPoint.hpp>
 
 // =================== Rendering =================== //
@@ -18,3 +19,4 @@
 #include <Radiant/Rendering/Image.hpp>
 #include <Radiant/Rendering/Texture.hpp>
 #include <Radiant/Rendering/Material.hpp>
+#include <Radiant/Rendering/Mesh.hpp>
