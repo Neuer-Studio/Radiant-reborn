@@ -14,7 +14,10 @@ namespace Radiant
 		if (stbi_is_hdr(path.string().c_str()))
 		{
 			RA_INFO("Loading HDR texture {}, srgb = {}, HDR = {}", Utils::FileSystem::GetFileName(path), srgb, true);
-			RADIANT_VERIFY(false);
+			float* data = stbi_loadf(path.string().c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+			RADIANT_VERIFY(data);
+			imageSpec.Data = (std::byte*)data;
+			imageSpec.Format = ImageFormat::RGBA16F;
 		}
 		else
 		{

@@ -14,6 +14,7 @@ namespace Radiant::Constants
 	{
 		const std::string SPIRV_BINARY_EXTENSION_VERT = ".spvbin_vert";
 		const std::string SPIRV_BINARY_EXTENSION_FRAG = ".spvbin_frag";
+		const std::string SPIRV_BINARY_EXTENSION_COMP = ".spvbin_comp";
 
 	}
 }

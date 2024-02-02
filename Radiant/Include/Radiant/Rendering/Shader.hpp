@@ -68,6 +68,7 @@ namespace Radiant
 
 		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
 		virtual void Reload() = 0;
+		virtual RenderingID GetRenderingID() const = 0;
 
 		static Memory::Shared<Shader> Create(const std::filesystem::path& path);
 	};

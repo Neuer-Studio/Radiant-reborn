@@ -9,6 +9,13 @@ namespace Radiant
 		None = 0,
 		RGB,
 		RGBA,
+		RGBA16F,
+	};
+
+	enum class TextureRendererType
+	{
+		Texture2D = 0,
+		TextureCube,
 	};
 
 	struct ImageSpecification
@@ -16,6 +23,7 @@ namespace Radiant
 		uint32_t Width;
 		uint32_t Height;
 		ImageFormat Format;
+		TextureRendererType Type;
 		std::byte* Data;
 	};
 
@@ -26,6 +34,7 @@ namespace Radiant
 		virtual uint32_t GetHeight() const = 0;
 		virtual ImageFormat GetImageFormat() const = 0;
 		virtual RenderingID GetTextureID() const = 0;
+		virtual uint32_t GetMipmapLevels() const = 0;
 		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const = 0;
 	};
 

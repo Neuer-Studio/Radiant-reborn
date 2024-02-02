@@ -29,10 +29,12 @@ namespace Radiant
 		{
 			switch (type)
 			{
-			case RadiantShaderType::Vertex :
-				return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_VERT);
-			case RadiantShaderType::Fragment:
-				return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_FRAG);
+				case RadiantShaderType::Vertex:
+					return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_VERT);
+				case RadiantShaderType::Fragment:
+					return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_FRAG);
+				case RadiantShaderType::Compute:
+					return Constants::Path::RESOURCE_SPIRV_BINARY / (shaderFile.stem().string() + Constants::Extensions::SPIRV_BINARY_EXTENSION_COMP);
 			}
 
 			return {};
@@ -362,15 +364,15 @@ namespace Radiant
 
 	void OpenGLShader::Use(BindUsage use) const
 	{
-		auto id = m_RenderingID;
-		Rendering::SubmitCommand([id , use]()
+		Memory::Shared< const OpenGLShader> instance = this;
+		Rendering::SubmitCommand([instance, use]()
 			{
 				if (use == BindUsage::Unbind)
 				{
 					glUseProgram(0);
 					return;
 				}
-				glUseProgram(id);
+				glUseProgram(instance->m_RenderingID);
 			});
 	}
 }

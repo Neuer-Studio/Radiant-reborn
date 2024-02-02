@@ -17,6 +17,7 @@ namespace Radiant
 		virtual void SetUniform(const std::string& bufferName, const std::string& name, float value) const = 0;
 		virtual void SetUniform(const std::string& bufferName, const std::string& name, bool value) const = 0;
 		virtual void SetUniform(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const = 0;
+		virtual void SetUniform(const std::string& name, const Memory::Shared<Image2D>& image2D) const = 0;
 
 		static Memory::Shared<Material> Create(const Memory::Shared<Shader>& shader);
 	};

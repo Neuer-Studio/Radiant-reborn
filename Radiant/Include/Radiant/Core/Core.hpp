@@ -3,6 +3,7 @@
 #include <memory>
 #include "Logger.hpp"
 #include "Constants.hpp"
+#include "Math/UUID.hpp"
 #include <Radiant/Core/Memory/Shared.hpp>
 
 #define BUILD_ID "v0.1a"

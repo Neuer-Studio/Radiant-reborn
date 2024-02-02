@@ -13,13 +13,17 @@ namespace Radiant
 		virtual uint32_t GetHeight() const override { return m_Specification.Height; }
 		virtual ImageFormat GetImageFormat() const override { return m_Specification.Format; }
 		virtual RenderingID GetTextureID() const override { return m_RenderingID; }
+		virtual uint32_t GetMipmapLevels() const override { return m_MipmapLevels; }
 
 		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const override;
+	private:
+		void CreateTextureCube();
 	public:
 		void Invalidate();
 		void Release();
 	private:
 		ImageSpecification m_Specification;
 		RenderingID m_RenderingID = 0;
+		uint32_t m_MipmapLevels = 0;
 	};
 }

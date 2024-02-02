@@ -3,6 +3,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <Radiant/Rendering/Scene/Entity.hpp>
+#include <Radiant/Rendering/Scene/SceneRendering.hpp>
+
 namespace Radiant
 {
 	class EditorLayer : public Layer
@@ -29,7 +32,8 @@ namespace Radiant
 			IBO = IndexBuffer::Create(indices, sizeof(indices));
 			VBO = VertexBuffer::Create((std::byte*)v, sizeof(v));
 			sh = Shader::Create("Resources/Shaders/test.radiantshader");
-			tex = Texture2D::Create("Resources/Textures/awesomeface.png");
+			sc = Shader::Create("Resources/Shaders/Scene.glsl");
+			tex = Texture2D::Create("Resources/Textures/HDR/birchwood_4k.hdr");
 			VertexBufferLayout vertexLayout;
 			vertexLayout = {
 					{ ShaderDataType::Float3, "a_Position" },
@@ -41,12 +45,17 @@ namespace Radiant
 			pip = Pipeline::Create(pipelineSpecification);
 
 			MAT = Material::Create(sh);
+			MAT2 = Material::Create(sc);
 
 			MAT->SetUniform("Props", "color", glm::vec3(0.3f, 0.4f, 0.1f));
 			//MAT->SetUniform("diffuseTexture", tex);
 
 			MESH = new Mesh("Resources/Meshes/Cube1m.fbx");
+			static auto sr = SceneRendering::Create("");
+			auto ss = Scene::CreateScene(sr);
+			MAT2->SetUniform("envTexture",ss.Radiance);
 
+			fb = Framebuffer::Create({ 1920, 1080,1, ImageFormat::RGBA16F });
 		}
 		virtual void OnDetach()
 		{
@@ -58,10 +67,12 @@ namespace Radiant
 
 			auto viewProjection = CAM.GetProjectionMatrix() * CAM.GetViewMatrix();
 			MAT->SetUniform("Camera", "u_ViewProjectionMatrix", viewProjection);
+			MAT2->SetUniform("TransformUniforms", "viewProjectionMatrix", viewProjection);
 
 			pip->Use();
 			MESH->Use();
-			sh->Use();
+		//	sh->Use();
+			sc->Use();
 			//tex->Use(1);
 			Rendering::DrawPrimitive(Primitives::Triangle, MESH->GetIndexCount());
 
@@ -72,11 +83,14 @@ namespace Radiant
 	private:
 		Memory::Shared<VertexBuffer> VBO;
 		Memory::Shared<Shader> sh;
+		Memory::Shared<Shader> sc;
 		Memory::Shared<Texture2D> tex;
 		Memory::Shared<Pipeline> pip;
 		Memory::Shared<IndexBuffer> IBO;
 		Memory::Shared<Material> MAT;
+		Memory::Shared<Material> MAT2;
 		Memory::Shared<Mesh> MESH;
+		Memory::Shared<Framebuffer> fb;
 		Camera CAM;
 
 	};

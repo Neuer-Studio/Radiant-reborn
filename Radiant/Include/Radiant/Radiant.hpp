@@ -12,6 +12,7 @@
 // =================== Rendering =================== //
 
 #include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Rendering/Framebuffer.hpp>
 #include <Radiant/Rendering/VertexBuffer.hpp>
 #include <Radiant/Rendering/IndexBuffer.hpp>
 #include <Radiant/Rendering/Shader.hpp>
@@ -20,3 +21,7 @@
 #include <Radiant/Rendering/Texture.hpp>
 #include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
+
+// =================== Scene =================== //
+
+#include <Radiant/Rendering/Scene/Scene.hpp>
