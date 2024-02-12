@@ -31,12 +31,36 @@ namespace Radiant
 
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		glFrontFace(GL_CCW);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable(GL_MULTISAMPLE);
 		glDebugMessageCallback(OpenGLLogMessage, 0);
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+		auto& info = RenderingAPI::GetGraphicsInfo();
+
+		info.Vendor = (const char*)glGetString(GL_VENDOR);
+		info.Renderer = (const char*)glGetString(GL_RENDERER);
+		info.Version = (const char*)glGetString(GL_VERSION);
+
+		size_t pos = info.Renderer.find('/');
+
+		if (pos != std::string::npos) 
+			info.Renderer = info.Renderer.substr(0, pos);
+		
+
+		glGetIntegerv(GL_MAX_SAMPLES, &info.MaxSamples);
+		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &info.MaxAnisotropy);
+
+		glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &info.MaxTextureUnits);
 	}
 
 	void OpenGLRenderingContext::BeginFrame() const

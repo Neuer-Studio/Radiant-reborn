@@ -24,6 +24,7 @@ namespace Radiant
 		void Load(const std::string& shader—ontent);
 		void ParseBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
 		void CompileToSPIR_V();
+		void UploadFromBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath);
 		void Upload();
 		void UpdateBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary);
 		void PreProcess(const std::string& content);

@@ -19,7 +19,7 @@ namespace Radiant
 		{
 			m_Scene = Memory::Shared<Scene>::Create("Test Scene");
 
-			auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/birchwood_4k.hdr");
+			auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
 			m_Scene->SetEnvironment(env);
 
 			CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f));

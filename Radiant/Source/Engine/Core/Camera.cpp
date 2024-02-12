@@ -70,6 +70,8 @@ namespace Radiant
 			glm::vec2 delta = mouse - m_InitialMousePosition;
 			m_InitialMousePosition = mouse;
 
+			delta *= 0.025;
+
 			if (Input::IsMouseButtonPressed(MouseButton::Middle))
 				MousePan(delta);
 			else if (Input::IsMouseButtonPressed(MouseButton::Left))

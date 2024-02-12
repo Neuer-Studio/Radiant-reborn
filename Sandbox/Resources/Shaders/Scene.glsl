@@ -14,7 +14,7 @@ layout(location=0) in vec3 a_Position;
 layout(location=0) out vec3 v_Position;
 void main()
 {
-	vec4 position = vec4(a_Position.xy, 0.5, 0.5);
+	vec4 position = vec4(a_Position.xy, 1.0, 1.0);
 	gl_Position = position;
 
 	v_Position = (u_ViewProjectionMatrix * position).xyz;

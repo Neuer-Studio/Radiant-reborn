@@ -255,6 +255,31 @@ namespace Radiant
 
 	}
 
+	void OpenGLShader::UploadFromBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath)
+	{
+		/*if (Utils::FileSystem::Exists(binaryPath))
+		{
+			auto binaryFileTime = fs::last_write_time(binaryPath);
+			auto fileTime = fs::last_write_time(path);
+			if (binaryFileTime >= fileTime)
+			{
+				std::ifstream file(binaryPath);
+
+				if (file.is_open())
+				{
+					std::vector<uint32_t> binray
+					auto fileSize = fs::file_size(binaryPath);
+					file.read((const char*)binary.data(), binary.size());
+					file.close();
+				}
+				else
+				{
+					RADIANT_VERIFY(false);
+				}
+			}
+		}*/
+	}
+
 	void OpenGLShader::UpdateBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary)
 	{
 		if (!Utils::FileSystem::Exists(binaryPath))

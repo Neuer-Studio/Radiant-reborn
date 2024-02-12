@@ -114,18 +114,15 @@ namespace Radiant
 				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_MIN_FILTER, instance->m_MipmapLevels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				//glTextureParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, m_capabilities.maxAnisotropy);
+				glTextureParameterf(instance->m_RenderingID, GL_TEXTURE_MAX_ANISOTROPY, RenderingAPI::GetGraphicsInfo().MaxAnisotropy);
 
 				if (instance->m_Specification.Data)
-				{
 					glTexImage2D(texType, 0, internalformat, instance->m_Specification.Width, instance->m_Specification.Height, 0, format, type, instance->m_Specification.Data);
-					glGenerateMipmap(texType);
-				}
-
 				else
-				{
 					glTextureStorage2D(instance->m_RenderingID, instance->m_MipmapLevels, internalformat, instance->m_Specification.Width, instance->m_Specification.Height);
-				}
+
+				if(instance->m_MipmapLevels > 1)
+					glGenerateMipmap(texType);
 			});
 	}
 

@@ -9,7 +9,6 @@ namespace Radiant
 	Scene::Scene(const std::string& sceneName)
 		: m_SceneName(sceneName)
 	{
-
 		if (s_SceneRendering.Ptr() == nullptr)
 			s_SceneRendering = SceneRendering::Create(this);
 	}

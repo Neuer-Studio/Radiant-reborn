@@ -11,7 +11,7 @@
 
 namespace Radiant
 {
-	static constexpr int kEnvMapSize = 1024;
+	static constexpr int kEnvMapSize = 2048;
 	static constexpr int kIrradianceMapSize = 32;
 	static constexpr int kBRDF_LUT_Size = 256;
 
@@ -56,7 +56,7 @@ namespace Radiant
 		cam->OnUpdate();
 
 		auto viewProjection = cam->GetProjectionMatrix() * cam->GetViewMatrix();
-		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", viewProjection);
+		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", glm::inverse(viewProjection));
 
 		s_SceneInfo->FullscreenQuadShader->Use();
 		s_SceneInfo->FullscreenQuadMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance); // TODO: Move to SetEnv.
@@ -132,26 +132,7 @@ namespace Radiant
 				glBindImageTexture(0, irmapTexture->GetTextureID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 				glDispatchCompute(kIrradianceMapSize / 32, kIrradianceMapSize / 32, 6);
 			});
-
-		// Compute Cook-Torrance BRDF 2D LUT for split-sum approximation.
-
-		auto spBRDF_LUT = Image2D::Create({ kBRDF_LUT_Size, kBRDF_LUT_Size,ImageFormat::RGBA16F, TextureRendererType::Texture2D,nullptr });
-		spBRDF_LUT.As<OpenGLImage2D>()->Invalidate();
-
-		if(!spBRDF)
-			spBRDF = Shader::Create("Resources/Shaders/spbrdf_cs.glsl");
-
-		Rendering::SubmitCommand([spBRDF_LUT]()
-			{
-				glTextureParameteri(spBRDF_LUT->GetTextureID(), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				glTextureParameteri(spBRDF_LUT->GetTextureID(), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-				glUseProgram(spBRDF->GetRenderingID());
-				glBindImageTexture(0, spBRDF_LUT->GetTextureID(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG16F);
-				glDispatchCompute(kBRDF_LUT_Size / 32, kBRDF_LUT_Size / 32, 1);
-
-				glFinish();
-			});
+		
 
 		return { envTexture , irmapTexture };
 	}
