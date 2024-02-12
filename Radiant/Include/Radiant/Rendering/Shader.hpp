@@ -68,8 +68,22 @@ namespace Radiant
 
 		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
 		virtual void Reload() = 0;
+		virtual const std::string GetShaderName() const = 0;
 		virtual RenderingID GetRenderingID() const = 0;
 
 		static Memory::Shared<Shader> Create(const std::filesystem::path& path);
+	};
+
+	class ShaderLibrary : public Memory::RefCounted
+	{
+	public:
+		void Add(const Memory::Shared<Shader>& shader);
+		void Load(const std::string& name, const std::filesystem::path& filepath);
+		void Load(const std::filesystem::path& filepath);
+
+		const Memory::Shared<Shader>& Get(const std::string& name) const;
+		std::unordered_map<std::string, Memory::Shared<Shader>>& GetShaders() { return m_Shaders; }
+	private:
+		std::unordered_map<std::string, Memory::Shared<Shader>> m_Shaders;
 	};
 }

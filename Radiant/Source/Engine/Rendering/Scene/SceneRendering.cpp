@@ -6,13 +6,13 @@
 namespace Radiant
 {
 
-	Memory::Shared<SceneRendering> SceneRendering::Create(const std::string& sceneName)
+	Memory::Shared<SceneRendering> SceneRendering::Create(const Memory::Shared<Scene>& scene)
 	{
 		switch (RenderingAPI::GetAPI())
 		{
 			case RenderingAPIType::OpenGL:
 			{
-				return Memory::Shared<OpenGLSceneRendering>::Create(sceneName);
+				return Memory::Shared<OpenGLSceneRendering>::Create(scene);
 			}
 		}
 	}

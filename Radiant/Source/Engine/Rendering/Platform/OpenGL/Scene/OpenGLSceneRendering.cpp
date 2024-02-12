@@ -6,6 +6,7 @@
 #include <Radiant/Rendering/Rendering.hpp>
 #include <Radiant/Rendering/Framebuffer.hpp>
 #include <Radiant/Rendering/Pipeline.hpp>
+#include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLImage.hpp>
 
 namespace Radiant
@@ -23,6 +24,9 @@ namespace Radiant
 
 	struct SceneInfo
 	{
+		Memory::Shared<Shader> FullscreenQuadShader;
+		Memory::Shared<Material> FullscreenQuadMaterial;
+
 		GeometryData GeoData;
 	};
 
@@ -31,6 +35,9 @@ namespace Radiant
 	void OpenGLSceneRendering::Init()
 	{
 		s_SceneInfo = new SceneInfo();
+
+		s_SceneInfo->FullscreenQuadShader = Shader::Create("Resources/Shaders/Scene.glsl");
+		s_SceneInfo->FullscreenQuadMaterial = Material::Create(s_SceneInfo->FullscreenQuadShader);
 	}
 
 	OpenGLSceneRendering::~OpenGLSceneRendering()
@@ -38,19 +45,22 @@ namespace Radiant
 		delete s_SceneInfo;
 	}
 
-	OpenGLSceneRendering::OpenGLSceneRendering(const std::string& sceneName)
-		: m_SceneName(sceneName)
+	OpenGLSceneRendering::OpenGLSceneRendering(const Memory::Shared<Scene>& scene)
+		: m_Scene(scene)
 	{
 		Init();
 	}
 
-	void OpenGLSceneRendering::SubmitScene() const
+	void OpenGLSceneRendering::SubmitScene(Camera* cam) const
 	{
-		s_SceneInfo->GeoData.GeometryPass->Use();
+		cam->OnUpdate();
 
+		auto viewProjection = cam->GetProjectionMatrix() * cam->GetViewMatrix();
+		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", viewProjection);
 
-
-		s_SceneInfo->GeoData.GeometryPass->Use(BindUsage::Unbind);
+		s_SceneInfo->FullscreenQuadShader->Use();
+		s_SceneInfo->FullscreenQuadMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance); // TODO: Move to SetEnv.
+		Rendering::DrawFullscreenQuad();
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const

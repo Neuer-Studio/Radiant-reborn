@@ -1,4 +1,8 @@
+#include <Radiant/Rendering/VertexBuffer.hpp>
+#include <Radiant/Rendering/IndexBuffer.hpp>
+#include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Rendering/Shader.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderingAPI.hpp>
 
 namespace Radiant
@@ -21,6 +25,20 @@ namespace Radiant
 	// ========================= Rendering API =========================== //
 	// =================================================================== //
 
+	struct QuadData
+	{
+		Memory::Shared<VertexBuffer> FullscreenQuadVertexBuffer;
+		Memory::Shared<IndexBuffer> FullscreenQuadIndexBuffer;
+		Memory::Shared<Pipeline> FullscreenQuadPipeline;
+	};
+
+	struct RenderingData
+	{
+		QuadData QuadInfo;
+	};
+
+	static RenderingData* s_RenderingData = nullptr;
+
 	static Memory::Shared<RenderingContext> s_RenderingContext = nullptr;
 	static Memory::Shared<RenderingAPI> s_RenderingAPIPlatform = nullptr;
 	static Memory::CommandBuffer s_CommandBuffer;
@@ -34,11 +52,11 @@ namespace Radiant
 			});
 	}
 
-	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count)
+	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest)
 	{
-		Rendering::SubmitCommand([primitive, count]()
+		Rendering::SubmitCommand([primitive, count, depthTest]()
 			{
-				s_RenderingAPIPlatform->DrawPrimitive(primitive, count);
+				s_RenderingAPIPlatform->DrawPrimitive(primitive, count, depthTest);
 			});
 	}
 
@@ -53,12 +71,55 @@ namespace Radiant
 		}
 		RADIANT_VERIFY(s_RenderingAPIPlatform);
 		s_RenderingContext = RenderingContext::Create(window);
+
+		s_RenderingData = new RenderingData();
+
+		// NOTE(Danya): Create fullscreen quad
+		float x = -1;
+		float y = -1;
+		float width = 2, height = 2;
+		struct QuadVertex
+		{
+			glm::vec3 Position;
+		};
+
+		QuadVertex* data = new QuadVertex[4];
+
+		data[0].Position = glm::vec3(x, y, 0.1f);
+
+
+		data[1].Position = glm::vec3(x + width, y, 0.1f);
+		
+
+		data[2].Position = glm::vec3(x + width, y + height, 0.1f);
+	
+
+		data[3].Position = glm::vec3(x, y + height, 0.1f);
+		
+		PipelineSpecification pipelineSpecification;
+		pipelineSpecification.Layout = {
+			{ ShaderDataType::Float3, "a_Position" },
+		};
+		s_RenderingData->QuadInfo.FullscreenQuadPipeline = Pipeline::Create(pipelineSpecification);
+		s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer = VertexBuffer::Create(data, 4 * sizeof(QuadVertex));
+		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0, };
+		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer = IndexBuffer::Create(indices, 6 * sizeof(uint32_t));
+
 		return s_RenderingContext;
 	}
 
 	Radiant::Memory::Shared<Radiant::RenderingContext> Rendering::GetRenderingContext()
 	{
 		return s_RenderingContext;
+	}
+
+	void Rendering::DrawFullscreenQuad()
+	{
+		s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer->Use();
+		s_RenderingData->QuadInfo.FullscreenQuadPipeline->Use();
+		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->Use();
+
+		DrawPrimitive(Primitives::Triangle, s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->GetCount(), false);
 	}
 
 	Memory::CommandBuffer& Rendering::GetRenderingCommandBuffer()

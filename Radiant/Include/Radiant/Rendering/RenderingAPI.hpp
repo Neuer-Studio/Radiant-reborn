@@ -21,7 +21,7 @@ namespace Radiant
 	{
 	public:
 		virtual void Clear(float rgba[4]) const = 0;
-		virtual void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3) const = 0;
+		virtual void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true) const = 0;
 	public:
 		static const RenderingAPIType GetAPI();
 		static void SetAPI(RenderingAPIType api);

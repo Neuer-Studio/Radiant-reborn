@@ -17,7 +17,7 @@ namespace Radiant
 		virtual unsigned int GetSize() const override { return m_Buffer.Size; }
 		virtual RenderingID GetRenderingID() const override { return m_RenderingID; }
 	private:
-		RenderingID m_RenderingID = -1;
+		RenderingID m_RenderingID = 0;
 		OpenGLBufferUsage m_Usage;
 		Memory::Buffer m_Buffer;
 	};

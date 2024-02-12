@@ -12,10 +12,13 @@ namespace Radiant
 		virtual ~Rendering() = default;
 
 		static void Clear(float rgba[4]);
-		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3);
+		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true);
 	public:
 		static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
 		static Memory::Shared<RenderingContext> GetRenderingContext();
+
+	public:
+		static void DrawFullscreenQuad();
 	public:
 		template <typename FuncT>
 		static void SubmitCommand(FuncT&& func)

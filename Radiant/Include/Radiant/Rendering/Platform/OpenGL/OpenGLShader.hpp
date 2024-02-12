@@ -17,6 +17,8 @@ namespace Radiant
 		virtual void Use(BindUsage use = BindUsage::Bind) const override;
 
 		virtual RenderingID GetRenderingID() const { return m_RenderingID; }
+
+		virtual const std::string GetShaderName() const { return m_Name; }
 	private:
 	private:
 		void Load(const std::string& shader—ontent);

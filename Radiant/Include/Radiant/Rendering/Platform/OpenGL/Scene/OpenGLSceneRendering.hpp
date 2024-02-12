@@ -8,17 +8,20 @@ namespace Radiant
 	class OpenGLSceneRendering : public SceneRendering
 	{
 	public:
-		OpenGLSceneRendering(const std::string& sceneName);
+		OpenGLSceneRendering(const Memory::Shared<Scene>& scene);
 		~OpenGLSceneRendering() override;
 		virtual void Init() override;
 
-		virtual void SubmitScene() const override;
+		virtual void SubmitScene(Camera* cam) const override; 
+
+		virtual void SetEnvironment(const Environment& env) override { m_Environment = env; }
 
 		virtual Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const override;
 
 	private:
 
 	private:
-		std::string m_SceneName;
+		Environment m_Environment;
+		Memory::Shared<Scene> m_Scene;
 	};
 }

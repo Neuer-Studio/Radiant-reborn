@@ -17,8 +17,9 @@ namespace Radiant
 	}
 
 	OpenGLVertexBuffer::OpenGLVertexBuffer(const void* data, uint32_t size, OpenGLBufferUsage usage)
-		: m_Buffer((void*)data, size), m_Usage(usage)
+		: m_Usage(usage)
 	{
+		m_Buffer = Memory::Buffer::Copy(data, size);
 		Memory::Shared<OpenGLVertexBuffer> instance(this);
 		Rendering::SubmitCommand([instance]() mutable
 			{

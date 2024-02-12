@@ -18,9 +18,23 @@ namespace Radiant
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
-	void OpenGLRenderingAPI::DrawPrimitive(Primitives primitive, uint32_t count) const
+	void OpenGLRenderingAPI::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest) const
 	{
-		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+		if (!depthTest)
+			glDisable(GL_DEPTH_TEST);
+
+		GLenum gltype = 0;
+		switch (primitive)
+		{
+		case Primitives::Triangle:
+			gltype = GL_TRIANGLES;
+			break;
+		}
+
+		glDrawElements(gltype, count, GL_UNSIGNED_INT, nullptr);
+
+		if (!depthTest)
+			glEnable(GL_DEPTH_TEST);
 	}
 
 }
