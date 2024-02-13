@@ -7,6 +7,7 @@
 
 #include <Radiant/Rendering/RenderingAPI.hpp>
 #include "LayerStack.hpp"
+#include <Radiant/ImGui/ImGuiLayer.hpp>
 
 namespace Radiant
 { 
@@ -43,6 +44,7 @@ namespace Radiant
 	private:
 		Memory::Shared<Window> m_Window;
 		LayerStack m_LayerStack;
+		ImGuiLayer* m_ImGuiLayer;
 	private:
 		static Application* s_Instance;
 

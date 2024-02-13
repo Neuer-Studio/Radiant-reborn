@@ -89,4 +89,10 @@ namespace Radiant
 		m_Data.Specification.Width = width;
 		m_Data.Specification.Height = height;
 	}
+
+	bool WindowsWindow::IsWindowMaximized() const
+	{
+		return (bool)glfwGetWindowAttrib(m_Window, GLFW_MAXIMIZED);
+	}
+
 }

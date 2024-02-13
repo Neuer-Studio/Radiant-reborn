@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLFramebuffer.hpp>
+#include <Radiant/Rendering/Platform/OpenGL/OpenGLImage.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 
 namespace Radiant
@@ -45,6 +46,8 @@ namespace Radiant
 				glBindFramebuffer(GL_FRAMEBUFFER, instance->m_RenderingID);
 
 				instance->m_FbColorImage = Image2D::Create({ instance->m_Specification.Width, instance->m_Specification.Height, instance->m_Specification.Format, TextureRendererType::Texture2D, nullptr });
+				instance->m_FbColorImage.As<OpenGLImage2D>()->Invalidate();
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, Utils::TextureTarget(), instance->m_FbColorImage.As<OpenGLImage2D>()->GetTextureID(), 0);
 
 				RADIANT_VERIFY(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete!");
 

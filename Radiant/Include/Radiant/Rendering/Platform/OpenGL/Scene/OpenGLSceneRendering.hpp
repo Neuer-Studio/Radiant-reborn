@@ -12,16 +12,22 @@ namespace Radiant
 		~OpenGLSceneRendering() override;
 		virtual void Init() override;
 
-		virtual void SubmitScene(Camera* cam) const override; 
+		virtual Memory::Shared<Image2D> GetFinalPassImage() const override;
 
-		virtual void SetEnvironment(const Environment& env) override { m_Environment = env; }
+		virtual void SetSceneVeiwPortSize(const glm::vec2& size) override;
+		virtual void SubmitScene(Camera* cam) override; 
+
+		virtual void SetEnvironment(const Environment& env) override;
 
 		virtual Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const override;
 
 	private:
-
+		void GeometryPass();
+		void Flush();
 	private:
 		Environment m_Environment;
 		Memory::Shared<Scene> m_Scene;
+
+		uint32_t m_ViewportWidth, m_ViewportHeight;
 	};
 }

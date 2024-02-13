@@ -99,31 +99,27 @@ namespace Radiant
 		if (m_RenderingID)
 			Release();
 
-		Memory::Shared<OpenGLImage2D> instance(this);
-		Rendering::SubmitCommand([instance]() mutable	
-			{
-				auto texType = Utils::RadiantTexTypeToOGL(instance->m_Specification.Type);
-				glGenTextures(1, &instance->m_RenderingID);
-				glBindTexture(texType, instance->m_RenderingID);
+		auto texType = Utils::RadiantTexTypeToOGL(m_Specification.Type);
+		glGenTextures(1, &m_RenderingID);
+		glBindTexture(texType, m_RenderingID);
 
-				auto internalformat = Utils::RadiantInternalFormatToOGL(instance->m_Specification.Format);
-				auto format = Utils::RadiantFormatToOGL(instance->m_Specification.Format);
-				auto type = Utils::OGLDataType(instance->m_Specification.Format);
+		auto internalformat = Utils::RadiantInternalFormatToOGL(m_Specification.Format);
+		auto format = Utils::RadiantFormatToOGL(m_Specification.Format);
+		auto type = Utils::OGLDataType(m_Specification.Format);
 
-				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_WRAP_T, GL_REPEAT);
-				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_MIN_FILTER, instance->m_MipmapLevels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-				glTextureParameteri(instance->m_RenderingID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTextureParameterf(instance->m_RenderingID, GL_TEXTURE_MAX_ANISOTROPY, RenderingAPI::GetGraphicsInfo().MaxAnisotropy);
+		glTextureParameteri(m_RenderingID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTextureParameteri(m_RenderingID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTextureParameteri(m_RenderingID, GL_TEXTURE_MIN_FILTER, m_MipmapLevels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+		glTextureParameteri(m_RenderingID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameterf(m_RenderingID, GL_TEXTURE_MAX_ANISOTROPY, RenderingAPI::GetGraphicsInfo().MaxAnisotropy);
 
-				if (instance->m_Specification.Data)
-					glTexImage2D(texType, 0, internalformat, instance->m_Specification.Width, instance->m_Specification.Height, 0, format, type, instance->m_Specification.Data);
-				else
-					glTextureStorage2D(instance->m_RenderingID, instance->m_MipmapLevels, internalformat, instance->m_Specification.Width, instance->m_Specification.Height);
+		if (m_Specification.Data)
+			glTexImage2D(texType, 0, internalformat, m_Specification.Width, m_Specification.Height, 0, format, type, m_Specification.Data);
+		else
+			glTextureStorage2D(m_RenderingID, m_MipmapLevels, internalformat, m_Specification.Width, m_Specification.Height);
 
-				if(instance->m_MipmapLevels > 1)
-					glGenerateMipmap(texType);
-			});
+		if (m_MipmapLevels > 1)
+			glGenerateMipmap(texType);
 	}
 
 	void OpenGLImage2D::Release()

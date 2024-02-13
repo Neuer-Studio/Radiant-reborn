@@ -31,12 +31,10 @@ namespace Radiant
 		imageSpec.Height = height;
 		m_Image2D = Image2D::Create(imageSpec);
 
-		m_Image2D.As<OpenGLImage2D>()->Invalidate();
-
-		auto& image = m_Image2D;
+		Memory::Shared<Image2D>& image = m_Image2D;
 		Rendering::SubmitCommand([image]() mutable
 			{
-				//stbi_image_free(image->);
+				image.As<OpenGLImage2D>()->Invalidate();
 			});
 	}
 

@@ -51,12 +51,15 @@ project "Radiant"
         "../ThirdParty/Glad/include/",
         "../ThirdParty/stb/include/",
         "../ThirdParty/assimp/include",
+        "../ThirdParty/ImGUI/",
         
         "../ThirdParty/",
     }
 
     links
     {
+        "ImGui",
+        
         "%{LibraryDir.shaderc_Debug}",
         "%{LibraryDir.spirv_cross_core_Debug}",
         "%{LibraryDir.spirv_cross_glsl_Debug}",

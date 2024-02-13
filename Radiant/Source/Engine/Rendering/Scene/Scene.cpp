@@ -28,4 +28,9 @@ namespace Radiant
 		return s_SceneRendering->CreateEnvironmentScene(filepath);
 	}
 
+	Radiant::Memory::Shared<Radiant::SceneRendering>& Scene::GetSceneRendering()
+	{
+		return s_SceneRendering;
+	}
+
 }

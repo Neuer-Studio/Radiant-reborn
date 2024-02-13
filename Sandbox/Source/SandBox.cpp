@@ -19,8 +19,8 @@ public:
 Radiant::Application* Radiant::CreateApplication(int argc, char** argv)
 {
 	Radiant::ApplicationSpecification specification;
-	specification.WindowWidth = 1280;
-	specification.WindowHeight = 720;
+	specification.WindowWidth = 1920;
+	specification.WindowHeight = 1080;
 	specification.Name = "Title";
 	specification.APIType = RenderingAPIType::OpenGL;
 	return new Sandbox(specification);

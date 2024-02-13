@@ -30,6 +30,9 @@ namespace Radiant
 		s_RenderingContext = Rendering::GetRenderingContext();
 
 		s_Instance = this;
+
+		m_ImGuiLayer = ImGuiLayer::Create("ImGuiLayer");
+		PushLayer(m_ImGuiLayer);
 	}
 
 	Application::~Application()
@@ -57,13 +60,22 @@ namespace Radiant
 	{
 		OnInit();
 
+		Rendering::GetRenderingCommandBuffer().Execute();
 		while (m_Run)
 		{
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
 
 			s_RenderingContext->BeginFrame();
-			Rendering::GetRenderingCommandBuffer().Execute();		
+			Rendering::GetRenderingCommandBuffer().Execute();	
+
+			m_ImGuiLayer->Begin();
+
+			for (Layer* layer : m_LayerStack)
+				layer->OnImGuiRender();
+
+			m_ImGuiLayer->End();
+
 			s_RenderingContext->EndFrame();
 		}
 	}

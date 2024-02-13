@@ -18,7 +18,7 @@ namespace Radiant
 	struct GeometryData
 	{
 		Memory::Shared<Shader> GeometryShader;
-		Memory::Shared<Framebuffer> GeometryPass;
+		Memory::Shared<Framebuffer> GeometryFB;
 		Memory::Shared<Pipeline> GeometryPipeline;
 	};
 
@@ -38,6 +38,24 @@ namespace Radiant
 
 		s_SceneInfo->FullscreenQuadShader = Shader::Create("Resources/Shaders/Scene.glsl");
 		s_SceneInfo->FullscreenQuadMaterial = Material::Create(s_SceneInfo->FullscreenQuadShader);
+
+		s_SceneInfo->GeoData.GeometryFB = Framebuffer::Create({ 0, 0, 1, ImageFormat::RGBA16F});
+	}
+
+	Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetFinalPassImage() const
+	{
+		return s_SceneInfo->GeoData.GeometryFB->GetColorImage();
+	}
+
+	void OpenGLSceneRendering::SetSceneVeiwPortSize(const glm::vec2& size)
+	{
+		if (m_ViewportWidth != size.x || m_ViewportHeight != size.y)
+		{
+			m_ViewportWidth = size.x;
+			m_ViewportHeight = size.y;
+
+			s_SceneInfo->GeoData.GeometryFB->Resize(size.x, size.y);
+		}
 	}
 
 	OpenGLSceneRendering::~OpenGLSceneRendering()
@@ -51,16 +69,19 @@ namespace Radiant
 		Init();
 	}
 
-	void OpenGLSceneRendering::SubmitScene(Camera* cam) const
+	void OpenGLSceneRendering::SubmitScene(Camera* cam) 
 	{
 		cam->OnUpdate();
 
 		auto viewProjection = cam->GetProjectionMatrix() * cam->GetViewMatrix();
 		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", glm::inverse(viewProjection));
+		Flush();
+	}
 
-		s_SceneInfo->FullscreenQuadShader->Use();
-		s_SceneInfo->FullscreenQuadMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance); // TODO: Move to SetEnv.
-		Rendering::DrawFullscreenQuad();
+	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
+	{
+		m_Environment = env;
+		s_SceneInfo->FullscreenQuadMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance); 
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const
@@ -70,9 +91,11 @@ namespace Radiant
 			equirectangularConversionShader = Shader::Create("Resources/Shaders/equirect2cube_cs.glsl");
 
 		auto envTextureUnfiltered = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
-		envTextureUnfiltered.As<OpenGLImage2D>()->Invalidate();
+	
 		Rendering::SubmitCommand([envTextureUnfiltered]()
 			{
+				envTextureUnfiltered.As<OpenGLImage2D>()->Invalidate();
+
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -94,13 +117,14 @@ namespace Radiant
 		// Compute pre-filtered specular environment map.
 
 		auto envTexture = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
-		envTexture.As<OpenGLImage2D>()->Invalidate();
 		
 		if(!envFilteringShader)
 			envFilteringShader = Shader::Create("Resources/Shaders/spmap_cs.glsl");
 
 		Rendering::SubmitCommand([envTextureUnfiltered, envTexture]()
 			{
+				envTexture.As<OpenGLImage2D>()->Invalidate();
+
 				glCopyImageSubData(envTextureUnfiltered->GetTextureID(), GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
 				envTexture->GetTextureID(), GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0,
 				kEnvMapSize, kEnvMapSize, 6);
@@ -121,13 +145,14 @@ namespace Radiant
 		// Compute diffuse irradiance cubemap.
 
 		auto irmapTexture = Image2D::Create({ kIrradianceMapSize, kIrradianceMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
-		irmapTexture.As<OpenGLImage2D>()->Invalidate();
 
 		if(!envIrradianceShader)
 			envIrradianceShader = Shader::Create("Resources/Shaders/irmap_cs.glsl");
 
 		Rendering::SubmitCommand([envTexture, irmapTexture]()
 			{
+				irmapTexture.As<OpenGLImage2D>()->Invalidate();
+
 				glBindTextureUnit(0, envTexture->GetTextureID());
 				glBindImageTexture(0, irmapTexture->GetTextureID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 				glDispatchCompute(kIrradianceMapSize / 32, kIrradianceMapSize / 32, 6);
@@ -136,4 +161,18 @@ namespace Radiant
 
 		return { envTexture , irmapTexture };
 	}
+
+	void OpenGLSceneRendering::GeometryPass()
+	{
+		s_SceneInfo->GeoData.GeometryFB->Use();
+		s_SceneInfo->FullscreenQuadShader->Use();
+		Rendering::DrawFullscreenQuad();
+		s_SceneInfo->GeoData.GeometryFB->Use(BindUsage::Unbind);
+	}
+	
+	void OpenGLSceneRendering::Flush() 
+	{
+		GeometryPass();
+	}
+
 }
