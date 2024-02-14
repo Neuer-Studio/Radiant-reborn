@@ -25,6 +25,11 @@ namespace Radiant
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
+				if (bufferName.empty())
+					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
+
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -40,6 +45,11 @@ namespace Radiant
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
+				if (bufferName.empty())
+					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
+
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -54,6 +64,11 @@ namespace Radiant
 				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
+
+				if (bufferName.empty())
+					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
+
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, glm::value_ptr(value));
@@ -71,6 +86,11 @@ namespace Radiant
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
+				if (bufferName.empty())
+					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
+
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -86,6 +106,11 @@ namespace Radiant
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
+				if (bufferName.empty())
+					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
+
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -99,6 +124,7 @@ namespace Radiant
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, texture2D]() mutable
 			{
+				
 				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
 				glBindTextureUnit(samplerBuffer.Binding, texture2D->GetImage2D()->GetTextureID());
 			});
@@ -109,6 +135,9 @@ namespace Radiant
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, image2D]() mutable
 			{
+				if (!image2D)
+					return;
+
 				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
 				glBindTextureUnit(samplerBuffer.Binding, image2D->GetTextureID());
 			});

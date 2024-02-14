@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderingContext.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Core/Application.hpp>
 
 namespace Radiant
 {
@@ -61,6 +62,7 @@ namespace Radiant
 		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &info.MaxAnisotropy);
 
 		glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &info.MaxTextureUnits);
+
 	}
 
 	void OpenGLRenderingContext::BeginFrame() const

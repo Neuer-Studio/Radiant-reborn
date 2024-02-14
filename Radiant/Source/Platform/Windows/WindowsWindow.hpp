@@ -23,6 +23,7 @@ namespace Radiant
 		virtual const void* GetNativeWindow() const override { return m_Window; }
 
 		virtual bool IsWindowMaximized() const override;
+		virtual bool IsWindowMinimized() const { return !m_Data.Specification.Width && !m_Data.Specification.Height; }
 
 		virtual void SetEventCallback(const EventCallbackFn& e) override { m_Data.EventCallback = e; }
 	private:

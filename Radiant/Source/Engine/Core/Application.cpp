@@ -10,10 +10,7 @@ namespace Radiant
 
 	Application::Application(const ApplicationSpecification& specification)
 	{
-		if (s_Instance)
-		{
-			RADIANT_VERIFY(false);
-		}
+		RADIANT_VERIFY(!s_Instance, "it is not possible to create more than one instance");
 
 		RenderingAPI::SetAPI(specification.APIType);
 
@@ -21,6 +18,7 @@ namespace Radiant
 		wspec.Width = specification.WindowWidth;
 		wspec.Height = specification.WindowHeight;
 		wspec.Title = specification.Name;
+		wspec.Fullscreen = specification.Fullscreen;
 
 		m_Window = Window::Create(wspec);
 		m_Window->SetEventCallback([this](Event& e)
@@ -31,6 +29,8 @@ namespace Radiant
 		s_RenderingContext = Rendering::GetRenderingContext();
 
 		s_Instance = this;
+
+		s_RenderingContext->OnResize(m_Window->GetWidth(), m_Window->GetHeight());
 
 		m_ImGuiLayer = ImGuiLayer::Create("ImGuiLayer");
 		PushLayer(m_ImGuiLayer);
@@ -64,18 +64,22 @@ namespace Radiant
 		Rendering::GetRenderingCommandBuffer().Execute();
 		while (m_Run)
 		{
-			for (Layer* layer : m_LayerStack)
-				layer->OnUpdate();
-
 			s_RenderingContext->BeginFrame();
-			Rendering::GetRenderingCommandBuffer().Execute();	
 
-			m_ImGuiLayer->Begin();
+			if (!m_Window->IsWindowMinimized())
+			{
+				for (Layer* layer : m_LayerStack)
+					layer->OnUpdate();
 
-			for (Layer* layer : m_LayerStack)
-				layer->OnImGuiRender();
+				Rendering::GetRenderingCommandBuffer().Execute();
 
-			m_ImGuiLayer->End();
+				m_ImGuiLayer->Begin();
+
+				for (Layer* layer : m_LayerStack)
+					layer->OnImGuiRender();
+
+				m_ImGuiLayer->End();
+			}
 
 			s_RenderingContext->EndFrame();
 		}
@@ -93,6 +97,8 @@ namespace Radiant
 		eventManager.Notify<EventWindowResize>([this](const EventWindowResize& e) -> bool
 			{
 				m_Window->SetSize(e.width, e.height);
+				if (m_Window->IsWindowMinimized())
+					return false;
 				s_RenderingContext->OnResize(e.width, e.height);
 
 				auto& fbs = FramebufferPool::GetAll();
@@ -101,7 +107,7 @@ namespace Radiant
 					fb->Resize(e.width, e.height);
 				
 
-				return true;
+				return false;
 			});
 	}
 }

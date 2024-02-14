@@ -57,7 +57,7 @@ namespace Radiant
 
 		float m_Exposure = 0.8f;
 
-		uint32_t m_ViewportWidth = 1280, m_ViewportHeight = 720;
+		uint32_t m_ViewportWidth, m_ViewportHeight;
 	};
 
 }

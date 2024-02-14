@@ -40,6 +40,7 @@ namespace Radiant
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
 		std::unordered_map<std::string, ShaderUniformBuffer> m_UniformBuffers;
+
 	private:
 		friend class OpenGLMaterial;
 	};

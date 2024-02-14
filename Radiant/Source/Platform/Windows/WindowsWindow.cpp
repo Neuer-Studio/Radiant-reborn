@@ -18,7 +18,6 @@ namespace Radiant
 	WindowsWindow::WindowsWindow(const WindowSpecification& specification)
 	{
 		m_Data.Specification = specification;
-		RA_INFO("[Window(Windows)] Creating window {} ({}, {})", m_Data.Specification.Title, m_Data.Specification.Width, m_Data.Specification.Height);
 
 		if (!s_GLFWInitialized)
 		{
@@ -46,7 +45,30 @@ namespace Radiant
 #endif
 		}
 
-		m_Window = glfwCreateWindow((int)m_Data.Specification.Width, (int)m_Data.Specification.Height, m_Data.Specification.Title.c_str(), nullptr, nullptr);
+		auto primaryMonitor = glfwGetPrimaryMonitor();
+		if (specification.Fullscreen)
+		{
+			auto videoMode = glfwGetVideoMode(primaryMonitor);
+
+			glfwWindowHint(GLFW_DECORATED, false);
+
+
+			m_Data.Specification.Width = videoMode->width;
+			m_Data.Specification.Height = videoMode->height;
+			m_Window = glfwCreateWindow(videoMode->width, videoMode->height, m_Data.Specification.Title.c_str(), primaryMonitor, nullptr);
+		}
+
+		else
+		{
+			m_Window = glfwCreateWindow((int)m_Data.Specification.Width, (int)m_Data.Specification.Height, m_Data.Specification.Title.c_str(), nullptr, nullptr);
+		/*	int max_width = GetSystemMetrics(SM_CXSCREEN);
+			int max_hieght = GetSystemMetrics(SM_CYSCREEN);
+
+			glfwSetWindowMonitor(m_Window, NULL, (max_width / 2) - (m_Data.Specification.Width / 2), (max_hieght / 2) - (m_Data.Specification.Height / 2), m_Data.Specification.Width, m_Data.Specification.Height, GLFW_DONT_CARE);*/
+		}
+
+		RA_INFO("[Window(Windows)] Creating window {} ({}, {})", m_Data.Specification.Title, m_Data.Specification.Width, m_Data.Specification.Height);
+
 		glfwMakeContextCurrent(m_Window);
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 
@@ -67,6 +89,7 @@ namespace Radiant
 
 
 		auto context = Rendering::Initialize(m_Window);
+
 	}
 
 	WindowsWindow::~WindowsWindow()
@@ -88,6 +111,8 @@ namespace Radiant
 	{
 		m_Data.Specification.Width = width;
 		m_Data.Specification.Height = height;
+
+		glfwSetWindowSize(m_Window, width, height);
 	}
 
 	bool WindowsWindow::IsWindowMaximized() const

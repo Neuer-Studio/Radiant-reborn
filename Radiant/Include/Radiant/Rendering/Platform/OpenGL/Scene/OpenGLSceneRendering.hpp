@@ -22,6 +22,7 @@ namespace Radiant
 		virtual Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const override;
 
 	private:
+		void CompositePass();
 		void GeometryPass();
 		void Flush();
 	private:

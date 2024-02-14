@@ -125,6 +125,7 @@ namespace Radiant
 	OpenGLShader::OpenGLShader(const std::filesystem::path& path)
 		:  m_FilePath(path)
 	{
+
 		RADIANT_VERIFY(Utils::FileSystem::Exists(m_FilePath));
 		m_Name = Utils::FileSystem::GetFileName(m_FilePath);
 		Reload();
@@ -203,7 +204,8 @@ namespace Radiant
 				glCreateBuffers(1, &buffer.RenderingID);
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferData(GL_UNIFORM_BUFFER, buffer.Size, nullptr, GL_DYNAMIC_DRAW);
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID); //TODO: Изменять в use() RenderingID
+
 
 				for (int i = 0; i < memberCount; i++)
 				{
@@ -213,26 +215,24 @@ namespace Radiant
 					auto offset = compiler.type_struct_member_offset(bufferType, i);
 
 					RadiantShaderDataType uniformType = Utils::SPIRTypeToShaderDataType(type);
-					buffer.Uniforms[name] = {name, shadertype, uniformType , size, offset};
+					buffer.Uniforms[name] = { name, shadertype, uniformType , size, offset };
 				}
 			}
 
 			// ======== Sampler ========
+		}
+		int32_t sampler = 0;
+		for (const spirv_cross::Resource& resource : res.sampled_images)
+		{
+			auto& type = compiler.get_type(resource.base_type_id);
+			auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+			const auto& name = resource.name;
+			GLint location = OGLGetUniformPosition(name.c_str());
+			//				RADIANT_VERIFY(location != -1);
 
-			int32_t sampler = 0;
-  			for (const spirv_cross::Resource& resource : res.sampled_images)
-			{
-				auto& type = compiler.get_type(resource.base_type_id);
-				auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-				const auto& name = resource.name;
-				GLint location = OGLGetUniformPosition(name.c_str());
-//				RADIANT_VERIFY(location != -1);
+			glUniform1i(location, binding);
 
-				glUniform1i(location, binding);
-
-				m_Resources[name] = { name, shadertype, Utils::GetDimensionSampler(type.image.dim), binding};
-			}
-
+			m_Resources[name] = { name, shadertype, Utils::GetDimensionSampler(type.image.dim), binding };
 		}
 	}
 
@@ -390,7 +390,7 @@ namespace Radiant
 	void OpenGLShader::Use(BindUsage use) const
 	{
 		Memory::Shared< const OpenGLShader> instance = this;
-		Rendering::SubmitCommand([instance, use]()
+		Rendering::SubmitCommand([instance, use]() mutable
 			{
 				if (use == BindUsage::Unbind)
 				{

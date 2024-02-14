@@ -1,6 +1,8 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
+#include <Radiant/Core/Application.hpp>
+
 #include <Radiant/Rendering/Platform/OpenGL/Scene/OpenGLSceneRendering.hpp>
 #include <Radiant/Rendering/Image.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
@@ -17,9 +19,17 @@ namespace Radiant
 
 	struct GeometryData
 	{
-		Memory::Shared<Shader> GeometryShader;
-		Memory::Shared<Framebuffer> GeometryFB;
-		Memory::Shared<Pipeline> GeometryPipeline;
+		Memory::Shared<Shader> shader;
+		Memory::Shared<Framebuffer> framebuffer;
+		Memory::Shared<Pipeline> pipeline;
+	};
+
+	struct CompositeData
+	{
+		Memory::Shared<Shader> shader;
+		Memory::Shared<Framebuffer> framebuffer;
+		Memory::Shared<Pipeline> pipeline;
+		Memory::Shared<Material> material;
 	};
 
 	struct SceneInfo
@@ -28,23 +38,34 @@ namespace Radiant
 		Memory::Shared<Material> FullscreenQuadMaterial;
 
 		GeometryData GeoData;
+		CompositeData CompData;
 	};
 
 	static SceneInfo* s_SceneInfo = nullptr;
 
 	void OpenGLSceneRendering::Init()
 	{
+		m_ViewportWidth = Application::GetInstance().GetWindow()->GetWidth();
+		m_ViewportHeight = Application::GetInstance().GetWindow()->GetHeight();
 		s_SceneInfo = new SceneInfo();
 
-		s_SceneInfo->FullscreenQuadShader = Shader::Create("Resources/Shaders/Scene.glsl");
+		s_SceneInfo->FullscreenQuadShader = Shader::Create("Resources/Shaders/Skybox.glsl");
 		s_SceneInfo->FullscreenQuadMaterial = Material::Create(s_SceneInfo->FullscreenQuadShader);
 
-		s_SceneInfo->GeoData.GeometryFB = Framebuffer::Create({ 0, 0, 1, ImageFormat::RGBA16F});
+		{
+			s_SceneInfo->GeoData.framebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F});
+		}
+
+		{
+			s_SceneInfo->CompData.shader = Shader::Create("Resources/Shaders/SceneComposite.glsl");
+			s_SceneInfo->CompData.material = Material::Create(s_SceneInfo->CompData.shader);
+			s_SceneInfo->CompData.framebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
+		}
 	}
 
 	Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetFinalPassImage() const
 	{
-		return s_SceneInfo->GeoData.GeometryFB->GetColorImage();
+		return s_SceneInfo->CompData.framebuffer->GetColorImage();
 	}
 
 	void OpenGLSceneRendering::SetSceneVeiwPortSize(const glm::vec2& size)
@@ -54,7 +75,8 @@ namespace Radiant
 			m_ViewportWidth = size.x;
 			m_ViewportHeight = size.y;
 
-			s_SceneInfo->GeoData.GeometryFB->Resize(size.x, size.y);
+			s_SceneInfo->GeoData.framebuffer->Resize(size.x, size.y);
+			s_SceneInfo->CompData.framebuffer->Resize(size.x, size.y);
 		}
 	}
 
@@ -164,15 +186,26 @@ namespace Radiant
 
 	void OpenGLSceneRendering::GeometryPass()
 	{
-		s_SceneInfo->GeoData.GeometryFB->Use();
+		s_SceneInfo->GeoData.framebuffer->Use();
 		s_SceneInfo->FullscreenQuadShader->Use();
 		Rendering::DrawFullscreenQuad();
-		s_SceneInfo->GeoData.GeometryFB->Use(BindUsage::Unbind);
+		s_SceneInfo->GeoData.framebuffer->Use(BindUsage::Unbind);
+	}
+
+	void OpenGLSceneRendering::CompositePass()
+	{
+		s_SceneInfo->CompData.framebuffer->Use();
+		s_SceneInfo->CompData.shader->Use();
+		s_SceneInfo->CompData.material->SetUniform("Uniforms", "Exposure", 0.5f);
+		s_SceneInfo->CompData.material->SetUniform("u_Texture", s_SceneInfo->GeoData.framebuffer->GetColorImage());
+		Rendering::DrawFullscreenQuad();
+		s_SceneInfo->CompData.framebuffer->Use(BindUsage::Unbind);
 	}
 	
 	void OpenGLSceneRendering::Flush() 
 	{
 		GeometryPass();
+		CompositePass();
 	}
 
 }

@@ -1,4 +1,5 @@
 #include <Radiant/Core/Camera.hpp>
+#include <Radiant/Core/Application.hpp>
 #include <Radiant/Core/Input.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -11,6 +12,9 @@ namespace Radiant
 	Camera::Camera(const glm::mat4& projectionMatrix)
 		: m_ProjectionMatrix(projectionMatrix)
 	{
+		m_ViewportWidth = Application::GetInstance().GetWindow()->GetWidth();
+		m_ViewportHeight = Application::GetInstance().GetWindow()->GetHeight();
+
 		m_Rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 		m_FocalPoint = glm::vec3(0.0f);
 
