@@ -14,11 +14,11 @@ namespace Radiant
 
 		virtual void Resize(uint32_t width, uint32_t height, bool forceRecreate = false) override;
 
-		virtual RenderingID GetRendererID() const override { return m_RenderingID; }
+		virtual RenderingID GetRendererID() const override { return m_RenderingID.value_or(0); }
 
 		virtual Memory::Shared<Image2D> GetColorImage() const override { return m_FbColorImage; }
 	private:
-		RenderingID m_RenderingID = 0;
+		std::optional<RenderingID> m_RenderingID;
 		FramebufferSpecification m_Specification;
 		Memory::Shared<Image2D> m_FbColorImage;
 

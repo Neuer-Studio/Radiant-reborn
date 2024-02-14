@@ -42,7 +42,7 @@ namespace Radiant
 	{
 	public:
 
-		static Memory::Shared<Image2D> Create(ImageSpecification spec);
+		static Memory::Shared<Image2D> Create(const ImageSpecification& spec);
 	};
 
 }

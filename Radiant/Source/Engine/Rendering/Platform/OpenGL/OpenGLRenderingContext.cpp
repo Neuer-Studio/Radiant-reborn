@@ -75,4 +75,12 @@ namespace Radiant
 		Rendering::Clear(rgba);
 	}
 
+	void OpenGLRenderingContext::OnResize(uint32_t width, uint32_t height)
+	{
+		Rendering::SubmitCommand([width, height]()
+			{
+				glViewport(0, 0, width, height);
+			});
+	}
+
 }

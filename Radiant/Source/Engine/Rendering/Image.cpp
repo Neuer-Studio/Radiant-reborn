@@ -5,7 +5,7 @@
 namespace Radiant
 {
 
-	Radiant::Memory::Shared<Radiant::Image2D> Image2D::Create(ImageSpecification spec)
+	Radiant::Memory::Shared<Radiant::Image2D> Image2D::Create(const ImageSpecification& spec)
 	{
 		switch (RenderingAPI::GetAPI())
 		{

@@ -1,6 +1,7 @@
 #include <Core/Application.hpp>
 #include <GLFW/glfw3.h>
 #include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Rendering/Framebuffer.hpp>
 
 namespace Radiant
 {
@@ -92,6 +93,14 @@ namespace Radiant
 		eventManager.Notify<EventWindowResize>([this](const EventWindowResize& e) -> bool
 			{
 				m_Window->SetSize(e.width, e.height);
+				s_RenderingContext->OnResize(e.width, e.height);
+
+				auto& fbs = FramebufferPool::GetAll();
+
+				for (auto& fb : fbs)
+					fb->Resize(e.width, e.height);
+				
+
 				return true;
 			});
 	}

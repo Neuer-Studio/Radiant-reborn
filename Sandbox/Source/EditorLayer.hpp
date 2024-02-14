@@ -22,9 +22,6 @@ namespace Radiant
 
 			auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
 			m_Scene->SetEnvironment(env);
-
-			CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f));
-			CAM.SetViewportSize((uint32_t)1280.0f, (uint32_t)720.0f);
 		}
 		virtual void OnDetach()
 		{
@@ -86,6 +83,10 @@ namespace Radiant
 			{
 				auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
 				auto viewportSize = ImGui::GetContentRegionAvail();
+
+				CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), viewportSize.x, viewportSize.y, 0.1f, 10000.0f));
+				CAM.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
+
 				Scene::GetSceneRendering()->SetSceneVeiwPortSize({viewportSize.x, viewportSize.y});
 
 				if(Scene::GetSceneRendering()->GetFinalPassImage())

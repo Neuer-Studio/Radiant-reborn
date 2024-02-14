@@ -40,7 +40,11 @@ namespace Radiant
 
 	OpenGLTexture2D::~OpenGLTexture2D()
 	{
-		m_Image2D.As<OpenGLImage2D>()->Release();
+		Memory::Shared<Image2D>& image = m_Image2D;
+		Rendering::SubmitCommand([image]() mutable
+			{
+				image.As<OpenGLImage2D>()->Release();
+			});
 	}
 
 	void OpenGLTexture2D::Use(uint32_t slot, BindUsage use) const
