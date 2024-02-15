@@ -10,10 +10,14 @@ public:
 
 	}
 
-	void OnInit() override
+	virtual void OnInit() override
 	{
 		PushLayer(new Radiant::EditorLayer());
 	}
+
+	virtual void OnShutdown() override {}
+	virtual void OnUpdate(Radiant::Timestep ts) override {}
+	
 };
 
 Radiant::Application* Radiant::CreateApplication(int argc, char** argv)

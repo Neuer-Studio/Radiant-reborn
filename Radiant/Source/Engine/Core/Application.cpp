@@ -64,12 +64,13 @@ namespace Radiant
 		Rendering::GetRenderingCommandBuffer().Execute();
 		while (m_Run)
 		{
+			m_FrameCount = 0;
 			s_RenderingContext->BeginFrame();
 
 			if (!m_Window->IsWindowMinimized())
 			{
 				for (Layer* layer : m_LayerStack)
-					layer->OnUpdate();
+					layer->OnUpdate(m_Timestep);
 
 				Rendering::GetRenderingCommandBuffer().Execute();
 
@@ -82,7 +83,12 @@ namespace Radiant
 			}
 
 			s_RenderingContext->EndFrame();
+
+			float time = glfwGetTime();
+			m_Timestep = time - m_LastFrameTime;
+			m_LastFrameTime = time;
 		}
+		OnShutdown();
 	}
 
 	void Application::ProcessEvents(Event& e)
@@ -109,5 +115,12 @@ namespace Radiant
 
 				return false;
 			});
+
+		for (const auto& layer : m_LayerStack)
+		{
+			layer->OnEvent(e);
+			if (e.m_Handled)
+				break;
+		}
 	}
 }

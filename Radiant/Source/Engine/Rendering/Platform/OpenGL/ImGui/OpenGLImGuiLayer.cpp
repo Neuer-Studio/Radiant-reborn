@@ -65,7 +65,7 @@ namespace Radiant
 		ImGui::DestroyContext();
 	}
 
-	void OpenGLImGuiLayer::OnUpdate()
+	void OpenGLImGuiLayer::OnUpdate(Timestep ts)
 	{
 
 	}

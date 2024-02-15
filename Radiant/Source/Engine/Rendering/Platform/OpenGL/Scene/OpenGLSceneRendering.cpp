@@ -9,6 +9,7 @@
 #include <Radiant/Rendering/Framebuffer.hpp>
 #include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Material.hpp>
+#include <Radiant/Rendering/Mesh.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLImage.hpp>
 
 namespace Radiant
@@ -37,6 +38,8 @@ namespace Radiant
 		Memory::Shared<Shader> FullscreenQuadShader;
 		Memory::Shared<Material> FullscreenQuadMaterial;
 
+		std::vector<Memory::Shared<Mesh>> MeshDrawList;
+
 		GeometryData GeoData;
 		CompositeData CompData;
 	};
@@ -61,6 +64,8 @@ namespace Radiant
 			s_SceneInfo->CompData.material = Material::Create(s_SceneInfo->CompData.shader);
 			s_SceneInfo->CompData.framebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
 		}
+
+		s_SceneInfo->MeshDrawList.reserve(10); // TODO: Add a capcaity from YAML(scene)
 	}
 
 	Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetFinalPassImage() const
@@ -91,13 +96,18 @@ namespace Radiant
 		Init();
 	}
 
-	void OpenGLSceneRendering::SubmitScene(Camera* cam) 
+	void OpenGLSceneRendering::OnUpdate(Timestep ts, Camera* cam)
 	{
-		cam->OnUpdate();
+		cam->OnUpdate(ts);
 
 		auto viewProjection = cam->GetProjectionMatrix() * cam->GetViewMatrix();
 		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", glm::inverse(viewProjection));
 		Flush();
+	}
+
+	void OpenGLSceneRendering::AddMesh(const Memory::Shared<Mesh>& mesh) const
+	{
+		s_SceneInfo->MeshDrawList.push_back(mesh);
 	}
 
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
@@ -196,7 +206,7 @@ namespace Radiant
 	{
 		s_SceneInfo->CompData.framebuffer->Use();
 		s_SceneInfo->CompData.shader->Use();
-		s_SceneInfo->CompData.material->SetUniform("Uniforms", "Exposure", 0.5f);
+		s_SceneInfo->CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
 		s_SceneInfo->CompData.material->SetUniform("u_Texture", s_SceneInfo->GeoData.framebuffer->GetColorImage());
 		Rendering::DrawFullscreenQuad();
 		s_SceneInfo->CompData.framebuffer->Use(BindUsage::Unbind);

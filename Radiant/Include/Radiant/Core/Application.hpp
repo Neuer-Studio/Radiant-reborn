@@ -2,6 +2,7 @@
 
 #include <string>
 #include <Radiant/Core/Events/WindowEvents.hpp>
+#include <Radiant/Core/Timestep.hpp>
 
 #include "Window.hpp"
 
@@ -27,9 +28,9 @@ namespace Radiant
 
 		virtual ~Application();
 
-		virtual void OnInit() {}
-		virtual void OnShutdown() {}
-		virtual void OnUpdate() {}
+		virtual void OnInit() = 0;
+		virtual void OnShutdown() = 0;
+		virtual void OnUpdate(Timestep ts) = 0;
 
 		void PushLayer(Layer* layer);
 		void PopLayer(Layer* layer);
@@ -48,6 +49,9 @@ namespace Radiant
 		ImGuiLayer* m_ImGuiLayer;
 	private:
 		static Application* s_Instance;
+		Timestep m_Timestep;
+		float m_LastFrameTime = 0.0f;
+		uint32_t m_FrameCount = 0;
 
 		bool m_Run;
 	};

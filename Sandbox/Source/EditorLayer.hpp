@@ -27,11 +27,13 @@ namespace Radiant
 		{
 
 		}
-		virtual void OnUpdate() override
+		virtual void OnUpdate(Timestep ts) override
 		{
-			m_Scene->UpdateScene(&CAM);
+			m_Scene->OnUpdate(ts, &CAM);
 
 		}
+
+		virtual void OnEvent(Radiant::Event& e) override {}
 
 		virtual void OnImGuiRender() override
 		{

@@ -13,9 +13,9 @@ namespace Radiant
 			s_SceneRendering = SceneRendering::Create(this);
 	}
 
-	void Scene::UpdateScene(Camera* cam)
+	void Scene::OnUpdate(Timestep ts, Camera* cam)
 	{
-		s_SceneRendering->SubmitScene(cam);
+		s_SceneRendering->OnUpdate(ts, cam);
 	}
 
 	void Scene::SetEnvironment(const Environment& env)
@@ -26,6 +26,11 @@ namespace Radiant
 	Environment Scene::CreateEnvironmentScene(const std::filesystem::path& filepath) const
 	{
 		return s_SceneRendering->CreateEnvironmentScene(filepath);
+	}
+
+	void Scene::AddMesh(const Memory::Shared<Mesh>& mesh) const
+	{
+		s_SceneRendering->AddMesh(mesh);
 	}
 
 	Radiant::Memory::Shared<Radiant::SceneRendering>& Scene::GetSceneRendering()
