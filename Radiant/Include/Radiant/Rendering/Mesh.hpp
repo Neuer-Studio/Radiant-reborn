@@ -36,6 +36,8 @@ namespace Radiant
 	public:
 		Mesh(const std::filesystem::path& filepath);
 
+		const std::string& GetName() const { return m_Name; }
+
 		void Use() const;
 		uint32_t GetIndexCount() const { return m_IndexBuffer->GetCount(); }
 	private:
@@ -45,6 +47,7 @@ namespace Radiant
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
 
+		std::string m_Name;
 		std::filesystem::path m_AssetPath;
 	};
 

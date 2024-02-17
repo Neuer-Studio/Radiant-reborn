@@ -29,7 +29,6 @@ namespace Radiant
 	{
 		Memory::Shared<VertexBuffer> FullscreenQuadVertexBuffer;
 		Memory::Shared<IndexBuffer> FullscreenQuadIndexBuffer;
-		Memory::Shared<Pipeline> FullscreenQuadPipeline;
 	};
 
 	struct RenderingData
@@ -42,6 +41,11 @@ namespace Radiant
 	static Memory::Shared<RenderingContext> s_RenderingContext = nullptr;
 	static Memory::Shared<RenderingAPI> s_RenderingAPIPlatform = nullptr;
 	static Memory::CommandBuffer s_CommandBuffer;
+
+	Rendering::~Rendering()
+	{
+		s_CommandBuffer.Execute();
+	}
 
 	void Rendering::Clear(float rgba[4])
 	{
@@ -98,12 +102,6 @@ namespace Radiant
 		data[3].Position = glm::vec3(x, y + height, 0.1f);
 		data[3].TexCoord = glm::vec2(0, 1);
 
-		PipelineSpecification pipelineSpecification;
-		pipelineSpecification.Layout = {
-			{ ShaderDataType::Float3, "a_Position" },
-			{ ShaderDataType::Float2, "a_TexCoord" }
-		};
-		s_RenderingData->QuadInfo.FullscreenQuadPipeline = Pipeline::Create(pipelineSpecification);
 		s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer = VertexBuffer::Create(data, 4 * sizeof(QuadVertex));
 		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0, };
 		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer = IndexBuffer::Create(indices, 6 * sizeof(uint32_t));
@@ -116,10 +114,10 @@ namespace Radiant
 		return s_RenderingContext;
 	}
 
-	void Rendering::DrawFullscreenQuad()
+	void Rendering::DrawFullscreenQuad(const Memory::Shared<Pipeline>& pipeline)
 	{
 		s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer->Use();
-		s_RenderingData->QuadInfo.FullscreenQuadPipeline->Use();
+		pipeline->Use();
 		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->Use();
 
 		DrawPrimitive(Primitives::Triangle, s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->GetCount(), false);

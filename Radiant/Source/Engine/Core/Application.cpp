@@ -34,6 +34,8 @@ namespace Radiant
 
 		m_ImGuiLayer = ImGuiLayer::Create("ImGuiLayer");
 		PushLayer(m_ImGuiLayer);
+
+		Rendering::GetRenderingCommandBuffer().Execute();
 	}
 
 	Application::~Application()

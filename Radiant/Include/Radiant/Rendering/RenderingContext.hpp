@@ -13,6 +13,7 @@ namespace Radiant
 		virtual void EndFrame() const = 0;
 
 		virtual void OnResize(uint32_t width, uint32_t height) = 0;
+		virtual void Shutdown() = 0;
 
 		static Memory::Shared<RenderingContext> Create(GLFWwindow* window);
 	};

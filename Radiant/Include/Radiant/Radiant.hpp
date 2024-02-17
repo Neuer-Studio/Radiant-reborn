@@ -23,7 +23,8 @@
 #include <Radiant/Rendering/Texture.hpp>
 #include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
+#include <Radiant/Rendering/RenderPass.hpp>
 
 // =================== Scene =================== //
 
-#include <Radiant/Rendering/Scene/Scene.hpp>
+#include <Radiant/Scene/Scene.hpp>

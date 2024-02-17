@@ -1,12 +1,19 @@
 #pragma once
 
 #include "VertexBuffer.hpp"
+#include <Radiant/Rendering/RenderPass.hpp>
+#include <Radiant/Rendering/Shader.hpp>
+#include <Radiant/Rendering/RenderPass.hpp>
 
 namespace Radiant
 {
 	struct PipelineSpecification
 	{
+		Memory::Shared<Shader> Shader;
+		Memory::Shared<RenderPass> RenderPass;
 		VertexBufferLayout Layout;
+
+		std::string DebugName;
 	};
 
 	class Pipeline : public Memory::RefCounted

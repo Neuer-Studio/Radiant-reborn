@@ -30,6 +30,8 @@ namespace Radiant
 		RADIANT_VERIFY(Utils::FileSystem::Exists(filepath));
 		RA_INFO("Loading mesh: {0}", filepath.string().c_str());
 
+		m_Name = Utils::FileSystem::GetFileName(filepath);
+
 		LogStream::Initialize();
 
 		Assimp::Importer importer;

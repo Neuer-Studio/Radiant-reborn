@@ -1,5 +1,9 @@
 #include <Radiant/Utilities/FileSystem.hpp>
 
+#if (RADIANT_PLATFORM_WINDOWS)
+#include <Platform/Windows/WindowsFileSystem.hpp>
+#endif
+
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -60,7 +64,7 @@ namespace Radiant::Utils
 
 	std::filesystem::path FileSystem::OpenFileDialog(const char* filter)
 	{
-		return {};//WindowsFileSystem::OpenFileDialog(filter);
+		return WindowsFileSystem::OpenFileDialog(filter);
 	}
 
 	std::filesystem::path FileSystem::GetFileDirectory(const std::filesystem::path& filepath)

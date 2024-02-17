@@ -20,28 +20,37 @@ namespace Radiant
 
 	struct GeometryData
 	{
-		Memory::Shared<Shader> shader;
-		Memory::Shared<Framebuffer> framebuffer;
 		Memory::Shared<Pipeline> pipeline;
 	};
 
-	struct CompositeData
+	struct CompositeData // TODO: Move to RenderPass
 	{
-		Memory::Shared<Shader> shader;
-		Memory::Shared<Framebuffer> framebuffer;
 		Memory::Shared<Pipeline> pipeline;
 		Memory::Shared<Material> material;
 	};
 
+	struct RenderPassList
+	{
+		GeometryData GeoData;
+		CompositeData CompData;
+	};
+
+	struct DrawCommand
+	{
+		glm::mat4 Transform;
+		Memory::Shared<Mesh> Mesh;
+		Memory::Shared<Material> Material;
+	};
+
 	struct SceneInfo
 	{
+		Memory::Shared<Shader> DefaultShader;
 		Memory::Shared<Shader> FullscreenQuadShader;
 		Memory::Shared<Material> FullscreenQuadMaterial;
 
-		std::vector<Memory::Shared<Mesh>> MeshDrawList;
+		struct RenderPassList RenderPassList;
 
-		GeometryData GeoData;
-		CompositeData CompData;
+		std::vector<DrawCommand> MeshDrawList;
 	};
 
 	static SceneInfo* s_SceneInfo = nullptr;
@@ -55,22 +64,53 @@ namespace Radiant
 		s_SceneInfo->FullscreenQuadShader = Shader::Create("Resources/Shaders/Skybox.glsl");
 		s_SceneInfo->FullscreenQuadMaterial = Material::Create(s_SceneInfo->FullscreenQuadShader);
 
-		{
-			s_SceneInfo->GeoData.framebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F});
-		}
+		// Geometry pass
 
 		{
-			s_SceneInfo->CompData.shader = Shader::Create("Resources/Shaders/SceneComposite.glsl");
-			s_SceneInfo->CompData.material = Material::Create(s_SceneInfo->CompData.shader);
-			s_SceneInfo->CompData.framebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
+			renderPassSpec.DebugName = "Geometry Render Pass";
+
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" }
+			};
+
+			pipelineSpecification.DebugName = "PBR-Static";
+			pipelineSpecification.RenderPass = RenderPass::Create(renderPassSpec);
+			pipelineSpecification.Shader = Shader::Create("Resources/Shaders/StaticPBR_Radiant.glsl");
+
+			s_SceneInfo->RenderPassList.GeoData.pipeline = Pipeline::Create(pipelineSpecification);
 		}
 
-		s_SceneInfo->MeshDrawList.reserve(10); // TODO: Add a capcaity from YAML(scene)
+		// Composite pass
+
+		{
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
+			renderPassSpec.DebugName = "Composite Render Pass";
+
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" }
+			};
+
+			pipelineSpecification.DebugName = "Scene Composite";
+			pipelineSpecification.RenderPass = RenderPass::Create(renderPassSpec);
+			pipelineSpecification.Shader = Shader::Create("Resources/Shaders/SceneComposite.glsl");
+			s_SceneInfo->RenderPassList.CompData.pipeline = Pipeline::Create(pipelineSpecification);
+
+			s_SceneInfo->RenderPassList.CompData.material = Material::Create(pipelineSpecification.Shader);
+		}
+
+		s_SceneInfo->MeshDrawList.reserve(100); // TODO: Add a capcaity from YAML(scene)
 	}
 
 	Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetFinalPassImage() const
 	{
-		return s_SceneInfo->CompData.framebuffer->GetColorImage();
+		return s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage();
 	}
 
 	void OpenGLSceneRendering::SetSceneVeiwPortSize(const glm::vec2& size)
@@ -80,8 +120,10 @@ namespace Radiant
 			m_ViewportWidth = size.x;
 			m_ViewportHeight = size.y;
 
-			s_SceneInfo->GeoData.framebuffer->Resize(size.x, size.y);
-			s_SceneInfo->CompData.framebuffer->Resize(size.x, size.y);
+			s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(size.x, size.y);
+			s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(size.x, size.y);
+
+			m_Scene->SetViewportSize(size.x, size.y);
 		}
 	}
 
@@ -96,18 +138,18 @@ namespace Radiant
 		Init();
 	}
 
-	void OpenGLSceneRendering::OnUpdate(Timestep ts, Camera* cam)
+	void OpenGLSceneRendering::OnUpdate(Timestep ts, Camera& cam)
 	{
-		cam->OnUpdate(ts);
+		cam.OnUpdate(ts);
 
-		auto viewProjection = cam->GetProjectionMatrix() * cam->GetViewMatrix();
+		auto viewProjection = cam.GetProjectionMatrix() * cam.GetViewMatrix();
 		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", glm::inverse(viewProjection));
 		Flush();
 	}
 
-	void OpenGLSceneRendering::AddMesh(const Memory::Shared<Mesh>& mesh) const
+	void OpenGLSceneRendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
 	{
-		s_SceneInfo->MeshDrawList.push_back(mesh);
+		s_SceneInfo->MeshDrawList.push_back({ transform, mesh, nullptr });
 	}
 
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
@@ -196,20 +238,28 @@ namespace Radiant
 
 	void OpenGLSceneRendering::GeometryPass()
 	{
-		s_SceneInfo->GeoData.framebuffer->Use();
+		s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use();
 		s_SceneInfo->FullscreenQuadShader->Use();
-		Rendering::DrawFullscreenQuad();
-		s_SceneInfo->GeoData.framebuffer->Use(BindUsage::Unbind);
+		Rendering::DrawFullscreenQuad(s_SceneInfo->RenderPassList.GeoData.pipeline);
+
+		//Shader::Use();
+		//Pipeline::Use();
+
+		for (const auto& mesh : s_SceneInfo->MeshDrawList) {
+			//Rendering::DrawMesh(mesh);
+		}
+
+		s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use(BindUsage::Unbind);
 	}
 
 	void OpenGLSceneRendering::CompositePass()
 	{
-		s_SceneInfo->CompData.framebuffer->Use();
-		s_SceneInfo->CompData.shader->Use();
-		s_SceneInfo->CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
-		s_SceneInfo->CompData.material->SetUniform("u_Texture", s_SceneInfo->GeoData.framebuffer->GetColorImage());
-		Rendering::DrawFullscreenQuad();
-		s_SceneInfo->CompData.framebuffer->Use(BindUsage::Unbind);
+		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use();
+		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
+		s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
+		s_SceneInfo->RenderPassList.CompData.material->SetUniform("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
+		Rendering::DrawFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline);
+		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use(BindUsage::Unbind);
 	}
 	
 	void OpenGLSceneRendering::Flush() 

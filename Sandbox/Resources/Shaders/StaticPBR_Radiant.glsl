@@ -1,7 +1,6 @@
 #type vertex
 #version 450 core
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 TexCoords;
 
 layout (std140, binding = 0) uniform Camera
 {
@@ -17,12 +16,7 @@ void main()
 #version 450 core
 layout(location = 0) out vec4 FragColor;
 
-layout (std140, binding = 1) uniform Props
-{
-	vec3 color;
-};
-
 void main()
 {
-   FragColor = vec4(color, 1.0);
+   FragColor = vec4(vec3(0.3), 1.0);
 }

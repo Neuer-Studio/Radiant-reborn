@@ -3,8 +3,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <Radiant/Rendering/Scene/Entity.hpp>
-#include <Radiant/Rendering/Scene/SceneRendering.hpp>
+#include <Radiant/Scene/Entity.hpp>
+#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/ImGui/Editor/Panels/PanelOutliner.hpp>
 #include <ImGUI/imgui.h>
 
 namespace Radiant
@@ -13,7 +14,7 @@ namespace Radiant
 	{
 	public:
 		EditorLayer()
-			: Layer("EditorLayer"), CAM(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f))
+			: Layer("EditorLayer")
 		{}
 
 		virtual void OnAttach()
@@ -22,6 +23,8 @@ namespace Radiant
 
 			auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
 			m_Scene->SetEnvironment(env);
+			m_Outliner = new PanelOutliner(m_Scene);
+			
 		}
 		virtual void OnDetach()
 		{
@@ -29,11 +32,17 @@ namespace Radiant
 		}
 		virtual void OnUpdate(Timestep ts) override
 		{
-			m_Scene->OnUpdate(ts, &CAM);
-
+			m_Scene->OnUpdate(ts);
 		}
 
-		virtual void OnEvent(Radiant::Event& e) override {}
+		virtual void OnEvent(Radiant::Event& e) override // NOTE: Does not work
+		{
+			EventManager eventManager(e);
+			eventManager.Notify<EventWindowResize>([this](const EventWindowResize& e) -> bool
+				{
+					return false;
+				});
+		}
 
 		virtual void OnImGuiRender() override
 		{
@@ -72,7 +81,7 @@ namespace Radiant
 
 			ImGui::PopStyleVar(2);
 
-			//m_Outliner->DrawComponentsUI();
+			m_Outliner->DrawComponentsUI();
 
 			// Dockspace
 			float minWinSizeX = style.WindowMinSize.x;
@@ -84,15 +93,15 @@ namespace Radiant
 			ImGui::Begin("Viewport");
 			{
 				auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
-				auto viewportSize = ImGui::GetContentRegionAvail();
+				m_ViewportSize = ImGui::GetContentRegionAvail();
 
-				CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), viewportSize.x, viewportSize.y, 0.1f, 10000.0f));
-				CAM.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
+				/*CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), viewportSize.x, viewportSize.y, 0.1f, 10000.0f));
+				CAM.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);*/
 
-				Scene::GetSceneRendering()->SetSceneVeiwPortSize({viewportSize.x, viewportSize.y});
+				Scene::GetSceneRendering()->SetSceneVeiwPortSize({ m_ViewportSize.x, m_ViewportSize.y });
 
 				if(Scene::GetSceneRendering()->GetFinalPassImage())
-					ImGui::Image((void*)Scene::GetSceneRendering()->GetFinalPassImage()->GetTextureID(), viewportSize, { 0, 1 }, { 1, 0 });
+					ImGui::Image((void*)Scene::GetSceneRendering()->GetFinalPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
 
 
 				static int counter = 0;
@@ -106,14 +115,15 @@ namespace Radiant
 			ImGui::End();
 			ImGui::PopStyleVar();
 
-			//m_Outliner->DrawImGuiUI();
+			m_Outliner->DrawImGuiUI();
 			//m_ScenePanel->DrawImGuiUI();
 			ImGui::End();
 
 		}
 	private:
 		Memory::Shared<Scene> m_Scene;
-		Camera CAM;
+		ImVec2 m_ViewportSize;
 
+		Memory::Shared<PanelOutliner> m_Outliner;
 	};
 }

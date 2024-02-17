@@ -1,3 +1,5 @@
+include "../Dependencies.lua"
+
 project "Sandbox"
     kind "ConsoleApp"
 
@@ -15,6 +17,7 @@ project "Sandbox"
         "../ThirdParty/Glad/include/",
         "../ThirdParty/glm/",
         "../ThirdParty/",
+        "%{IncludeDir.entt}",
     }
 
     defines { "INCLUDE_HEADERS=#include <Radiant/Radiant.hpp>" }
