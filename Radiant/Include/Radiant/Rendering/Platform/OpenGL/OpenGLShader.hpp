@@ -23,6 +23,7 @@ namespace Radiant
 	private:
 		void Load(const std::string& shader—ontent);
 		void ParseBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
+		void ParseConstantBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
 		void CompileToSPIR_V();
 		void UploadFromBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath);
 		void Upload();
@@ -39,7 +40,7 @@ namespace Radiant
 		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
-		std::unordered_map<std::string, ShaderUniformBuffer> m_UniformBuffers;
+		std::unordered_map<BindingPoint, ShaderUniformBuffer> m_UniformBuffers;
 
 	private:
 		friend class OpenGLMaterial;

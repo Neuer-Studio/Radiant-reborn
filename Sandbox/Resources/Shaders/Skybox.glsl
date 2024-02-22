@@ -8,6 +8,7 @@
 layout(std140, binding=0) uniform TransformUniforms
 {
 	mat4 u_ViewProjectionMatrix;
+	mat4 u_InversedViewProjectionMatrix;
 };
 
 layout(location=0) in vec3 a_Position;
@@ -18,7 +19,7 @@ void main()
 	vec4 position = vec4(a_Position.xy, 1.0, 1.0);
 	gl_Position = position;
 
-	v_Position = (u_ViewProjectionMatrix * position).xyz;
+	v_Position = (u_InversedViewProjectionMatrix * position).xyz;
 }
 
 #type fragment

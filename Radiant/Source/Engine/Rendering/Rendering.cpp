@@ -1,3 +1,5 @@
+#include <glad/glad.h>
+
 #include <Radiant/Rendering/VertexBuffer.hpp>
 #include <Radiant/Rendering/IndexBuffer.hpp>
 #include <Radiant/Rendering/Pipeline.hpp>
@@ -34,6 +36,9 @@ namespace Radiant
 	struct RenderingData
 	{
 		QuadData QuadInfo;
+		Memory::Shared<RenderPass> ActiveRenderPass;
+
+		ShaderLibrary* s_ShaderLibrary = nullptr;
 	};
 
 	static RenderingData* s_RenderingData = nullptr;
@@ -44,6 +49,9 @@ namespace Radiant
 
 	Rendering::~Rendering()
 	{
+		delete s_RenderingData->s_ShaderLibrary;
+		delete s_RenderingData;
+
 		s_CommandBuffer.Execute();
 	}
 
@@ -56,12 +64,40 @@ namespace Radiant
 			});
 	}
 
+	void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh)
+	{
+	}
+
 	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest)
 	{
 		Rendering::SubmitCommand([primitive, count, depthTest]()
 			{
 				s_RenderingAPIPlatform->DrawPrimitive(primitive, count, depthTest);
 			});
+	}
+
+	void Rendering::BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear /*= true*/)
+	{
+		RADIANT_VERIFY(renderPass, "Render pass cannot be null!");
+
+		// TODO: Convert all of this into a render command buffer
+		s_RenderingData->ActiveRenderPass = renderPass;
+
+		renderPass->GetSpecification().TargetFramebuffer->Use();
+		if (clear)
+		{
+			static float rgba[4] = { 0.4f, 0.3f, 0.1f, 1.0f }; //TODO: Get from Specification
+			Rendering::Clear(rgba);
+		}
+
+	}
+
+	void Rendering::EndRenderPass()
+	{
+		RADIANT_VERIFY(s_RenderingData->ActiveRenderPass, "No active render pass! Have you called Renderer::EndRenderPass twice?");
+		s_RenderingData->ActiveRenderPass->GetSpecification().TargetFramebuffer->Use(BindUsage::Unbind);
+		s_RenderingData->ActiveRenderPass = nullptr;
+
 	}
 
 	Memory::Shared<RenderingContext> Rendering::Initialize(GLFWwindow* window)
@@ -77,6 +113,7 @@ namespace Radiant
 		s_RenderingContext = RenderingContext::Create(window);
 
 		s_RenderingData = new RenderingData();
+		s_RenderingData->s_ShaderLibrary = new ShaderLibrary();
 
 		// NOTE(Danya): Create fullscreen quad
 		float x = -1;
@@ -106,6 +143,19 @@ namespace Radiant
 		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0, };
 		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer = IndexBuffer::Create(indices, 6 * sizeof(uint32_t));
 
+		// Load Shaders
+
+		{
+			// Compute shaders
+
+			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/equirect2cube_cs.glsl");
+
+			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/Skybox.glsl");
+			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/StaticPBR_Radiant.glsl");
+			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/SceneComposite.glsl");
+			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/Grid.glsl");
+		}
+
 		return s_RenderingContext;
 	}
 
@@ -114,13 +164,34 @@ namespace Radiant
 		return s_RenderingContext;
 	}
 
-	void Rendering::DrawFullscreenQuad(const Memory::Shared<Pipeline>& pipeline)
+	const Radiant::ShaderLibrary* Rendering::GetShaderLibrary()
 	{
+		return s_RenderingData->s_ShaderLibrary;
+	}
+
+	void Rendering::SubmitFullscreenQuad(const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& material)
+	{
+		if (!pipeline)
+			return;
+		bool depthTest = false;
+		if (material)
+		{
+			material->Use();
+			depthTest = true; // TODO: Get a flag from material to set depth test
+		}
 		s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer->Use();
 		pipeline->Use();
 		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->Use();
 
-		DrawPrimitive(Primitives::Triangle, s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->GetCount(), false);
+		Rendering::SubmitCommand([material, depthTest]()
+			{
+				if (depthTest)
+					glEnable(GL_DEPTH_TEST);
+				else
+					glDisable(GL_DEPTH_TEST);
+
+				glDrawElements(GL_TRIANGLES, s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->GetCount(), GL_UNSIGNED_INT, nullptr);
+			});
 	}
 
 	Memory::CommandBuffer& Rendering::GetRenderingCommandBuffer()

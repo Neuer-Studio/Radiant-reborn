@@ -40,7 +40,7 @@ namespace Radiant
 
 		void Use() const;
 		uint32_t GetIndexCount() const { return m_IndexBuffer->GetCount(); }
-	private:
+	
 		Memory::Shared<VertexBuffer> m_VertexBuffer;
 		Memory::Shared<IndexBuffer> m_IndexBuffer;
 

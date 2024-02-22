@@ -20,7 +20,7 @@ namespace Radiant
 		Entity CreateEntity(const std::string& name = "");
 		Entity GetMainCameraEntity();
 
-		void OnUpdate(Timestep ts);
+		void OnUpdate(Timestep ts, Camera& camera);
 		void SetEnvironment(const Environment& env);
 		Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const;
 

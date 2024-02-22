@@ -14,7 +14,7 @@ namespace Radiant
 	{
 	public:
 		EditorLayer()
-			: Layer("EditorLayer")
+			: Layer("EditorLayer"), m_EditorCamera(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 1000.0f))
 		{}
 
 		virtual void OnAttach()
@@ -32,11 +32,14 @@ namespace Radiant
 		}
 		virtual void OnUpdate(Timestep ts) override
 		{
-			m_Scene->OnUpdate(ts);
+			m_EditorCamera.OnUpdate(ts);
+			m_Scene->OnUpdate(ts, m_EditorCamera);
 		}
 
-		virtual void OnEvent(Radiant::Event& e) override // NOTE: Does not work
+		virtual void OnEvent(Radiant::Event& e) override
 		{
+			m_EditorCamera.OnEvent(e);
+
 			EventManager eventManager(e);
 			eventManager.Notify<EventWindowResize>([this](const EventWindowResize& e) -> bool
 				{
@@ -95,10 +98,10 @@ namespace Radiant
 				auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
 				m_ViewportSize = ImGui::GetContentRegionAvail();
 
-				/*CAM.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), viewportSize.x, viewportSize.y, 0.1f, 10000.0f));
-				CAM.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);*/
-
 				Scene::GetSceneRendering()->SetSceneVeiwPortSize({ m_ViewportSize.x, m_ViewportSize.y });
+
+				m_EditorCamera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), m_ViewportSize.x, m_ViewportSize.y, 0.1f, 1000.0f));
+				m_EditorCamera.SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 
 				if(Scene::GetSceneRendering()->GetFinalPassImage())
 					ImGui::Image((void*)Scene::GetSceneRendering()->GetFinalPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
@@ -123,6 +126,7 @@ namespace Radiant
 	private:
 		Memory::Shared<Scene> m_Scene;
 		ImVec2 m_ViewportSize;
+		Camera m_EditorCamera;
 
 		Memory::Shared<PanelOutliner> m_Outliner;
 	};

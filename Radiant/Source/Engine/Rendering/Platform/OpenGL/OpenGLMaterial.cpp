@@ -16,19 +16,22 @@ namespace Radiant
 		//m_BufferValues.Allocate()
 	}
 
-	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, const glm::vec3& value) const
+	void OpenGLMaterial::Use() const
+	{
+		m_Shader->Use();
+	}
+
+	void OpenGLMaterial::SetUniform(BindingPoint binding, const std::string& name, const glm::vec3& value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
-				if (bufferName.empty())
+				if (buffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
-
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
@@ -36,19 +39,17 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, const glm::vec2& value) const
+	void OpenGLMaterial::SetUniform(BindingPoint binding, const std::string& name, const glm::vec2& value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
-				if (bufferName.empty())
+				if (buffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
-
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value[0]);
@@ -56,40 +57,35 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, const glm::mat4& value) const
+	void OpenGLMaterial::SetUniform(BindingPoint binding, const std::string& name, const glm::mat4& value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
-				if (bufferName.empty())
+				if (buffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
-
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, glm::value_ptr(value));
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, float value) const
+	void OpenGLMaterial::SetUniform(BindingPoint binding, const std::string& name, float value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
-				if (bufferName.empty())
+				if (buffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
-
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);
@@ -97,19 +93,17 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUniform(const std::string& bufferName, const std::string& name, bool value) const
+	void OpenGLMaterial::SetUniform(BindingPoint binding, const std::string& name, bool value) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([bufferName, name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
 			{
-				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[bufferName];
+				ShaderUniformBuffer buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
 				MemberUniformBuffer uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
-				if (bufferName.empty())
+				if (buffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
-
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
 
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uniform.Size, &value);

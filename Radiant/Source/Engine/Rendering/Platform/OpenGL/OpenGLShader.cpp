@@ -191,10 +191,10 @@ namespace Radiant
 			uint32_t bindingPoint = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			uint32_t bufferSize = compiler.get_declared_struct_size(bufferType);
 			std::string bufferName = resource.name;
-
-			if (m_UniformBuffers.find(bufferName) == m_UniformBuffers.end())
+			
+			if (m_UniformBuffers.find(bindingPoint) == m_UniformBuffers.end())
 			{
-				ShaderUniformBuffer& buffer = m_UniformBuffers[bufferName];
+				ShaderUniformBuffer& buffer = m_UniformBuffers[bindingPoint];
 				buffer.Name = bufferName;
 				buffer.Binding = bindingPoint;
 				buffer.Size = bufferSize;
@@ -204,8 +204,13 @@ namespace Radiant
 				glCreateBuffers(1, &buffer.RenderingID);
 				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
 				glBufferData(GL_UNIFORM_BUFFER, buffer.Size, nullptr, GL_DYNAMIC_DRAW);
-				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID); //TODO: Изменять в use() RenderingID
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID); 
+				
+				RA_TRACE("Created (ID:{0}) Uniform Buffer at binding point {1} with name '{2}', size is {3} bytes", buffer.RenderingID, buffer.Binding, buffer.Name, buffer.Size);
 
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+				//glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer.RenderingID, 0, buffer.Size);
 
 				for (int i = 0; i < memberCount; i++)
 				{
@@ -217,6 +222,21 @@ namespace Radiant
 					RadiantShaderDataType uniformType = Utils::SPIRTypeToShaderDataType(type);
 					buffer.Uniforms[name] = { name, shadertype, uniformType , size, offset };
 				}
+			}
+
+			else
+			{
+				auto& buffer = m_UniformBuffers[bindingPoint];
+
+				RADIANT_VERIFY(buffer.Name == resource.name);
+				glDeleteBuffers(1, &buffer.RenderingID);
+				glCreateBuffers(1, &buffer.RenderingID);
+
+				glBindBuffer(GL_UNIFORM_BUFFER, buffer.RenderingID);
+				glBufferData(GL_UNIFORM_BUFFER, buffer.Size, nullptr, GL_DYNAMIC_DRAW);
+				glBindBufferBase(GL_UNIFORM_BUFFER, buffer.Binding, buffer.RenderingID);
+
+				RADIANT_VERIFY("Resized Uniform Buffer at binding point {0} with name '{1}', size is {2} bytes", buffer.Binding, buffer.Name, buffer.Size);
 			}
 
 			// ======== Sampler ========
@@ -234,6 +254,14 @@ namespace Radiant
 
 			m_Resources[name] = { name, shadertype, Utils::GetDimensionSampler(type.image.dim), binding };
 		}
+	}
+
+	void OpenGLShader::ParseConstantBuffers(RadiantShaderType type, const std::vector<uint32_t>& data)
+	{
+		spirv_cross::Compiler compiler(data);
+		spirv_cross::ShaderResources res = compiler.get_shader_resources();
+
+
 	}
 
 	void OpenGLShader::CompileToSPIR_V()
@@ -353,8 +381,11 @@ namespace Radiant
 		for (auto id : shaderRendererIDs)
 			glDetachShader(m_RenderingID, id);
 
-		for(auto& shaderData : m_ShaderBinary)
+		for (auto& shaderData : m_ShaderBinary)
+		{
+			ParseConstantBuffers(shaderData.first, shaderData.second);
 			ParseBuffers(shaderData.first, shaderData.second);
+		}
 	}
 
 	void OpenGLShader::PreProcess(const std::string& content)

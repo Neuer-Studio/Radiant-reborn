@@ -18,7 +18,8 @@ namespace Radiant
 	public:
 		virtual ~SceneRendering() = default;
 
-		virtual void OnUpdate(Timestep ts, Camera& cam) = 0;
+		virtual void UpdateCamera(const Camera& camera) = 0;
+		virtual void OnUpdate(Timestep ts) = 0;
 		virtual void Init() = 0;
 
 		virtual void SetSceneVeiwPortSize(const glm::vec2& size) = 0;

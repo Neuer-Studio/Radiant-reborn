@@ -3,6 +3,7 @@
 #include <Radiant/Core/Application.hpp>
 #include <Radiant/Core/Events/Event.hpp>
 #include <Radiant/Core/Events/WindowEvents.hpp>
+#include <Radiant/Core/Events/MouseEvents.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 #include <Radiant/Rendering/RenderingAPI.hpp>
 
@@ -87,7 +88,13 @@ namespace Radiant
 				data.EventCallback(event);
 			});
 
+		glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset)
+			{
+				auto& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
+				MouseScrolledEvent event((float)xOffset, (float)yOffset);
+				data.EventCallback(event);
+			});
 		auto context = Rendering::Initialize(m_Window);
 
 	}

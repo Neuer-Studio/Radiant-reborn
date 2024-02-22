@@ -46,18 +46,25 @@ namespace Radiant
 		return {};
 	}
 
-	void Scene::OnUpdate(Timestep ts)
+	void Scene::OnUpdate(Timestep ts, Camera& camera)
 	{
-		Entity& cameraEntity = GetMainCameraEntity();
+	/*	Entity& cameraEntity = GetMainCameraEntity();
 		if (!cameraEntity)
-			return;
-		Camera& camera = cameraEntity.GetComponent<CameraComponent>();
-		camera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), (float)m_ViewportWidth, (float)m_ViewportHeight, 0.1f, 10000.0f));
-		camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-
+			return;*/
 		auto group = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
 
-		s_SceneRendering->OnUpdate(ts, camera);
+		for (auto entity : group)
+		{
+			auto [transformComponent, meshComponent] = group.get<TransformComponent, MeshComponent>(entity);
+			if (meshComponent.Mesh)
+			{
+				s_SceneRendering->SubmitMesh(meshComponent, transformComponent.GetTransform());
+			}
+		}
+
+		s_SceneRendering->UpdateCamera(camera);
+		s_SceneRendering->OnUpdate(ts);
+
 	}
 
 	void Scene::SetEnvironment(const Environment& env)

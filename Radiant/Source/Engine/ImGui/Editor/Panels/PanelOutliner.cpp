@@ -218,7 +218,7 @@ namespace Radiant
 				if (ImGui::MenuItem("Camera"))
 				{
 					auto entity = m_Context->CreateEntity("Camera");
-					entity.AddComponent<CameraComponent>().Camera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f));
+					entity.AddComponent<CameraComponent>().Camera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 1000.0f));
 				}
 
 				ImGui::Spacing();
@@ -317,6 +317,15 @@ namespace Radiant
 		ImGui::Text(TextUUID.c_str());
 		/*::ImGui::Unindent(contentRegionAvailable.x * 0.05f);
 		::ImGui::PopItemWidth();*/
+
+		DrawComponentUI<TransformComponent>("Transform", entity, [&](TransformComponent& tc)
+			{
+				DrawVec3UI("Translation", tc.Translation);
+				glm::vec3 rotation = glm::degrees(tc.Rotation);
+				DrawVec3UI("Rotation", rotation);
+				tc.Rotation = glm::radians(rotation);
+				DrawVec3UI("Scale", tc.Scale, 1.0f);
+			});
 
 		DrawComponentUI<MeshComponent>("Mesh", entity, [&](MeshComponent& mc)
 			{

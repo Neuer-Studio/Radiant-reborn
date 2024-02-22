@@ -1,5 +1,7 @@
 #include <glad/glad.h>
+
 #include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 #include <Radiant/Core/Application.hpp>
 
@@ -21,6 +23,7 @@ namespace Radiant
 	struct GeometryData
 	{
 		Memory::Shared<Pipeline> pipeline;
+		Memory::Shared<Material> material;
 	};
 
 	struct CompositeData // TODO: Move to RenderPass
@@ -44,13 +47,28 @@ namespace Radiant
 
 	struct SceneInfo
 	{
-		Memory::Shared<Shader> DefaultShader;
-		Memory::Shared<Shader> FullscreenQuadShader;
-		Memory::Shared<Material> FullscreenQuadMaterial;
-
 		struct RenderPassList RenderPassList;
 
+		Memory::Shared<Shader> DefaultShader;
+
 		std::vector<DrawCommand> MeshDrawList;
+
+		Memory::Shared<Pipeline> GridPipeline;
+		Memory::Shared<Material> GridMaterial;
+
+		Memory::Shared<Pipeline> SkyboxPipeline;
+		Memory::Shared<Material> SkyboxMaterial;
+
+		struct 
+		{
+			glm::mat4 ViewProjection;
+			glm::mat4 View;
+			glm::mat4 Projection;
+			glm::mat4 InversedViewProjection;
+		} SceneCamera;
+
+		bool Updated = false; // NOTE: Using for detect camera data update
+		bool ShowGrid = true;
 	};
 
 	static SceneInfo* s_SceneInfo = nullptr;
@@ -60,9 +78,6 @@ namespace Radiant
 		m_ViewportWidth = Application::GetInstance().GetWindow()->GetWidth();
 		m_ViewportHeight = Application::GetInstance().GetWindow()->GetHeight();
 		s_SceneInfo = new SceneInfo();
-
-		s_SceneInfo->FullscreenQuadShader = Shader::Create("Resources/Shaders/Skybox.glsl");
-		s_SceneInfo->FullscreenQuadMaterial = Material::Create(s_SceneInfo->FullscreenQuadShader);
 
 		// Geometry pass
 
@@ -79,9 +94,10 @@ namespace Radiant
 
 			pipelineSpecification.DebugName = "PBR-Static";
 			pipelineSpecification.RenderPass = RenderPass::Create(renderPassSpec);
-			pipelineSpecification.Shader = Shader::Create("Resources/Shaders/StaticPBR_Radiant.glsl");
+			pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get("StaticPBR_Radiant.glsl");
 
 			s_SceneInfo->RenderPassList.GeoData.pipeline = Pipeline::Create(pipelineSpecification);
+			s_SceneInfo->RenderPassList.GeoData.material = Material::Create(pipelineSpecification.Shader);
 		}
 
 		// Composite pass
@@ -99,10 +115,44 @@ namespace Radiant
 
 			pipelineSpecification.DebugName = "Scene Composite";
 			pipelineSpecification.RenderPass = RenderPass::Create(renderPassSpec);
-			pipelineSpecification.Shader = Shader::Create("Resources/Shaders/SceneComposite.glsl");
+			pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get("SceneComposite.glsl");
 			s_SceneInfo->RenderPassList.CompData.pipeline = Pipeline::Create(pipelineSpecification);
 
 			s_SceneInfo->RenderPassList.CompData.material = Material::Create(pipelineSpecification.Shader);
+		}
+
+		// Grid
+
+		{
+			auto gridShader = Rendering::GetShaderLibrary()->Get("Grid.glsl");
+			s_SceneInfo->GridMaterial = Material::Create(gridShader);
+			s_SceneInfo->GridMaterial->SetFlag(MaterialFlag::TwoSided, true);
+
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.DebugName = "Grid";
+			pipelineSpec.Shader = gridShader;
+			pipelineSpec.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" }
+			};
+			pipelineSpec.RenderPass = s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass;
+			s_SceneInfo->GridPipeline = Pipeline::Create(pipelineSpec); 
+		}
+
+		// Skybox
+
+		{
+			auto skyboxShader = Rendering::GetShaderLibrary()->Get("Skybox.glsl");
+
+			PipelineSpecification pipelineSpec;
+			pipelineSpec.DebugName = "Skybox";
+			pipelineSpec.Shader = skyboxShader;
+			pipelineSpec.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" }
+			};
+			s_SceneInfo->SkyboxPipeline = Pipeline::Create(pipelineSpec);
+			s_SceneInfo->SkyboxMaterial = Material::Create(skyboxShader);
 		}
 
 		s_SceneInfo->MeshDrawList.reserve(100); // TODO: Add a capcaity from YAML(scene)
@@ -127,6 +177,16 @@ namespace Radiant
 		}
 	}
 
+	void OpenGLSceneRendering::UpdateCamera(const Camera& camera)
+	{
+		s_SceneInfo->SceneCamera.ViewProjection = camera.GetViewProjection();
+		s_SceneInfo->SceneCamera.View = camera.GetViewMatrix();
+		s_SceneInfo->SceneCamera.Projection = camera.GetProjectionMatrix();
+		s_SceneInfo->SceneCamera.InversedViewProjection = glm::inverse(camera.GetViewProjection());
+
+		s_SceneInfo->Updated = true;
+	}
+
 	OpenGLSceneRendering::~OpenGLSceneRendering()
 	{
 		delete s_SceneInfo;
@@ -138,13 +198,20 @@ namespace Radiant
 		Init();
 	}
 
-	void OpenGLSceneRendering::OnUpdate(Timestep ts, Camera& cam)
+	void OpenGLSceneRendering::OnUpdate(Timestep ts)
 	{
-		cam.OnUpdate(ts);
+		RADIANT_VERIFY(s_SceneInfo->Updated);
 
-		auto viewProjection = cam.GetProjectionMatrix() * cam.GetViewMatrix();
-		s_SceneInfo->FullscreenQuadMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", glm::inverse(viewProjection));
-		Flush();
+		static const glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(16.0f));
+
+		//s_SceneInfo->SkyboxMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
+
+		s_SceneInfo->GridMaterial->SetUniform(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection); 
+		s_SceneInfo->GridMaterial->SetUniform(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection); 
+		s_SceneInfo->GridMaterial->SetUniform(1, "u_Transform", transform); //TODO: constant_buffer
+
+		FlushDrawList();
+		s_SceneInfo->Updated = false;
 	}
 
 	void OpenGLSceneRendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
@@ -155,14 +222,14 @@ namespace Radiant
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
 	{
 		m_Environment = env;
-		s_SceneInfo->FullscreenQuadMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance); 
+		s_SceneInfo->SkyboxMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance);
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const
 	{
 		static Memory::Shared<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader, spBRDF;
 		if (!equirectangularConversionShader)
-			equirectangularConversionShader = Shader::Create("Resources/Shaders/equirect2cube_cs.glsl");
+			equirectangularConversionShader = Rendering::GetShaderLibrary()->Get("equirect2cube_cs.glsl");
 
 		auto envTextureUnfiltered = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
 	
@@ -238,34 +305,47 @@ namespace Radiant
 
 	void OpenGLSceneRendering::GeometryPass()
 	{
-		s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use();
-		s_SceneInfo->FullscreenQuadShader->Use();
-		Rendering::DrawFullscreenQuad(s_SceneInfo->RenderPassList.GeoData.pipeline);
+		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass);
+
+		s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
+		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.GeoData.pipeline, nullptr);
 
 		//Shader::Use();
 		//Pipeline::Use();
 
-		for (const auto& mesh : s_SceneInfo->MeshDrawList) {
-			//Rendering::DrawMesh(mesh);
+		//for (const auto& mesh : s_SceneInfo->MeshDrawList) {
+		//	mesh.Mesh->m_VertexBuffer->Use();
+		//	s_SceneInfo->RenderPassList.GeoData.pipeline->Use();
+		//	mesh.Mesh->m_IndexBuffer->Use();
+
+		//	s_SceneInfo->RenderPassList.GeoData.material->Use();
+		//	Rendering::DrawPrimitive(Primitives::Triangle, mesh.Mesh->GetIndexCount(), true); // ERROR: clear only when we are resize window(recreate buffer)
+		//}
+
+		if (s_SceneInfo->ShowGrid)
+		{
+			Rendering::SubmitFullscreenQuad(s_SceneInfo->GridPipeline, s_SceneInfo->GridMaterial);
 		}
 
-		s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use(BindUsage::Unbind);
+		Rendering::EndRenderPass();
 	}
 
 	void OpenGLSceneRendering::CompositePass()
 	{
-		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use();
+		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
 		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
-		s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
+		//s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
 		s_SceneInfo->RenderPassList.CompData.material->SetUniform("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
-		Rendering::DrawFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline);
-		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Use(BindUsage::Unbind);
+		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);
+		Rendering::EndRenderPass();
 	}
 	
-	void OpenGLSceneRendering::Flush() 
+	void OpenGLSceneRendering::FlushDrawList()
 	{
 		GeometryPass();
 		CompositePass();
+
+		s_SceneInfo->MeshDrawList.clear(); // TODO: Optimize
 	}
 
 }

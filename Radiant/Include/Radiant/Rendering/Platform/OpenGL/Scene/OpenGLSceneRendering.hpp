@@ -15,7 +15,8 @@ namespace Radiant
 		virtual Memory::Shared<Image2D> GetFinalPassImage() const override;
 
 		virtual void SetSceneVeiwPortSize(const glm::vec2& size) override;
-		virtual void OnUpdate(Timestep ts, Camera& cam) override;
+		virtual void UpdateCamera(const Camera& camera) override;
+		virtual void OnUpdate(Timestep ts) override;
 
 		virtual void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const override;
 
@@ -26,7 +27,7 @@ namespace Radiant
 	private:
 		void CompositePass();
 		void GeometryPass();
-		void Flush();
+		void FlushDrawList();
 	private:
 		Environment m_Environment;
 		Memory::Shared<Scene> m_Scene;

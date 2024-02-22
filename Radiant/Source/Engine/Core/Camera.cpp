@@ -12,9 +12,6 @@ namespace Radiant
 	Camera::Camera(const glm::mat4& projectionMatrix)
 		: m_ProjectionMatrix(projectionMatrix)
 	{
-		m_ViewportWidth = Application::GetInstance().GetWindow()->GetWidth();
-		m_ViewportHeight = Application::GetInstance().GetWindow()->GetHeight();
-
 		m_Rotation = glm::vec3(90.0f, 0.0f, 0.0f);
 		m_FocalPoint = glm::vec3(0.0f);
 
@@ -37,8 +34,15 @@ namespace Radiant
 		m_ViewMatrix = glm::inverse(m_ViewMatrix);
 	}
 
-	void Camera::Focus()
+	void Camera::Focus(const glm::vec3& focusPoint)
 	{
+		m_FocalPoint = focusPoint;
+		if (m_Distance > m_MinFocusDistance)
+		{
+			float distance = m_Distance - m_MinFocusDistance;
+			MouseZoom(distance / ZoomSpeed());
+			UpdateCameraView();
+		}
 	}
 
 	std::pair<float, float> Camera::PanSpeed() const
@@ -71,10 +75,8 @@ namespace Radiant
 		if (Input::IsKeyPressed(KeyCode::LeftAlt))
 		{
 			const glm::vec2& mouse{ Input::GetMouseX(), Input::GetMouseY() };
-			glm::vec2 delta = mouse - m_InitialMousePosition;
+			glm::vec2 delta = (mouse - m_InitialMousePosition) * 0.003f;
 			m_InitialMousePosition = mouse;
-
-			delta *= ts;
 
 			if (Input::IsMouseButtonPressed(MouseButton::Middle))
 				MousePan(delta);
@@ -87,6 +89,22 @@ namespace Radiant
 		UpdateCameraView();
 	}
 
+	void Camera::OnEvent(Event& e)
+	{
+		EventManager eventManager(e);
+		eventManager.Notify<MouseScrolledEvent>([this](const MouseScrolledEvent& event)
+			{
+				return this->OnMouseScroll(event);
+			});
+	}
+
+	bool Camera::OnMouseScroll(const MouseScrolledEvent& e)
+	{
+		float delta = e.GetYOffset() * 0.1f;
+		MouseZoom(delta);
+		UpdateCameraView();
+		return false;
+	}
 
 	void Camera::MousePan(const glm::vec2& delta)
 	{
@@ -132,7 +150,7 @@ namespace Radiant
 		return m_FocalPoint - GetForwardDirection() * m_Distance;
 	}
 
-	glm::quat Camera::GetOrientation()
+	glm::quat Camera::GetOrientation() const
 	{
 		return glm::quat(glm::vec3(-m_Pitch, -m_Yaw, 0.0f));
 	}
