@@ -29,9 +29,13 @@ namespace Radiant
 		void Upload();
 		void UpdateBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary);
 		void PreProcess(const std::string& content);
+
+		void UploadUniformMat4(int32_t location, const glm::mat4& values);
 	private:
 		GLuint OGLGetUniformPosition(const std::string& name);
 	private:
+		uint32_t m_ConstantBufferOffset = 0;
+
 		std::string m_Name;
 		std::filesystem::path m_FilePath;
 		RenderingID m_RenderingID = 0;
@@ -40,7 +44,8 @@ namespace Radiant
 		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
-		std::unordered_map<BindingPoint, ShaderUniformBuffer> m_UniformBuffers;
+		std::unordered_map<BindingPoint, ShaderUniformBufferObject> m_UniformBuffers;
+		std::unordered_map <std::string, ShaderUniformBufferObject > m_ConstantBuffers;
 
 	private:
 		friend class OpenGLMaterial;

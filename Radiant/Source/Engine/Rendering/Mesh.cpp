@@ -46,7 +46,7 @@ namespace Radiant
 		{
 			Vertex vertex;
 			vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-			vertex.Normals = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+			vertex.Normals = { mesh->mNormals[i].x, mesh->mNormals[i].y };
 
 			m_Vertices.push_back(vertex);
 		}

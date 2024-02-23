@@ -15,7 +15,7 @@ namespace Radiant
 		virtual ~Rendering();
 
 		static void Clear(float rgba[4]);
-		static void SubmitMesh(const Memory::Shared<Mesh>& mesh);
+		static void SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline);
 		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true);
 
 		static void BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear = true);

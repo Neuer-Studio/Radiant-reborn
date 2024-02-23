@@ -12,10 +12,7 @@ layout (std140, binding = 0) uniform Camera
 	mat4 u_InversedViewProjectionMatrix;
 };
 
-layout (std140, binding = 1) uniform Transform //TODO: constnat buffer
-{
-	mat4 u_Transform;
-};
+layout(location = 0) uniform mat4 u_Transform;
 
 layout (location = 0) out vec2 v_TexCoord;
 

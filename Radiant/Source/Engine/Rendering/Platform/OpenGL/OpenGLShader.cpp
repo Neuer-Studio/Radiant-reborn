@@ -3,6 +3,7 @@
 
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLShader.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace fs = std::filesystem;
 
@@ -194,7 +195,7 @@ namespace Radiant
 			
 			if (m_UniformBuffers.find(bindingPoint) == m_UniformBuffers.end())
 			{
-				ShaderUniformBuffer& buffer = m_UniformBuffers[bindingPoint];
+				ShaderUniformBufferObject& buffer = m_UniformBuffers[bindingPoint];
 				buffer.Name = bufferName;
 				buffer.Binding = bindingPoint;
 				buffer.Size = bufferSize;
@@ -256,12 +257,35 @@ namespace Radiant
 		}
 	}
 
-	void OpenGLShader::ParseConstantBuffers(RadiantShaderType type, const std::vector<uint32_t>& data)
+	void OpenGLShader::ParseConstantBuffers(RadiantShaderType shaderType, const std::vector<uint32_t>& data)
 	{
 		spirv_cross::Compiler compiler(data);
 		spirv_cross::ShaderResources res = compiler.get_shader_resources();
 
+		for (const spirv_cross::Resource& resource : res.push_constant_buffers)
+		{
+			const auto& bufferName = resource.name;
+			auto& bufferType = compiler.get_type(resource.base_type_id);
+			auto bufferSize = compiler.get_declared_struct_size(bufferType);
 
+			auto location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+			int memberCount = bufferType.member_types.size();
+			ShaderUniformBufferObject& buffer = m_ConstantBuffers[bufferName];
+			buffer.Name = bufferName;
+			buffer.Size = bufferSize - m_ConstantBufferOffset;
+			for (int i = 0; i < memberCount; i++)
+			{
+				auto type = compiler.get_type(bufferType.member_types[i]);
+				const auto& memberName = compiler.get_member_name(bufferType.self, i);
+				auto size = compiler.get_declared_struct_member_size(bufferType, i);
+				auto offset = compiler.type_struct_member_offset(bufferType, i) - m_ConstantBufferOffset;
+
+				std::string uniformName = bufferName + "." + memberName;
+				buffer.Uniforms[uniformName] = { uniformName, shaderType, Utils::SPIRTypeToShaderDataType(type), size, offset };
+			}
+
+			m_ConstantBufferOffset += bufferSize;
+		}
 	}
 
 	void OpenGLShader::CompileToSPIR_V()
@@ -410,11 +434,19 @@ namespace Radiant
 		}
 	}
 
+	void OpenGLShader::UploadUniformMat4(int32_t location, const glm::mat4& values)
+	{
+		if (location != -1)
+			glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(values));
+		else
+			RA_WARN("Uniform 'X' not found!");
+	}
+
 	GLuint OpenGLShader::OGLGetUniformPosition(const std::string& name)
 	{
-		auto pos = glGetUniformLocation(m_RenderingID, name.c_str());
+		auto pos = glGetUniformLocation(m_RenderingID, name.c_str()); 
 		if(pos == -1)
-			RA_WARN("{0}: could not find uniform location {0}", name);
+			RA_WARN("{}: could not find uniform location {}", name, pos);
 		return pos;
 	}
 

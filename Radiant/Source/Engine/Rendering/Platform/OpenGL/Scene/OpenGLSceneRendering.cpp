@@ -48,14 +48,10 @@ namespace Radiant
 	struct SceneInfo
 	{
 		struct RenderPassList RenderPassList;
-
 		Memory::Shared<Shader> DefaultShader;
-
 		std::vector<DrawCommand> MeshDrawList;
-
 		Memory::Shared<Pipeline> GridPipeline;
 		Memory::Shared<Material> GridMaterial;
-
 		Memory::Shared<Pipeline> SkyboxPipeline;
 		Memory::Shared<Material> SkyboxMaterial;
 
@@ -137,6 +133,8 @@ namespace Radiant
 			};
 			pipelineSpec.RenderPass = s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass;
 			s_SceneInfo->GridPipeline = Pipeline::Create(pipelineSpec); 
+
+			s_SceneInfo->GridMaterial->LoadUniformToBuffer("u_Transform", RadiantShaderType::Vertex, RadiantShaderDataType::Float4);
 		}
 
 		// Skybox
@@ -204,13 +202,12 @@ namespace Radiant
 
 		static const glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(16.0f));
 
-		//s_SceneInfo->SkyboxMaterial->SetUniform("TransformUniforms", "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
-
-		s_SceneInfo->GridMaterial->SetUniform(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection); 
-		s_SceneInfo->GridMaterial->SetUniform(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection); 
-		s_SceneInfo->GridMaterial->SetUniform(1, "u_Transform", transform); //TODO: constant_buffer
-
 		FlushDrawList();
+
+		s_SceneInfo->GridMaterial->SetUBO(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection); 
+		s_SceneInfo->GridMaterial->SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection); 
+		s_SceneInfo->GridMaterial->SetMat4("u_Transform", transform);
+
 		s_SceneInfo->Updated = false;
 	}
 
@@ -222,7 +219,7 @@ namespace Radiant
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
 	{
 		m_Environment = env;
-		s_SceneInfo->SkyboxMaterial->SetUniform("u_EnvTexture", m_Environment.Radiance);
+		s_SceneInfo->SkyboxMaterial->SetUBO("u_EnvTexture", m_Environment.Radiance);
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const
@@ -310,17 +307,15 @@ namespace Radiant
 		s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.GeoData.pipeline, nullptr);
 
-		//Shader::Use();
-		//Pipeline::Use();
 
-		//for (const auto& mesh : s_SceneInfo->MeshDrawList) {
-		//	mesh.Mesh->m_VertexBuffer->Use();
-		//	s_SceneInfo->RenderPassList.GeoData.pipeline->Use();
-		//	mesh.Mesh->m_IndexBuffer->Use();
-
-		//	s_SceneInfo->RenderPassList.GeoData.material->Use();
-		//	Rendering::DrawPrimitive(Primitives::Triangle, mesh.Mesh->GetIndexCount(), true); // ERROR: clear only when we are resize window(recreate buffer)
-		//}
+		for (const auto& mesh : s_SceneInfo->MeshDrawList) {
+			mesh.Mesh->m_VertexBuffer->Use();
+			s_SceneInfo->RenderPassList.GeoData.pipeline->Use();
+			mesh.Mesh->m_IndexBuffer->Use();
+			s_SceneInfo->RenderPassList.GeoData.material->Use();
+			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(1, "u_Transform", mesh.Transform);
+			Rendering::DrawPrimitive(Primitives::Triangle, mesh.Mesh->GetIndexCount(), true); // ERROR: clear only when we are resize window(recreate buffer)
+		}
 
 		if (s_SceneInfo->ShowGrid)
 		{
@@ -335,7 +330,7 @@ namespace Radiant
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
 		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
 		//s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
-		s_SceneInfo->RenderPassList.CompData.material->SetUniform("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
+		s_SceneInfo->RenderPassList.CompData.material->SetUBO("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);
 		Rendering::EndRenderPass();
 	}

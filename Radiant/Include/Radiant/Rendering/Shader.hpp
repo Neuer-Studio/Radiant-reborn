@@ -31,13 +31,21 @@ namespace Radiant
 		Sampler1D, Sampler2D, Sampler3D
 	};
 
-	struct MemberUniformBuffer
+	struct MemberUniformBufferObject
 	{
 		std::string Name;
 		RadiantShaderType ShaderType = RadiantShaderType::None; 
 		RadiantShaderDataType DataType = RadiantShaderDataType::None;
 		size_t Size = 0;
 		uint32_t Offset = 0;
+	};
+
+	struct Uniform
+	{
+		std::string Name;
+		RadiantShaderType ShaderType = RadiantShaderType::None;
+		RadiantShaderDataType DataType = RadiantShaderDataType::None;
+		BindingPoint Position;
 	};
 
 	struct SamplerUniform
@@ -48,9 +56,9 @@ namespace Radiant
 		BindingPoint Binding;
 	};
 
-	typedef std::unordered_map<std::string, MemberUniformBuffer> UniformBuffer;
+	typedef std::unordered_map<std::string, MemberUniformBufferObject> UBO;
 
-	struct ShaderUniformBuffer
+	struct ShaderUniformBufferObject
 	{
 		std::string Name;
 		uint32_t Index;
@@ -58,7 +66,7 @@ namespace Radiant
 		uint32_t Size;
 		uint32_t RenderingID;
 
-		UniformBuffer Uniforms;
+		UBO Uniforms;
 	};
 
 	class Shader : public Memory::RefCounted

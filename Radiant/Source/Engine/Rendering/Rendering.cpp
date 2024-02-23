@@ -64,8 +64,13 @@ namespace Radiant
 			});
 	}
 
-	void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh)
+	void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline)
 	{
+		mesh->m_VertexBuffer->Use();
+		pipeline->Use();
+		mesh->m_VertexBuffer->Use();
+
+		Rendering::DrawPrimitive(Primitives::Triangle, mesh->GetIndexCount(), true);
 	}
 
 	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest)
