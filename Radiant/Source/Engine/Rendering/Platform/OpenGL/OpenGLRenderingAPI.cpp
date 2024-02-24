@@ -20,7 +20,9 @@ namespace Radiant
 
 	void OpenGLRenderingAPI::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest) const
 	{
-		if (!depthTest)
+		if (depthTest)
+			glEnable(GL_DEPTH_TEST);
+		else 
 			glDisable(GL_DEPTH_TEST);
 
 		GLenum gltype = 0;
@@ -32,9 +34,6 @@ namespace Radiant
 		}
 
 		glDrawElements(gltype, count, GL_UNSIGNED_INT, nullptr);
-
-		if (!depthTest)
-			glEnable(GL_DEPTH_TEST);
 	}
 
 }

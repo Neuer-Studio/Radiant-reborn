@@ -25,9 +25,13 @@ namespace Radiant
 				case ImageFormat::RGBA:
 					return GL_RGBA8;
 				case ImageFormat::RGBA16F:
-				return GL_RGBA16F; 
+					return GL_RGBA16F; 
 				case ImageFormat::RGBA32F:
 					return GL_RGBA32F;
+				case ImageFormat::DEPTH32F:
+					return GL_DEPTH_COMPONENT32F;
+				case ImageFormat::DEPTH24STENCIL8:
+					return GL_DEPTH24_STENCIL8;
 			}
 			RADIANT_VERIFY(false, "Unknown Radiant format");
 			return GL_NONE;
@@ -43,6 +47,7 @@ namespace Radiant
 				case ImageFormat::RGBA32F:
 				case ImageFormat::RGBA:
 					return GL_RGBA;
+
 			}
 			RADIANT_VERIFY(false, "Unknown Radiant format");
 			return GL_NONE;
@@ -71,6 +76,7 @@ namespace Radiant
 			case ImageFormat::RGB:
 			case ImageFormat::RGBA:
 				return GL_UNSIGNED_BYTE;
+
 			}
 			RADIANT_VERIFY(false, "Unknown Radiant format");
 			return GL_NONE;
@@ -86,7 +92,8 @@ namespace Radiant
 	void OpenGLImage2D::Use(uint32_t slot, BindUsage use) const
 	{
 		auto tID = m_RenderingID;
-		Rendering::SubmitCommand([tID, use, slot]() 
+		auto sID = m_SamplerRendererID;
+		Rendering::SubmitCommand([tID, use, slot, sID]() 
 			{
 				if (use == BindUsage::Unbind)
 				{
@@ -94,43 +101,40 @@ namespace Radiant
 					return;
 				}
 
-				glBindTextureUnit(slot, tID.value_or(0));
+				glBindSampler(slot, sID);
+				glBindTextureUnit(slot, tID);
 			});
 	}
 
 	void OpenGLImage2D::Invalidate()
 	{
-		if (m_RenderingID.has_value())
+		if (m_RenderingID != 0)
 			Release();
 
 		auto texType = Utils::RadiantTexTypeToOGL(m_Specification.Type);
-		RenderingID id = 0;
-		glCreateTextures(texType, 1, &id);
-		m_RenderingID = id;
+		glCreateTextures(texType, 1, &m_RenderingID);
 
 		auto internalformat = Utils::RadiantInternalFormatToOGL(m_Specification.Format);
-		glTextureStorage2D(m_RenderingID.value_or(0), m_MipmapLevels, internalformat, m_Specification.Width, m_Specification.Height);
+		glTextureStorage2D(m_RenderingID, m_MipmapLevels, internalformat, m_Specification.Width, m_Specification.Height);
 
 		if (m_Specification.Data)
 		{ 
 			auto format = Utils::RadiantFormatToOGL(m_Specification.Format);
 			auto type = Utils::OGLDataType(m_Specification.Format);
-			glTextureSubImage2D(m_RenderingID.value_or(0), 0, 0, 0, m_Specification.Width, m_Specification.Height, format, type, m_Specification.Data);
-			glGenerateTextureMipmap(m_RenderingID.value_or(0)); // TODO: optional
+			glTextureSubImage2D(m_RenderingID, 0, 0, 0, m_Specification.Width, m_Specification.Height, format, type, m_Specification.Data);
+			glGenerateTextureMipmap(m_RenderingID); // TODO: optional
 		}
-		glTextureParameteri(m_RenderingID.value_or(0), GL_TEXTURE_MIN_FILTER, m_Specification.Data ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-		glTextureParameteri(m_RenderingID.value_or(0), GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTextureParameteri(m_RenderingID.value_or(0), GL_TEXTURE_WRAP_R, GL_REPEAT);
-		glTextureParameteri(m_RenderingID.value_or(0), GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTextureParameteri(m_RenderingID.value_or(0), GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glCreateSamplers(1, &m_SamplerRendererID);
+		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_MIN_FILTER, m_Specification.Data ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_WRAP_R, GL_REPEAT);
+		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	}
 
 	void OpenGLImage2D::Release()
 	{
-		if (!m_RenderingID.has_value())
-			return;
-
-		glDeleteTextures(1, &m_RenderingID.value());
+		glDeleteTextures(1, &m_RenderingID);
 	}
 
 }

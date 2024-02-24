@@ -2,6 +2,7 @@
 
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLMaterial.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLShader.hpp>
+#include <Radiant/Rendering/Platform/OpenGL/OpenGLImage.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 
 #include <glm/glm.hpp>
@@ -121,6 +122,7 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, texture2D]() mutable
 			{
 				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
+				glBindSampler(samplerBuffer.Binding, texture2D->GetImage2D().As<OpenGLImage2D>()->GetSamplerID());
 				glBindTextureUnit(samplerBuffer.Binding, texture2D->GetImage2D()->GetTextureID());
 			});
 	}
@@ -134,6 +136,7 @@ namespace Radiant
 					return;
 
 				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
+				glBindSampler(samplerBuffer.Binding, image2D.As<OpenGLImage2D>()->GetSamplerID());
 				glBindTextureUnit(samplerBuffer.Binding, image2D->GetTextureID());
 			});
 	}

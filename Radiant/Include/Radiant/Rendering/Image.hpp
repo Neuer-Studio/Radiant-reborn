@@ -11,6 +11,10 @@ namespace Radiant
 		RGBA,
 		RGBA16F,
 		RGBA32F,
+
+		DEPTH32F,
+
+		DEPTH24STENCIL8
 	};
 
 	enum class TextureRendererType

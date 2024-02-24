@@ -179,11 +179,13 @@ namespace Radiant
 		if (!pipeline)
 			return;
 		bool depthTest = false;
+		bool cullFace = false;
 		if (material)
 		{
 			material->Use();
-			depthTest = true; // TODO: Get a flag from material to set depth test
+			depthTest = material->GetFlag(MaterialFlag::DepthTest); 
 		}
+
 		s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer->Use();
 		pipeline->Use();
 		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->Use();

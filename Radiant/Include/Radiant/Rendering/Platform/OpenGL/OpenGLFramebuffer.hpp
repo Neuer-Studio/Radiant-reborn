@@ -16,11 +16,16 @@ namespace Radiant
 
 		virtual RenderingID GetRendererID() const override { return m_RenderingID.value_or(0); }
 
-		virtual Memory::Shared<Image2D> GetColorImage() const override { return m_FbColorImage; }
+		virtual Memory::Shared<Image2D> GetColorAttachmentImage(uint32_t index) const override { return m_ColorAttachments[index]; }
+		virtual Memory::Shared<Image2D> GetDepthAttachmentImage() const override { return m_DepthAttachment; }
 	private:
 		std::optional<RenderingID> m_RenderingID;
 		FramebufferSpecification m_Specification;
-		Memory::Shared<Image2D> m_FbColorImage;
 
+		std::vector<Memory::Shared<Image2D>> m_ColorAttachments;
+		Memory::Shared<Image2D> m_DepthAttachment;
+
+		std::vector<ImageFormat> m_ColorAttachmentFormats;
+		ImageFormat m_DepthAttachmentFormat = ImageFormat::None;
 	};
 }

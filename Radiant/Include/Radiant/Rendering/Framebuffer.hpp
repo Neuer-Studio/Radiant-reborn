@@ -5,12 +5,22 @@
 
 namespace Radiant
 {
+	struct FramebufferAttachmentSpecification
+	{
+		FramebufferAttachmentSpecification() = default;
+		FramebufferAttachmentSpecification(const std::initializer_list<ImageFormat>& attachments)
+			: Attachments(attachments) {}
+
+		std::vector<ImageFormat> Attachments;
+	};
+
 	struct FramebufferSpecification
 	{
 		uint32_t Width;
 		uint32_t Height;
 		uint32_t Samples = 1;
-		ImageFormat Format;
+
+		FramebufferAttachmentSpecification Attachments;
 	};
 
 	class Framebuffer : public Memory::RefCounted
@@ -25,7 +35,8 @@ namespace Radiant
 
 		virtual RenderingID GetRendererID() const = 0;
 
-		virtual Memory::Shared<Image2D> GetColorImage() const = 0;
+		virtual Memory::Shared<Image2D> GetColorAttachmentImage(uint32_t index = 0) const = 0;
+		virtual Memory::Shared<Image2D> GetDepthAttachmentImage() const = 0;
 
 		static Memory::Shared<Framebuffer> Create(const FramebufferSpecification& spec);
 	};

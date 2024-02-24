@@ -74,13 +74,14 @@ namespace Radiant
 	{
 		m_ViewportWidth = Application::GetInstance().GetWindow()->GetWidth();
 		m_ViewportHeight = Application::GetInstance().GetWindow()->GetHeight();
+
 		s_SceneInfo = new SceneInfo();
 
 		// Geometry pass
 
 		{
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, { ImageFormat::RGBA16F, ImageFormat::DEPTH24STENCIL8 } });
 			renderPassSpec.DebugName = "Geometry Render Pass";
 
 			PipelineSpecification pipelineSpecification;
@@ -104,7 +105,7 @@ namespace Radiant
 
 		{
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, ImageFormat::RGBA16F });
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, { ImageFormat::RGBA16F } });
 			renderPassSpec.DebugName = "Composite Render Pass";
 
 			PipelineSpecification pipelineSpecification;
@@ -127,6 +128,7 @@ namespace Radiant
 			auto gridShader = Rendering::GetShaderLibrary()->Get("Grid.glsl");
 			s_SceneInfo->GridMaterial = Material::Create(gridShader);
 			s_SceneInfo->GridMaterial->SetFlag(MaterialFlag::TwoSided, true);
+			s_SceneInfo->GridMaterial->SetFlag(MaterialFlag::DepthTest, true);
 
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.DebugName = "Grid";
@@ -162,7 +164,7 @@ namespace Radiant
 
 	Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetFinalPassImage() const
 	{
-		return s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage();
+		return s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorAttachmentImage(0);
 	}
 
 	void OpenGLSceneRendering::SetSceneVeiwPortSize(const glm::vec2& size)
@@ -339,7 +341,7 @@ namespace Radiant
 	{
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
 		//s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
-		s_SceneInfo->RenderPassList.CompData.material->SetImage2D("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
+		s_SceneInfo->RenderPassList.CompData.material->SetImage2D("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorAttachmentImage());
 		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);
 		Rendering::EndRenderPass();

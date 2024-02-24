@@ -33,9 +33,9 @@ namespace Radiant
 		s_RenderingContext->OnResize(m_Window->GetWidth(), m_Window->GetHeight());
 
 		m_ImGuiLayer = ImGuiLayer::Create("ImGuiLayer");
-		PushLayer(m_ImGuiLayer);
-
 		Rendering::GetRenderingCommandBuffer().Execute();
+
+		PushLayer(m_ImGuiLayer);
 	}
 
 	Application::~Application()

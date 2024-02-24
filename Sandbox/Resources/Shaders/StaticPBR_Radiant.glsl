@@ -46,11 +46,7 @@ layout(location=0) in Vertex
 	mat3 TangentBasis;
 } vin;
 
-layout(binding=0) uniform sampler2D u_DiffuseTexture;
-layout (location = 13) uniform bool u_DiffuseTextureEnabled; 
-
 void main()
 {
-   vec3 diffuse = u_DiffuseTextureEnabled ? texture(u_DiffuseTexture, vin.TexCoord).rgb : vec3(0.1, 0.3, 0.5);
-   FragColor = vec4(diffuse, 1.0);
+   FragColor = vec4(vec3(0.1, 0.3, 0.5), 1.0);
 }
