@@ -22,7 +22,7 @@ namespace Radiant
 		virtual void LoadUniformToBuffer(const std::string& name, RadiantShaderType type, RadiantShaderDataType dataType) const override;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const override;
 		virtual void SetBool(const std::string& name, bool value) const override;
-
+		virtual void SetVec3(const std::string& name, const glm::vec3 value) const override;
 	private:
 		Memory::Shared<Shader> m_Shader;
 		mutable Memory::Buffer m_BufferValues;

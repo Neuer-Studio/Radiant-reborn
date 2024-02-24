@@ -324,6 +324,11 @@ namespace Radiant
 				s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_DiffuseTextureEnabled", true);
 				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_DiffuseTexture", diffuse.Texture->GetImage2D());
 			}
+			else
+			{
+				s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_DiffuseTextureEnabled", false);
+				s_SceneInfo->RenderPassList.GeoData.material->SetVec3("u_DiffuseColor", diffuse.AlbedoColor);
+			}
 
 			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
 			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);

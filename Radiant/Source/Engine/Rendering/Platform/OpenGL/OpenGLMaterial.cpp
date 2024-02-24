@@ -184,4 +184,23 @@ namespace Radiant
 			});
 	}
 
+	void OpenGLMaterial::SetVec3(const std::string& name, const glm::vec3 value) const
+	{
+		if (m_Shader.As<OpenGLShader>()->m_Uniforms.find(name) == m_Shader.As<OpenGLShader>()->m_Uniforms.end())
+			RADIANT_VERIFY(false);
+
+		Memory::Shared<const OpenGLMaterial> instance(this);
+		Rendering::SubmitCommand([name, instance, value]() mutable
+			{
+				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
+				RADIANT_VERIFY(buffer.Position != (uint32_t)-1);
+
+				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+
+				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
+				glUniform3f(buffer.Position, value.x, value.y, value.z);
+				glUseProgram(0);
+			});
+	}
+
 }

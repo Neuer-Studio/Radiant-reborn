@@ -31,6 +31,7 @@ namespace Radiant
 		virtual void LoadUniformToBuffer(const std::string& name, RadiantShaderType type, RadiantShaderDataType dataType) const = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const = 0;
 		virtual void SetBool(const std::string& name, bool value) const = 0;
+		virtual void SetVec3(const std::string& name, const glm::vec3 value) const = 0;
 
 		static Memory::Shared<Material> Create(const Memory::Shared<Shader>& shader);
 
