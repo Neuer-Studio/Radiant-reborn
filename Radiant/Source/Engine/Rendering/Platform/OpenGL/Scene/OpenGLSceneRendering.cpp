@@ -61,6 +61,7 @@ namespace Radiant
 			glm::mat4 View;
 			glm::mat4 Projection;
 			glm::mat4 InversedViewProjection;
+			glm::vec3 CameraPos;
 		} SceneCamera;
 
 		bool Updated = false; // NOTE: Using for detect camera data update
@@ -85,7 +86,10 @@ namespace Radiant
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Layout = {
 				{ ShaderDataType::Float3, "a_Position" },
-				{ ShaderDataType::Float2, "a_TexCoord" }
+				{ ShaderDataType::Float3, "a_Normals" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+				{ ShaderDataType::Float3, "a_Tangent" },
+				{ ShaderDataType::Float3, "a_Bitangent" }
 			};
 
 			pipelineSpecification.DebugName = "PBR-Static";
@@ -219,7 +223,7 @@ namespace Radiant
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
 	{
 		m_Environment = env;
-		s_SceneInfo->SkyboxMaterial->SetUBO("u_EnvTexture", m_Environment.Radiance);
+		s_SceneInfo->SkyboxMaterial->SetImage2D("u_EnvTexture", m_Environment.Radiance);
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const
@@ -228,7 +232,7 @@ namespace Radiant
 		if (!equirectangularConversionShader)
 			equirectangularConversionShader = Rendering::GetShaderLibrary()->Get("equirect2cube_cs.glsl");
 
-		auto envTextureUnfiltered = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
+		auto envTextureUnfiltered = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA32F, TextureRendererType::TextureCube,nullptr });
 	
 		Rendering::SubmitCommand([envTextureUnfiltered]()
 			{
@@ -239,7 +243,7 @@ namespace Radiant
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 			});
 		Memory::Shared<Texture2D> envEquirect = Texture2D::Create(filepath);
-		RADIANT_VERIFY(envEquirect->GetImage2D()->GetImageFormat() == ImageFormat::RGBA16F, "Texture is not HDR!");
+		RADIANT_VERIFY(envEquirect->GetImage2D()->GetImageFormat() == ImageFormat::RGBA32F, "Texture is not HDR!");
 
 		equirectangularConversionShader->Use();
 		Rendering::SubmitCommand([envEquirect, envTextureUnfiltered]()
@@ -247,14 +251,14 @@ namespace Radiant
 				auto id = envEquirect->GetImage2D()->GetTextureID();
 
 				glBindTextureUnit(0, id);
-				glBindImageTexture(0, envTextureUnfiltered->GetTextureID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+				glBindImageTexture(0, envTextureUnfiltered->GetTextureID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 				glDispatchCompute(kEnvMapSize / 32, kEnvMapSize / 32, 6);
 				glGenerateTextureMipmap(envTextureUnfiltered->GetTextureID());
 			});
 
 		// Compute pre-filtered specular environment map.
 
-		auto envTexture = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
+		auto envTexture = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA32F, TextureRendererType::TextureCube,nullptr });
 		
 		if(!envFilteringShader)
 			envFilteringShader = Shader::Create("Resources/Shaders/spmap_cs.glsl");
@@ -274,7 +278,7 @@ namespace Radiant
 				const float deltaRoughness = 1.0f / glm::max(float(envTexture->GetMipmapLevels() - 1), 1.0f);
 				for (int level = 1, size = kEnvMapSize / 2; level <= envTexture->GetMipmapLevels(); ++level, size /= 2) {
 					const GLuint numGroups = glm::max(1, size / 32);
-					glBindImageTexture(0, envTexture->GetTextureID(), level, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+					glBindImageTexture(0, envTexture->GetTextureID(), level, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 					glProgramUniform1f(envFilteringShader->GetRenderingID(), 0, level * deltaRoughness);
 					glDispatchCompute(numGroups, numGroups, 6);
 				}
@@ -282,7 +286,7 @@ namespace Radiant
 
 		// Compute diffuse irradiance cubemap.
 
-		auto irmapTexture = Image2D::Create({ kIrradianceMapSize, kIrradianceMapSize,ImageFormat::RGBA16F, TextureRendererType::TextureCube,nullptr });
+		auto irmapTexture = Image2D::Create({ kIrradianceMapSize, kIrradianceMapSize,ImageFormat::RGBA32F, TextureRendererType::TextureCube,nullptr });
 
 		if(!envIrradianceShader)
 			envIrradianceShader = Shader::Create("Resources/Shaders/irmap_cs.glsl");
@@ -292,7 +296,7 @@ namespace Radiant
 				irmapTexture.As<OpenGLImage2D>()->Invalidate();
 
 				glBindTextureUnit(0, envTexture->GetTextureID());
-				glBindImageTexture(0, irmapTexture->GetTextureID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+				glBindImageTexture(0, irmapTexture->GetTextureID(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 				glDispatchCompute(kIrradianceMapSize / 32, kIrradianceMapSize / 32, 6);
 			});
 		
@@ -305,16 +309,22 @@ namespace Radiant
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass);
 
 		s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
-		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.GeoData.pipeline, nullptr);
+		Rendering::SubmitFullscreenQuad(s_SceneInfo->SkyboxPipeline, nullptr);
 
 
-		for (const auto& mesh : s_SceneInfo->MeshDrawList) {
-			mesh.Mesh->m_VertexBuffer->Use();
-			s_SceneInfo->RenderPassList.GeoData.pipeline->Use();
-			mesh.Mesh->m_IndexBuffer->Use();
-			s_SceneInfo->RenderPassList.GeoData.material->Use();
+		for (const auto& mesh : s_SceneInfo->MeshDrawList) 
+		{
 			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(1, "u_Transform", mesh.Transform);
-			Rendering::DrawPrimitive(Primitives::Triangle, mesh.Mesh->GetIndexCount(), true); // ERROR: clear only when we are resize window(recreate buffer)
+
+			const auto& diffuse = mesh.Mesh->GetMaterialDiffuseData();
+			if (diffuse.Enabled)
+			{
+				s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_DiffuseTextureEnabled", true);
+				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_DiffuseTexture", diffuse.Texture->GetImage2D());
+			}
+
+			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
+			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);
 		}
 
 		if (s_SceneInfo->ShowGrid)
@@ -328,9 +338,9 @@ namespace Radiant
 	void OpenGLSceneRendering::CompositePass()
 	{
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
-		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
 		//s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
-		s_SceneInfo->RenderPassList.CompData.material->SetUBO("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
+		s_SceneInfo->RenderPassList.CompData.material->SetImage2D("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorImage());
+		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);
 		Rendering::EndRenderPass();
 	}

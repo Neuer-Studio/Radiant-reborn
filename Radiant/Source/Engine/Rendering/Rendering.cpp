@@ -66,9 +66,9 @@ namespace Radiant
 
 	void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline)
 	{
-		mesh->m_VertexBuffer->Use();
+		mesh->GetVertexBuffer()->Use();
 		pipeline->Use();
-		mesh->m_VertexBuffer->Use();
+		mesh->GetIndexBuffer()->Use();
 
 		Rendering::DrawPrimitive(Primitives::Triangle, mesh->GetIndexCount(), true);
 	}

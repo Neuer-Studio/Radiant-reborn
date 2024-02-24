@@ -34,8 +34,7 @@ namespace Radiant
 	private:
 		GLuint OGLGetUniformPosition(const std::string& name);
 	private:
-		uint32_t m_ConstantBufferOffset = 0;
-
+		uint32_t m_UniformTotalOffset = 0;
 		std::string m_Name;
 		std::filesystem::path m_FilePath;
 		RenderingID m_RenderingID = 0;
@@ -44,8 +43,8 @@ namespace Radiant
 		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
-		std::unordered_map<BindingPoint, ShaderUniformBufferObject> m_UniformBuffers;
-		std::unordered_map <std::string, ShaderUniformBufferObject > m_ConstantBuffers;
+		std::unordered_map<BindingPoint, ShaderUniformBufferObject> m_UniformBuffers; // UBOs
+		std::unordered_map<std::string, Uniform> m_Uniforms; // plain uniforms
 
 	private:
 		friend class OpenGLMaterial;

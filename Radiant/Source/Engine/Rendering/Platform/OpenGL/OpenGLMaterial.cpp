@@ -13,7 +13,9 @@ namespace Radiant
 	OpenGLMaterial::OpenGLMaterial(const Memory::Shared<Shader>& shader)
 		: m_Shader(shader)
 	{
-		//m_BufferValues.Allocate()
+
+		m_BufferValues.Allocate(m_Shader.As<OpenGLShader>()->m_UniformTotalOffset); 
+		m_BufferValues.ZeroInitialize();
 	}
 
 	void OpenGLMaterial::Use() const
@@ -113,18 +115,17 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const
+	void OpenGLMaterial::SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, texture2D]() mutable
 			{
-				
 				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
 				glBindTextureUnit(samplerBuffer.Binding, texture2D->GetImage2D()->GetTextureID());
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(const std::string& name, const Memory::Shared<Image2D>& image2D) const
+	void OpenGLMaterial::SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, image2D]() mutable
@@ -139,29 +140,43 @@ namespace Radiant
 
 	void OpenGLMaterial::LoadUniformToBuffer(const std::string& name, RadiantShaderType type, RadiantShaderDataType dataType) const
 	{
-		if (m_Uniforms.find(name) != m_Uniforms.end())
-			RADIANT_VERIFY(false);
-		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([name, instance, type, dataType]() mutable
-			{
-				auto& buffer = instance->m_Uniforms[name];
-				const auto pos = instance->m_Shader.As<OpenGLShader>()->OGLGetUniformPosition(name);
-				buffer = {name, type, dataType, pos };
-			});
+		
 	}
 
 	void OpenGLMaterial::SetMat4(const std::string& name, const glm::mat4& value) const
 	{
-		if (m_Uniforms.find(name) == m_Uniforms.end())
+		if (m_Shader.As<OpenGLShader>()->m_Uniforms.find(name) == m_Shader.As<OpenGLShader>()->m_Uniforms.end())
 			RADIANT_VERIFY(false);
 
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
-				const auto& buffer = instance->m_Uniforms[name];
+				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
+				RADIANT_VERIFY(buffer.Position != (uint32_t)-1);
+
+				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniformMatrix4fv(buffer.Position, 1, GL_FALSE, glm::value_ptr(value));
+				glUseProgram(0);
+			});
+	}
+
+	void OpenGLMaterial::SetBool(const std::string& name, bool value) const
+	{
+		if (m_Shader.As<OpenGLShader>()->m_Uniforms.find(name) == m_Shader.As<OpenGLShader>()->m_Uniforms.end())
+			RADIANT_VERIFY(false);
+
+		Memory::Shared<const OpenGLMaterial> instance(this);
+		Rendering::SubmitCommand([name, instance, value]() mutable
+			{
+				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
+				RADIANT_VERIFY(buffer.Position != (uint32_t)-1);
+
+				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+
+				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
+				glUniform1i(buffer.Position, value ? 1 : 0);
 				glUseProgram(0);
 			});
 	}

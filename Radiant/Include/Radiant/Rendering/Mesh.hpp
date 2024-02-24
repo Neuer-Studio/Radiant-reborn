@@ -2,6 +2,7 @@
 
 #include <Radiant/Rendering/VertexBuffer.hpp>
 #include <Radiant/Rendering/IndexBuffer.hpp>
+#include <Radiant/Rendering/Material.hpp>
 
 #include <glm/glm.hpp>
 
@@ -14,8 +15,10 @@ namespace Radiant
 {
 	struct Vertex {
 		glm::vec3 Position;
-		glm::vec2 Normals;
-		//glm::vec2 TexCoords;
+		glm::vec3 Normals;
+		glm::vec2 TexCoords;
+		glm::vec3 Tangent;
+		glm::vec3 Bitangent;
 	};
 
 	struct Index
@@ -40,15 +43,47 @@ namespace Radiant
 
 		void Use() const;
 		uint32_t GetIndexCount() const { return m_IndexBuffer->GetCount(); }
-	
+
+		const auto& GetVertexBuffer() const { return m_VertexBuffer; }
+		const auto& GetIndexBuffer() const { return m_IndexBuffer; }
+		const auto& GetMaterialDiffuseData() const { return MaterialDiffuseData; }
+	private:
 		Memory::Shared<VertexBuffer> m_VertexBuffer;
 		Memory::Shared<IndexBuffer> m_IndexBuffer;
+		Memory::Shared<Material> m_Material;
 
 		std::vector<Vertex> m_Vertices;
 		std::vector<Index> m_Indices;
 
 		std::string m_Name;
 		std::filesystem::path m_AssetPath;
+
+		struct
+		{
+			bool Enabled = false;
+			Memory::Shared<Texture2D> Texture;
+			glm::vec3 AlbedoColor;
+		} MaterialDiffuseData;
+
+		struct
+		{
+			bool Enabled = false;
+			Memory::Shared<Texture2D> Texture;
+		} MaterialNormalData;
+
+		struct
+		{
+			bool Enabled = false;
+			Memory::Shared<Texture2D> Texture;
+			float Roughness;
+		} MaterialRoughnessData;
+
+		struct
+		{
+			bool Enabled = false;
+			Memory::Shared<Texture2D> Texture;
+			float Metalness;
+		} MaterialMetalnessData;
 	};
 
 	class StaticMesh : public Mesh

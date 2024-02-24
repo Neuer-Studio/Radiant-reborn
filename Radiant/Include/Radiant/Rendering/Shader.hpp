@@ -46,6 +46,9 @@ namespace Radiant
 		RadiantShaderType ShaderType = RadiantShaderType::None;
 		RadiantShaderDataType DataType = RadiantShaderDataType::None;
 		BindingPoint Position;
+		uint32_t Size = 0;
+		uint32_t offset = 0; // NOTE: using in blocks (between fields) 
+		uint32_t totalOffset = 0;// NOTE: total offset (between all uniforms) (using for materials to save data in heap)
 	};
 
 	struct SamplerUniform
@@ -78,6 +81,8 @@ namespace Radiant
 		virtual void Reload() = 0;
 		virtual const std::string GetShaderName() const = 0;
 		virtual RenderingID GetRenderingID() const = 0;
+
+		static const uint32_t GetDataTypeSize(RadiantShaderDataType dataType);
 
 		static Memory::Shared<Shader> Create(const std::filesystem::path& path);
 	};

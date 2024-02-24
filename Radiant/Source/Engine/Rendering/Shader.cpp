@@ -4,6 +4,38 @@
 
 namespace Radiant
 {
+
+	const uint32_t Shader::GetDataTypeSize(RadiantShaderDataType dataType)
+	{
+		switch (dataType)
+		{
+		case RadiantShaderDataType::Bool:
+			return 4; // bool is 4 bytes
+
+		case RadiantShaderDataType::Float:
+		case RadiantShaderDataType::Int:
+		case RadiantShaderDataType::UInt:
+			return 4;
+
+		case RadiantShaderDataType::Float2:
+		case RadiantShaderDataType::Int2:
+			return 4 * 2;
+
+		case RadiantShaderDataType::Float3:
+		case RadiantShaderDataType::Int3 :
+			return 4 * 3;
+
+		case RadiantShaderDataType::Float4:
+		case RadiantShaderDataType::Int4:
+			return 4 * 4;
+
+		case RadiantShaderDataType::Mat3:
+			return sizeof(glm::mat3);
+		case RadiantShaderDataType::Mat4:
+			return sizeof(glm::mat4);
+		}
+	}
+
 	Radiant::Memory::Shared<Radiant::Shader> Shader::Create(const std::filesystem::path& path)
 	{
 		switch (RenderingAPI::GetAPI())

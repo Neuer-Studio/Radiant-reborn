@@ -16,16 +16,15 @@ namespace Radiant
 		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value) const override;
 		virtual void SetUBO(BindingPoint binding, const std::string& name, float value) const override;
 		virtual void SetUBO(BindingPoint binding, const std::string& name, bool value) const override;
-		virtual void SetUBO(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const override;
-		virtual void SetUBO(const std::string& name, const Memory::Shared<Image2D>& image2D) const override;
+		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const override;
+		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const override;
 
 		virtual void LoadUniformToBuffer(const std::string& name, RadiantShaderType type, RadiantShaderDataType dataType) const override;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const override;
+		virtual void SetBool(const std::string& name, bool value) const override;
 
 	private:
 		Memory::Shared<Shader> m_Shader;
-		Memory::Buffer m_BufferValues;
-
-		mutable std::unordered_map<std::string, Uniform> m_Uniforms;
+		mutable Memory::Buffer m_BufferValues;
 	};
 }

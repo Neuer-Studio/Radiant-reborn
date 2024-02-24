@@ -180,6 +180,43 @@ namespace Radiant
 			const auto& bufferName = resource.name;
 		}
 
+		for (const spirv_cross::Resource& resource : res.gl_plain_uniforms)
+		{	
+			const spirv_cross::SPIRType& type = compiler.get_type(resource.base_type_id);
+			if (type.basetype == spirv_cross::SPIRType::Struct)
+			{
+				uint32_t offset = 0;
+				for (uint32_t index = 0; index < type.member_types.size(); ++index)
+				{
+					uint32_t member_type_id = type.member_types[index]; 
+					const spirv_cross::SPIRType& member_type = compiler.get_type(member_type_id);
+				
+					const std::string& member_name = compiler.get_member_name(resource.base_type_id, index);
+					const auto dataType = Utils::SPIRTypeToShaderDataType(member_type);
+					const auto size = Shader::GetDataTypeSize(dataType);
+
+					const auto fullname = resource.name + '.' + member_name;
+					auto& buffer = m_Uniforms[fullname];
+
+					buffer = { fullname, shadertype, dataType, OGLGetUniformPosition(fullname), size, offset, m_UniformTotalOffset };
+					offset += size;
+					m_UniformTotalOffset += size;
+				}
+			}
+
+			else
+			{
+				const spirv_cross::SPIRType& type = compiler.get_type(resource.base_type_id);
+				const auto dataType = Utils::SPIRTypeToShaderDataType(type);
+				const auto size = Shader::GetDataTypeSize(dataType);
+
+				auto& buffer = m_Uniforms[resource.name];
+
+				buffer = { resource.name, shadertype, dataType, OGLGetUniformPosition(resource.name), size, 0, m_UniformTotalOffset };
+				m_UniformTotalOffset += size;
+			}
+		}
+
 		glUseProgram(m_RenderingID);
 
 		// ======= Uniform buffer =======
@@ -215,10 +252,10 @@ namespace Radiant
 
 				for (int i = 0; i < memberCount; i++)
 				{
-					auto type = compiler.get_type(bufferType.member_types[i]);
-					auto name = compiler.get_member_name(bufferType.self, i);
-					auto size = compiler.get_declared_struct_member_size(bufferType, i);
-					auto offset = compiler.type_struct_member_offset(bufferType, i);
+					const auto type = compiler.get_type(bufferType.member_types[i]);
+					const auto name = compiler.get_member_name(bufferType.self, i);
+					const auto size = compiler.get_declared_struct_member_size(bufferType, i);
+					const auto offset = compiler.type_struct_member_offset(bufferType, i);
 
 					RadiantShaderDataType uniformType = Utils::SPIRTypeToShaderDataType(type);
 					buffer.Uniforms[name] = { name, shadertype, uniformType , size, offset };
@@ -249,7 +286,7 @@ namespace Radiant
 			auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			const auto& name = resource.name;
 			GLint location = OGLGetUniformPosition(name.c_str());
-			//				RADIANT_VERIFY(location != -1);
+			RADIANT_VERIFY(location != -1);
 
 			glUniform1i(location, binding);
 
@@ -259,33 +296,7 @@ namespace Radiant
 
 	void OpenGLShader::ParseConstantBuffers(RadiantShaderType shaderType, const std::vector<uint32_t>& data)
 	{
-		spirv_cross::Compiler compiler(data);
-		spirv_cross::ShaderResources res = compiler.get_shader_resources();
-
-		for (const spirv_cross::Resource& resource : res.push_constant_buffers)
-		{
-			const auto& bufferName = resource.name;
-			auto& bufferType = compiler.get_type(resource.base_type_id);
-			auto bufferSize = compiler.get_declared_struct_size(bufferType);
-
-			auto location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-			int memberCount = bufferType.member_types.size();
-			ShaderUniformBufferObject& buffer = m_ConstantBuffers[bufferName];
-			buffer.Name = bufferName;
-			buffer.Size = bufferSize - m_ConstantBufferOffset;
-			for (int i = 0; i < memberCount; i++)
-			{
-				auto type = compiler.get_type(bufferType.member_types[i]);
-				const auto& memberName = compiler.get_member_name(bufferType.self, i);
-				auto size = compiler.get_declared_struct_member_size(bufferType, i);
-				auto offset = compiler.type_struct_member_offset(bufferType, i) - m_ConstantBufferOffset;
-
-				std::string uniformName = bufferName + "." + memberName;
-				buffer.Uniforms[uniformName] = { uniformName, shaderType, Utils::SPIRTypeToShaderDataType(type), size, offset };
-			}
-
-			m_ConstantBufferOffset += bufferSize;
-		}
+		
 	}
 
 	void OpenGLShader::CompileToSPIR_V()
@@ -407,7 +418,6 @@ namespace Radiant
 
 		for (auto& shaderData : m_ShaderBinary)
 		{
-			ParseConstantBuffers(shaderData.first, shaderData.second);
 			ParseBuffers(shaderData.first, shaderData.second);
 		}
 	}

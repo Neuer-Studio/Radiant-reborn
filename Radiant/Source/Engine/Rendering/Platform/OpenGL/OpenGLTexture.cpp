@@ -9,6 +9,7 @@ namespace Radiant
 	OpenGLTexture2D::OpenGLTexture2D(const std::filesystem::path& path, bool srgb)
 		: m_FilePath(path), m_Name(Utils::FileSystem::GetFileName(path)), m_sRGB(srgb)
 	{
+		RADIANT_VERIFY(Utils::FileSystem::Exists(path));
 		ImageSpecification imageSpec = {};
 		int width, height, nrChannels;
 		if (stbi_is_hdr(path.string().c_str()))
@@ -17,7 +18,7 @@ namespace Radiant
 			float* data = stbi_loadf(path.string().c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
 			RADIANT_VERIFY(data);
 			imageSpec.Data = (std::byte*)data;
-			imageSpec.Format = ImageFormat::RGBA16F;
+			imageSpec.Format = ImageFormat::RGBA32F;
 		}
 		else
 		{
@@ -25,16 +26,17 @@ namespace Radiant
 			unsigned char* data = stbi_load(path.string().c_str(), &width, &height, &nrChannels, srgb ? STBI_rgb : STBI_rgb_alpha);
 			RADIANT_VERIFY(data);
 			imageSpec.Data = (std::byte*)data;
-			imageSpec.Format = srgb ? ImageFormat::RGBA : ImageFormat::RGB;
+			imageSpec.Format = srgb ? ImageFormat::RGB : ImageFormat::RGBA;
 		}
 		imageSpec.Width = width;
 		imageSpec.Height = height;
 		m_Image2D = Image2D::Create(imageSpec);
 
 		Memory::Shared<Image2D>& image = m_Image2D;
-		Rendering::SubmitCommand([image]() mutable
+		Rendering::SubmitCommand([image, &imageSpec]() mutable
 			{
 				image.As<OpenGLImage2D>()->Invalidate();
+				//stbi_image_free(imageSpec.Data);
 			});
 	}
 
