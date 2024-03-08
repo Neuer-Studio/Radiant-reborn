@@ -53,6 +53,20 @@ namespace Radiant
 			return;*/
 		auto group = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
 
+		auto lights = m_Registry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+		uint32_t directionalLightIndex = 0;
+		for (auto entity : lights)
+		{
+			auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
+			glm::vec3 direction = -glm::normalize(glm::mat3(transformComponent.GetTransform()) * glm::vec3(1.0f));
+			m_LightEnvironment.DirectionalLights =
+			{
+				direction,
+				lightComponent.Radiance,
+			};
+		}
+
+
 		for (auto entity : group)
 		{
 			auto [transformComponent, meshComponent] = group.get<TransformComponent, MeshComponent>(entity);
@@ -62,7 +76,7 @@ namespace Radiant
 			}
 		}
 
-		s_SceneRendering->UpdateCamera(camera);
+		s_SceneRendering->BeginScene(camera);
 		s_SceneRendering->OnUpdate(ts);
 
 	}

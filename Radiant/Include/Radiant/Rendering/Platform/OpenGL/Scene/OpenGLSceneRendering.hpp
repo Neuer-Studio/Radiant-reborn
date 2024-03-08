@@ -5,6 +5,7 @@
 
 namespace Radiant
 {
+	struct DirectionalLight;
 	class OpenGLSceneRendering : public SceneRendering
 	{
 	public:
@@ -14,8 +15,12 @@ namespace Radiant
 
 		virtual Memory::Shared<Image2D> GetFinalPassImage() const override;
 
+		virtual void SetEnvMapRotation(float rotation) override { m_EnvMapRotation = rotation; }
+		virtual void SetRadiancePrefilter(bool enable) override { m_RadiancePrefilter = enable; }
+
 		virtual void SetSceneVeiwPortSize(const glm::vec2& size) override;
-		virtual void UpdateCamera(const Camera& camera) override;
+		virtual void BeginScene(const Camera& camera) override;
+
 		virtual void OnUpdate(Timestep ts) override;
 
 		virtual void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const override;
@@ -31,6 +36,9 @@ namespace Radiant
 	private:
 		Environment m_Environment;
 		Memory::Shared<Scene> m_Scene;
+
+		float m_EnvMapRotation = 0.0f;
+		bool m_RadiancePrefilter = false;
 
 		uint32_t m_ViewportWidth, m_ViewportHeight;
 	};

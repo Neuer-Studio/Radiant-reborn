@@ -12,6 +12,7 @@
 #include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
+#include <Radiant/Scene/Component.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLImage.hpp>
 
 namespace Radiant
@@ -19,6 +20,7 @@ namespace Radiant
 	static constexpr int kEnvMapSize = 2048;
 	static constexpr int kIrradianceMapSize = 32;
 	static constexpr int kBRDF_LUT_Size = 256;
+	static constexpr int kLightEnvironmentSize = sizeof(LightEnvironment);
 
 	struct GeometryData
 	{
@@ -54,6 +56,8 @@ namespace Radiant
 		Memory::Shared<Material> GridMaterial;
 		Memory::Shared<Pipeline> SkyboxPipeline;
 		Memory::Shared<Material> SkyboxMaterial;
+		struct LightEnvironment LightEnvironment;
+		Memory::Shared<Texture2D> BRDF_LUT;
 
 		struct 
 		{
@@ -139,8 +143,6 @@ namespace Radiant
 			};
 			pipelineSpec.RenderPass = s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass;
 			s_SceneInfo->GridPipeline = Pipeline::Create(pipelineSpec); 
-
-			s_SceneInfo->GridMaterial->LoadUniformToBuffer("u_Transform", RadiantShaderType::Vertex, RadiantShaderDataType::Float4);
 		}
 
 		// Skybox
@@ -159,6 +161,8 @@ namespace Radiant
 			s_SceneInfo->SkyboxMaterial = Material::Create(skyboxShader);
 		}
 
+		s_SceneInfo->BRDF_LUT = Texture2D::Create("Resources/Textures/BRDF_LUT.tga");
+		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
 		s_SceneInfo->MeshDrawList.reserve(100); // TODO: Add a capcaity from YAML(scene)
 	}
 
@@ -181,12 +185,14 @@ namespace Radiant
 		}
 	}
 
-	void OpenGLSceneRendering::UpdateCamera(const Camera& camera)
+	void OpenGLSceneRendering::BeginScene(const Camera& camera)
 	{
 		s_SceneInfo->SceneCamera.ViewProjection = camera.GetViewProjection();
 		s_SceneInfo->SceneCamera.View = camera.GetViewMatrix();
 		s_SceneInfo->SceneCamera.Projection = camera.GetProjectionMatrix();
 		s_SceneInfo->SceneCamera.InversedViewProjection = glm::inverse(camera.GetViewProjection());
+
+		s_SceneInfo->LightEnvironment = m_Scene->GetLightEnvironment();
 
 		s_SceneInfo->Updated = true;
 	}
@@ -226,6 +232,8 @@ namespace Radiant
 	{
 		m_Environment = env;
 		s_SceneInfo->SkyboxMaterial->SetImage2D("u_EnvTexture", m_Environment.Radiance);
+		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvRadianceTex", m_Environment.Radiance);
+		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvIrradianceTex", m_Environment.Irradiance);
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const
@@ -316,19 +324,33 @@ namespace Radiant
 
 		for (const auto& mesh : s_SceneInfo->MeshDrawList) 
 		{
-			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(1, "u_Transform", mesh.Transform);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_Transform", mesh.Transform);
 
 			const auto& diffuse = mesh.Mesh->GetMaterialDiffuseData();
+			const auto& normal = mesh.Mesh->GetMaterialNormalData();
+			const auto& roughness = mesh.Mesh->GetMaterialRoughnessData();
+			const auto& metalness = mesh.Mesh->GetMaterialMetalnessData();
+
 			if (diffuse.Enabled)
 			{
-				s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_DiffuseTextureEnabled", true);
-				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_DiffuseTexture", diffuse.Texture->GetImage2D());
+				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_AlbedoTexture", diffuse.Texture->GetImage2D());
+
+				if (normal.Enabled)
+					s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_NormalTexture", normal.Texture->GetImage2D());
 			}
-			else
-			{
-				s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_DiffuseTextureEnabled", false);
-				s_SceneInfo->RenderPassList.GeoData.material->SetVec3("u_DiffuseColor", diffuse.AlbedoColor);
-			}
+
+			if (roughness.Enabled)
+				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_RoughnessTexture", roughness.Texture->GetImage2D());
+			if (metalness.Enabled)
+				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_MetalnessTexture", metalness.Texture->GetImage2D());
+
+			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Roughness", roughness.Roughness);
+			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Metalness", metalness.Metalness); 
+			s_SceneInfo->RenderPassList.GeoData.material->SetVec3("u_AlbedoColor", diffuse.AlbedoColor);
+
+			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
+			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(2, "u_EnvMapRotation", m_EnvMapRotation);
+			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(2, "u_RadiancePrefilter", m_RadiancePrefilter);
 
 			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
 			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);
@@ -351,7 +373,7 @@ namespace Radiant
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);
 		Rendering::EndRenderPass();
 	}
-	
+
 	void OpenGLSceneRendering::FlushDrawList()
 	{
 		GeometryPass();

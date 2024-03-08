@@ -11,19 +11,19 @@ namespace Radiant
 {
 	namespace Utils
 	{
-		static RadiantShaderSamplerDataType GetDimensionSampler(spv::Dim type)
+		static RadiantShaderDataType GetDimensionSampler(spv::Dim type)
 		{
 			switch (type)
 			{
 				case spv::Dim::Dim1D:
-					return RadiantShaderSamplerDataType::Sampler1D;
+					return RadiantShaderDataType::Sampler1D;
 				case spv::Dim::Dim2D:
-					return RadiantShaderSamplerDataType::Sampler2D;
+					return RadiantShaderDataType::Sampler2D;
 				case spv::Dim::Dim3D:
-					return RadiantShaderSamplerDataType::Sampler3D;
+					return RadiantShaderDataType::Sampler3D;
 			}
 
-			return RadiantShaderSamplerDataType::None;
+			return RadiantShaderDataType::None;
 		}
 
 		static fs::path GetBinaryPathByType(RadiantShaderType type, const fs::path& shaderFile)
@@ -62,6 +62,8 @@ namespace Radiant
 					if (type.vecsize == 3)            return RadiantShaderDataType::Float3;
 					if (type.vecsize == 4)            return RadiantShaderDataType::Float4;
 					break;
+
+				case spirv_cross::SPIRType::Struct:     return RadiantShaderDataType::Struct;
 			}
 			RADIANT_VERIFY(false, "Unknown type!");
 			return RadiantShaderDataType::None;
@@ -198,7 +200,7 @@ namespace Radiant
 					const auto fullname = resource.name + '.' + member_name;
 					auto& buffer = m_Uniforms[fullname];
 
-					buffer = { fullname, shadertype, dataType, OGLGetUniformPosition(fullname), size, offset, m_UniformTotalOffset };
+					buffer = { { fullname, shadertype, dataType, OGLGetUniformPosition(fullname) }, size, offset, m_UniformTotalOffset };
 					offset += size;
 					m_UniformTotalOffset += size;
 				}
@@ -286,7 +288,7 @@ namespace Radiant
 			auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			const auto& name = resource.name;
 			GLint location = OGLGetUniformPosition(name.c_str());
-			RADIANT_VERIFY(location != -1);
+			//RADIANT_VERIFY(location != -1);
 
 			glUniform1i(location, binding);
 
@@ -310,7 +312,7 @@ namespace Radiant
 			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source.second, Utils::ShaderTypeToShader_C(source.first), m_FilePath.string().c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success) 
 			{
-				RA_ERROR("{}", module.GetErrorMessage());
+				RA_ERROR("{}: {}", Utils::RadiantShaderToString(source.first), module.GetErrorMessage());
 				RADIANT_VERIFY(false);
 			}
 			m_ShaderBinary[source.first] = { module.cbegin(), module.cend() };

@@ -3,6 +3,7 @@
 #include <Radiant/Rendering/Shader.hpp>
 #include <Radiant/Rendering/Texture.hpp>
 #include <Radiant/Rendering/RenderingTypes.hpp>
+#include <Radiant/Core/Memory/Buffer.hpp>
 
 namespace Radiant
 {
@@ -14,6 +15,7 @@ namespace Radiant
 		TwoSided = BIT(3)
 	};
 
+	// TODO: Change flow(pass the value to buffer and via UpdateForRendering() set the value) 
 	class Material : public Memory::RefCounted
 	{
 	public:
@@ -25,12 +27,14 @@ namespace Radiant
 		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value) const = 0;
 		virtual void SetUBO(BindingPoint binding, const std::string& name, float value) const = 0;
 		virtual void SetUBO(BindingPoint binding, const std::string& name, bool value) const = 0;
+		virtual void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size) const = 0; // NOTE: Using for update structs
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const = 0;
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const = 0;
 
-		virtual void LoadUniformToBuffer(const std::string& name, RadiantShaderType type, RadiantShaderDataType dataType) const = 0;
+		virtual void UpdateForRendering() const = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const = 0;
 		virtual void SetBool(const std::string& name, bool value) const = 0;
+		virtual void SetFloat(const std::string& name, float value) const = 0;
 		virtual void SetVec3(const std::string& name, const glm::vec3 value) const = 0;
 
 		static Memory::Shared<Material> Create(const Memory::Shared<Shader>& shader);

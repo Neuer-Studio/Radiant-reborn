@@ -48,6 +48,7 @@ namespace Radiant
 	{
 		RADIANT_VERIFY(Utils::FileSystem::Exists(filepath));
 		RA_INFO("Loading mesh: {0}", filepath.string().c_str());
+		RA_INFO("id: {}", typeid(MaterialDiffuseData).name());
 
 		m_Name = Utils::FileSystem::GetFileName(filepath);
 
@@ -90,6 +91,7 @@ namespace Radiant
 
 		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
 
+		RADIANT_VERIFY(scene->HasMaterials());
 		if (scene->HasMaterials())
 		{ 
 			MESH_LOG("=====================================", filepath.string());
@@ -101,6 +103,9 @@ namespace Radiant
 				const aiMaterial* material = scene->mMaterials[i];
 				aiString texturePath;
 				aiColor3D aiColor;
+				
+				MaterialDiffuseData.AlbedoColor = { 0.0, 0.0,0.0 };
+
 				if (material->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == aiReturn_SUCCESS)
 					MaterialDiffuseData.AlbedoColor = { aiColor.r, aiColor.g, aiColor.b };
 
@@ -124,23 +129,23 @@ namespace Radiant
 					MESH_LOG("aiTextureType_NORMALS: {}", imagePath.string());
 				}
 
+				MaterialRoughnessData.Roughness = 1.0f;
 				if (material->GetTexture(aiTextureType_SHININESS, 0, &texturePath) == AI_SUCCESS)
 				{
 					std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
 
 					MaterialRoughnessData.Enabled = true;
-					MaterialRoughnessData.Roughness = 1.0f;
 					MaterialRoughnessData.Texture = Texture2D::Create(imagePath);
 
 					MESH_LOG("aiTextureType_SHININESS: {}", imagePath.string());
 				}
 
+				MaterialMetalnessData.Metalness = 0.5f;
 				if (material->Get("$raw.ReflectionFactor|file", aiPTI_String, 0, texturePath) == AI_SUCCESS)
 				{
 					std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
 
 					MaterialMetalnessData.Enabled = true;
-					MaterialMetalnessData.Metalness = 0.5f;
 					MaterialMetalnessData.Texture = Texture2D::Create(imagePath);
 
 					MESH_LOG("aiTextureType_SHININESS: {}", imagePath.string());

@@ -10,6 +10,7 @@ namespace Radiant
 	public:
 		OpenGLIndexBuffer(const void*, uint32_t size, OpenGLBufferUsage usage);
 		OpenGLIndexBuffer(uint32_t size, OpenGLBufferUsage usage);
+		~OpenGLIndexBuffer() { m_Buffer.Release(); }
 
 		virtual void SetData() override;
 		virtual void Use(BindUsage use = BindUsage::Bind) const override;

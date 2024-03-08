@@ -18,12 +18,15 @@ namespace Radiant
 	public:
 		virtual ~SceneRendering() = default;
 
-		virtual void UpdateCamera(const Camera& camera) = 0;
+		virtual void BeginScene(const Camera& camera) = 0;
 		virtual void OnUpdate(Timestep ts) = 0;
 		virtual void Init() = 0;
 
 		virtual void SetSceneVeiwPortSize(const glm::vec2& size) = 0;
 		virtual void SetEnvironment(const Environment& env) = 0;
+
+		virtual void SetEnvMapRotation(float rotation) = 0;
+		virtual void SetRadiancePrefilter(bool enable = true) = 0;
 
 		virtual void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const = 0;
 

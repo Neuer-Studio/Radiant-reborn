@@ -22,13 +22,11 @@ namespace Radiant
 		Int, Int2, Int3, Int4,
 		UInt,
 		Mat3, Mat4,
-		Bool
-	};
+		Bool,
 
-	enum class RadiantShaderSamplerDataType
-	{
-		None = 0,
-		Sampler1D, Sampler2D, Sampler3D
+		Sampler1D, Sampler2D, Sampler3D,
+
+		Struct
 	};
 
 	struct MemberUniformBufferObject
@@ -40,12 +38,17 @@ namespace Radiant
 		uint32_t Offset = 0;
 	};
 
-	struct Uniform
+	struct UniformBase
 	{
 		std::string Name;
 		RadiantShaderType ShaderType = RadiantShaderType::None;
 		RadiantShaderDataType DataType = RadiantShaderDataType::None;
-		BindingPoint Position;
+		BindingPoint Binding;
+	};
+
+	struct Uniform
+	{
+		UniformBase Uniform;
 		uint32_t Size = 0;
 		uint32_t offset = 0; // NOTE: using in blocks (between fields) 
 		uint32_t totalOffset = 0;// NOTE: total offset (between all uniforms) (using for materials to save data in heap)
@@ -53,10 +56,7 @@ namespace Radiant
 
 	struct SamplerUniform
 	{
-		std::string Name;
-		RadiantShaderType ShaderType = RadiantShaderType::None;
-		RadiantShaderSamplerDataType DataType = RadiantShaderSamplerDataType::None;
-		BindingPoint Binding;
+		UniformBase Uniform;
 	};
 
 	typedef std::unordered_map<std::string, MemberUniformBufferObject> UBO;

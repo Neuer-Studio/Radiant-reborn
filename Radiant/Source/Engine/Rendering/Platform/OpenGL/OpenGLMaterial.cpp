@@ -116,14 +116,42 @@ namespace Radiant
 			});
 	}
 
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size) const
+	{
+		Memory::Shared<const OpenGLMaterial> instance(this);
+		Memory::Buffer uboBuffer = Memory::Buffer::Copy(data, size);
+		Rendering::SubmitCommand([binding, name, uboBuffer, instance]() mutable
+			{
+				ShaderUniformBufferObject ubuffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				MemberUniformBufferObject uniform = ubuffer.Uniforms[name];
+				RADIANT_VERIFY(uniform.Name != "");
+				RADIANT_VERIFY(uniform.Size != uboBuffer.Size);
+
+				if (ubuffer.Name.empty())
+					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
+
+				glBindBuffer(GL_UNIFORM_BUFFER, ubuffer.RenderingID);
+				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uboBuffer.Size, uboBuffer.Data);
+				glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+				uboBuffer.Release();
+				// glNamedBufferSubData
+			});
+	}
+
+	void OpenGLMaterial::UpdateForRendering() const
+	{
+
+	}
+
 	void OpenGLMaterial::SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const
 	{
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, texture2D]() mutable
 			{
-				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
-				glBindSampler(samplerBuffer.Binding, texture2D->GetImage2D().As<OpenGLImage2D>()->GetSamplerID());
-				glBindTextureUnit(samplerBuffer.Binding, texture2D->GetImage2D()->GetTextureID());
+				const auto& samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
+				glBindSampler(samplerBuffer.Uniform.Binding, texture2D->GetImage2D().As<OpenGLImage2D>()->GetSamplerID());
+				glBindTextureUnit(samplerBuffer.Uniform.Binding, texture2D->GetImage2D()->GetTextureID());
 			});
 	}
 
@@ -135,15 +163,10 @@ namespace Radiant
 				if (!image2D)
 					return;
 
-				auto samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
-				glBindSampler(samplerBuffer.Binding, image2D.As<OpenGLImage2D>()->GetSamplerID());
-				glBindTextureUnit(samplerBuffer.Binding, image2D->GetTextureID());
+				const auto& samplerBuffer = instance->m_Shader.As<OpenGLShader>()->m_Resources[name];
+				glBindSampler(samplerBuffer.Uniform.Binding, image2D.As<OpenGLImage2D>()->GetSamplerID());
+				glBindTextureUnit(samplerBuffer.Uniform.Binding, image2D->GetTextureID());
 			});
-	}
-
-	void OpenGLMaterial::LoadUniformToBuffer(const std::string& name, RadiantShaderType type, RadiantShaderDataType dataType) const
-	{
-		
 	}
 
 	void OpenGLMaterial::SetMat4(const std::string& name, const glm::mat4& value) const
@@ -155,12 +178,12 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Position != (uint32_t)-1);
+				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
 				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
-				glUniformMatrix4fv(buffer.Position, 1, GL_FALSE, glm::value_ptr(value));
+				glUniformMatrix4fv(buffer.Uniform.Binding, 1, GL_FALSE, glm::value_ptr(value));
 				glUseProgram(0);
 			});
 	}
@@ -174,12 +197,31 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Position != (uint32_t)-1);
+				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
 				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
-				glUniform1i(buffer.Position, value ? 1 : 0);
+				glUniform1i(buffer.Uniform.Binding, value ? 1 : 0);
+				glUseProgram(0);
+			});
+	}
+
+	void OpenGLMaterial::SetFloat(const std::string& name, float value) const
+	{
+		if (m_Shader.As<OpenGLShader>()->m_Uniforms.find(name) == m_Shader.As<OpenGLShader>()->m_Uniforms.end())
+			RADIANT_VERIFY(false);
+
+		Memory::Shared<const OpenGLMaterial> instance(this);
+		Rendering::SubmitCommand([name, instance, value]() mutable
+			{
+				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
+				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+
+				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+
+				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
+				glUniform1f(buffer.Uniform.Binding, value);
 				glUseProgram(0);
 			});
 	}
@@ -193,12 +235,12 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Position != (uint32_t)-1);
+				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
 				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
-				glUniform3f(buffer.Position, value.x, value.y, value.z);
+				glUniform3f(buffer.Uniform.Binding, value.x, value.y, value.z);
 				glUseProgram(0);
 			});
 	}

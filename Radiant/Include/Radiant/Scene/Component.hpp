@@ -69,4 +69,10 @@ namespace Radiant
 		operator class Camera& () { return Camera; }
 		operator const class Camera& () const { return Camera; }
 	};
+
+	struct DirectionalLightComponent
+	{
+		glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f };
+	};
+
 }

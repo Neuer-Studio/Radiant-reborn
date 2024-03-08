@@ -46,7 +46,16 @@ namespace Radiant
 
 		const auto& GetVertexBuffer() const { return m_VertexBuffer; }
 		const auto& GetIndexBuffer() const { return m_IndexBuffer; }
-		const auto& GetMaterialDiffuseData() const { return MaterialDiffuseData; }
+
+		auto& GetMaterialDiffuseData()    { return	MaterialDiffuseData; }
+		auto& GetMaterialNormalData()     { return	MaterialNormalData; }
+		auto& GetMaterialRoughnessData()  {	return  MaterialRoughnessData; }
+		auto& GetMaterialMetalnessData()  {	return  MaterialMetalnessData; }
+
+		auto& GetMaterialDiffuseData()	const	{ return	MaterialDiffuseData; }
+		auto& GetMaterialNormalData()	const	{ return	MaterialNormalData; }
+		auto& GetMaterialRoughnessData()const	{ return  MaterialRoughnessData; }
+		auto& GetMaterialMetalnessData()const 	{ return  MaterialMetalnessData; }
 	private:
 		Memory::Shared<VertexBuffer> m_VertexBuffer;
 		Memory::Shared<IndexBuffer> m_IndexBuffer;

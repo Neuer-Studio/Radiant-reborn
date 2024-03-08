@@ -7,6 +7,8 @@ namespace Radiant
 {
 	static void OpenGLLogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 	{
+		if (id == 131204)
+			return; // Texture state usage warning: The texture object (0) bound to texture image unit 0 does not have a defined base level and cannot be used for texture mapping.
 		switch (severity)
 		{
 		case GL_DEBUG_SEVERITY_HIGH:

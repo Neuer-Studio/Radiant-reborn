@@ -6,6 +6,7 @@
 #include <Radiant/Scene/Entity.hpp>
 #include <Radiant/Scene/SceneRendering.hpp>
 #include <Radiant/ImGui/Editor/Panels/PanelOutliner.hpp>
+#include <Radiant/ImGui/Editor/Panels/SceneRenderingPanel.hpp>
 #include <ImGUI/imgui.h>
 
 namespace Radiant
@@ -24,6 +25,7 @@ namespace Radiant
 			auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
 			m_Scene->SetEnvironment(env);
 			m_Outliner = new PanelOutliner(m_Scene);
+			m_SceneRenderingPanel = new SceneRenderingPanel(m_Scene);
 			
 		}
 		virtual void OnDetach()
@@ -119,6 +121,7 @@ namespace Radiant
 			ImGui::PopStyleVar();
 
 			m_Outliner->DrawImGuiUI();
+			m_SceneRenderingPanel->DrawImGuiUI();
 			//m_ScenePanel->DrawImGuiUI();
 			ImGui::End();
 
@@ -129,5 +132,6 @@ namespace Radiant
 		Camera m_EditorCamera;
 
 		Memory::Shared<PanelOutliner> m_Outliner;
+		Memory::Shared<SceneRenderingPanel> m_SceneRenderingPanel;
 	};
 }

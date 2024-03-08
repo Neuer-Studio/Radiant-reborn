@@ -236,24 +236,13 @@ namespace Radiant
 				ImGui::Separator();
 				ImGui::Spacing();
 
-			/*	if (ImGui::BeginMenu("Light"))
+				if (ImGui::BeginMenu("Light"))
 				{
-					if (ImGui::MenuItem("Sky Light"))
-					{
-						Entity* entity = m_Context->CreateEntity("SkyLight");
-						auto skybox = CreateNewComponent<SkyBoxComponent>();
-						auto [radiance, irradiance] = SceneRendering::CreateEnvironmentMap("Resources/Envorement/HDR/birchwood_4k.hdr");
-						skybox->Environment = Memory::Shared<Environment>::Create(radiance, irradiance);
-						entity->AddComponent(skybox);
-					}
-
-					ImGui::Spacing();
 
 					if (ImGui::MenuItem("Directional Light"))
 					{
-						Entity* entity = m_Context->CreateEntity("Directional Light");
-						auto light = CreateNewComponent<DirectionLightComponent>();
-						entity->AddComponent(light);
+						auto entity = m_Context->CreateEntity("Directional Light");
+						entity.AddComponent<DirectionalLightComponent>();
 					}
 
 					ImGui::Spacing();
@@ -263,7 +252,7 @@ namespace Radiant
 					}
 
 					ImGui::EndMenu();
-				}*/
+				}
 
 				ImGui::Unindent();
 				ImGui::EndPopup();
@@ -327,9 +316,17 @@ namespace Radiant
 				DrawVec3UI("Scale", tc.Scale, 1.0f);
 			});
 
+		DrawComponentUI<DirectionalLightComponent>("Directional Light", entity, [&](DirectionalLightComponent& dl)
+			{
+				DrawVec3UI("Direction", dl.Radiance);
+			});
+
 		DrawComponentUI<MeshComponent>("Mesh", entity, [&](MeshComponent& mc)
 			{
+
 				auto& mesh = entity.GetComponent<MeshComponent>().Mesh;
+				/*if(mesh)
+					ImGui::SliderFloat("Metalness", &mesh->GetMaterialMetalnessData().Metalness, 0.0, 1.0);*/
 				UI::BeginPropertyGrid();
 
 				ImGui::Text(entity.GetComponent<TagComponent>().Tag.c_str());
