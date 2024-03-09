@@ -162,7 +162,6 @@ namespace Radiant
 		}
 
 		s_SceneInfo->BRDF_LUT = Texture2D::Create("Resources/Textures/BRDF_LUT.tga");
-		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
 		s_SceneInfo->MeshDrawList.reserve(100); // TODO: Add a capcaity from YAML(scene)
 	}
 
@@ -325,6 +324,7 @@ namespace Radiant
 		for (const auto& mesh : s_SceneInfo->MeshDrawList) 
 		{
 			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_Transform", mesh.Transform);
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
 
 			const auto& diffuse = mesh.Mesh->GetMaterialDiffuseData();
 			const auto& normal = mesh.Mesh->GetMaterialNormalData();
@@ -351,6 +351,12 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
 			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(2, "u_EnvMapRotation", m_EnvMapRotation);
 			s_SceneInfo->RenderPassList.GeoData.material->SetUBO(2, "u_RadiancePrefilter", m_RadiancePrefilter);
+
+			//Update toggles
+			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseNormalTexture", normal.Enabled);
+			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseAlbedoTexture", diffuse.Enabled);
+			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseMetalnessTexture", metalness.Enabled);
+			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseRoughnessTexture", roughness.Enabled);
 
 			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
 			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);

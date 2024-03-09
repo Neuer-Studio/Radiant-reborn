@@ -48,7 +48,6 @@ namespace Radiant
 	{
 		RADIANT_VERIFY(Utils::FileSystem::Exists(filepath));
 		RA_INFO("Loading mesh: {0}", filepath.string().c_str());
-		RA_INFO("id: {}", typeid(MaterialDiffuseData).name());
 
 		m_Name = Utils::FileSystem::GetFileName(filepath);
 

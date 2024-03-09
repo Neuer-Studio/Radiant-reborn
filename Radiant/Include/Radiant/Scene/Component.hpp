@@ -73,6 +73,7 @@ namespace Radiant
 	struct DirectionalLightComponent
 	{
 		glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f };
+		float Multiplier = 1.0f;
 	};
 
 }

@@ -319,14 +319,13 @@ namespace Radiant
 		DrawComponentUI<DirectionalLightComponent>("Directional Light", entity, [&](DirectionalLightComponent& dl)
 			{
 				DrawVec3UI("Direction", dl.Radiance);
+				ImGui::SliderFloat("Multiplier", &dl.Multiplier, 1.0, 10.0);
 			});
 
 		DrawComponentUI<MeshComponent>("Mesh", entity, [&](MeshComponent& mc)
 			{
 
 				auto& mesh = entity.GetComponent<MeshComponent>().Mesh;
-				/*if(mesh)
-					ImGui::SliderFloat("Metalness", &mesh->GetMaterialMetalnessData().Metalness, 0.0, 1.0);*/
 				UI::BeginPropertyGrid();
 
 				ImGui::Text(entity.GetComponent<TagComponent>().Tag.c_str());
@@ -364,6 +363,13 @@ namespace Radiant
 
 				UI::BeginPropertyGrid();
 				UI::EndPropertyGrid();
+
+				/*if (mesh)
+				{
+					ImGui::SliderFloat("Metalness", &mesh->GetMaterialMetalnessData().Metalness, 0.0, 1.0);
+					ImGui::SliderFloat("Roughness", &mesh->GetMaterialRoughnessData().Roughness, 0.0, 1.0);
+					ImGui::Checkbox("Use Normal Map", &mesh->GetMaterialNormalData().Enabled);
+				}*/
 			});
 	}
 }

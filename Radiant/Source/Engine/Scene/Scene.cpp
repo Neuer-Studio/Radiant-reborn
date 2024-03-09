@@ -63,6 +63,7 @@ namespace Radiant
 			{
 				direction,
 				lightComponent.Radiance,
+				lightComponent.Multiplier
 			};
 		}
 

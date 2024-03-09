@@ -19,7 +19,7 @@ layout (std140, binding = 0) uniform Camera
    mat4 u_InversedViewProjectionMatrix;
 };
 
-layout (location = 5) uniform mat4 u_Transform;
+layout (location = 0) uniform mat4 u_Transform;
 
 layout(location=0) out VertexOutput
 {
@@ -62,23 +62,30 @@ layout(location=0) in VertexOutput
 
 // PBR texture inputs
 layout(binding=0) uniform sampler2D u_AlbedoTexture;
-layout(binding=1) uniform sampler2D u_NormalTexture;
+layout(binding=11) uniform sampler2D u_NormalTexture; // with bidning = 1 have error (FB loading as normal map)
 layout(binding=2) uniform sampler2D u_MetalnessTexture;
 layout(binding=3) uniform sampler2D u_RoughnessTexture;
 // Environment maps
 layout(binding=4) uniform samplerCube u_EnvRadianceTex;
 layout(binding=5) uniform samplerCube u_EnvIrradianceTex;
 // BRDF LUT
-layout(binding=6) uniform sampler2D u_BRDFLUTTexture;
+layout(binding=1) uniform sampler2D u_BRDFLUTTexture;
 
-layout (location = 0) uniform vec3 u_AlbedoColor;
-layout (location = 1) uniform float u_Metalness;
-layout (location = 2) uniform float u_Roughness;
+layout (location = 1) uniform vec3 u_AlbedoColor; // u_Transform = 0
+layout (location = 2) uniform float u_Metalness;
+layout (location = 3) uniform float u_Roughness;
+
+layout(location = 4) uniform bool u_UseAlbedoTexture;
+layout(location = 5) uniform bool u_UseNormalTexture;
+layout(location = 6) uniform bool u_UseMetalnessTexture;
+layout(location = 7) uniform bool u_UseRoughnessTexture;
 
 struct EnvironmentLight 
 {
 	vec3 Direction;
 	vec3 Radiance;
+
+    float Multiplier;
 };
 
 layout(std140, binding=2) uniform ShadingUniforms
@@ -247,7 +254,7 @@ vec3 Lighting(vec3 F0)
     for(int i = 0; i < NUM_LIGHTS; i++)
     {
         vec3 Li = -u_EnvironmentLight[i].Direction;
-        vec3 Lradiance = u_EnvironmentLight[i].Radiance;
+        vec3 Lradiance = u_EnvironmentLight[i].Radiance * u_EnvironmentLight[i].Multiplier;
         vec3 Lh = normalize(Li + m_Params.View);
 
         // Calculate angles between surface normal and various light vectors.
@@ -294,13 +301,26 @@ vec3 IBL(vec3 F0, vec3 Lr)
 
 void main()
 {
-	m_Params.Normal = normalize(vs_Input.Normal);
+    if(u_UseNormalTexture)
+    {
+        m_Params.Normal = normalize(texture(u_NormalTexture, vs_Input.TexCoord).rgb * 2.0 - 1.0);
+        m_Params.Normal = normalize(vs_Input.WorldNormals * m_Params.Normal);
+    }
+    else
+    	m_Params.Normal = normalize(vs_Input.Normal);
+        
  	m_Params.View = normalize(u_CameraPosition - vs_Input.WorldPosition);
     m_Params.NdotV = max(0.0, dot(m_Params.Normal, m_Params.View));
 
-    m_Params.Albedo = u_AlbedoColor;
-    m_Params.Metalness = u_Metalness;
-    m_Params.Roughness = max(u_Roughness, 0.05);
+    m_Params.Albedo = u_UseAlbedoTexture ?  texture(u_AlbedoTexture, vs_Input.TexCoord).rgb
+                                            : u_AlbedoColor;
+
+    m_Params.Metalness = u_UseMetalnessTexture ? texture(u_MetalnessTexture, vs_Input.TexCoord).r
+                                                : u_Metalness;
+
+    m_Params.Roughness = u_UseRoughnessTexture ? texture(u_RoughnessTexture, vs_Input.TexCoord).r
+                                                : u_Roughness;
+    //m_Params.Roughness = max(m_Params.Roughness, 0.8);
 
     // Fresnel reflectance, metals use albedo
     vec3 F0 = mix(Fdielectric, m_Params.Albedo, m_Params.Metalness);

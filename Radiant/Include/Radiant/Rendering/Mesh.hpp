@@ -67,6 +67,8 @@ namespace Radiant
 		std::string m_Name;
 		std::filesystem::path m_AssetPath;
 
+
+		//Note: Enabled - flag: is texture has been loaded
 		struct
 		{
 			bool Enabled = false;

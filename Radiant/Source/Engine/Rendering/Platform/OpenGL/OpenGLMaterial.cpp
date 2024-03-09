@@ -125,7 +125,7 @@ namespace Radiant
 				ShaderUniformBufferObject ubuffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = ubuffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
-				RADIANT_VERIFY(uniform.Size != uboBuffer.Size);
+				RADIANT_VERIFY(uniform.Size == uboBuffer.Size);
 
 				if (ubuffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
@@ -146,6 +146,8 @@ namespace Radiant
 
 	void OpenGLMaterial::SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const
 	{
+		if (!texture2D->GetImage2D())
+			return;
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, texture2D]() mutable
 			{
@@ -157,6 +159,8 @@ namespace Radiant
 
 	void OpenGLMaterial::SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const
 	{
+		if (!image2D)
+			return;
 		Memory::Shared<const OpenGLMaterial> instance(this);
 		Rendering::SubmitCommand([name, instance, image2D]() mutable
 			{
