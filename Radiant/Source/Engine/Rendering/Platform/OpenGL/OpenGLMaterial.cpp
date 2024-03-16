@@ -24,12 +24,11 @@ namespace Radiant
 		m_Shader->Use();
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value) const
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value)
 	{
-		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value]() mutable
 			{
-				ShaderUniformBufferObject buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
@@ -42,12 +41,11 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value) const
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value)
 	{
-		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value]() mutable
 			{
-				ShaderUniformBufferObject buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
@@ -60,12 +58,11 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value) const
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value)
 	{
-		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value]() mutable
 			{
-				ShaderUniformBufferObject buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
@@ -78,12 +75,11 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, float value) const
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, float value)
 	{
-		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value]() mutable
 			{
-				ShaderUniformBufferObject buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
@@ -96,12 +92,11 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, bool value) const
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, bool value)
 	{
-		Memory::Shared<const OpenGLMaterial> instance(this);
-		Rendering::SubmitCommand([binding,  name, value, instance]() mutable
+		Rendering::SubmitCommand([binding,  name, value]() mutable
 			{
-				ShaderUniformBufferObject buffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = buffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 
@@ -116,13 +111,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size) const
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size)
 	{
-		Memory::Shared<const OpenGLMaterial> instance(this);
 		Memory::Buffer uboBuffer = Memory::Buffer::Copy(data, size);
-		Rendering::SubmitCommand([binding, name, uboBuffer, instance]() mutable
+		Rendering::SubmitCommand([binding, name, uboBuffer]() mutable
 			{
-				ShaderUniformBufferObject ubuffer = instance->m_Shader.As<OpenGLShader>()->m_UniformBuffers[binding];
+				ShaderUniformBufferObject ubuffer = OpenGLShader::s_UniformBuffers[binding];
 				MemberUniformBufferObject uniform = ubuffer.Uniforms[name];
 				RADIANT_VERIFY(uniform.Name != "");
 				RADIANT_VERIFY(uniform.Size == uboBuffer.Size);

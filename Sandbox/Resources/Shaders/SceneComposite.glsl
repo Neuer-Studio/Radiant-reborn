@@ -29,11 +29,6 @@ layout (location = 0) in OutputBlock Input;
 
 layout(location=0) out vec4 o_Color;
 
-layout(std140, binding=0) uniform Uniforms
-{
-	float Exposure;
-};
-
 layout(binding=1) uniform sampler2D u_Texture;
 
 void main()
@@ -41,7 +36,7 @@ void main()
     const float gamma = 2.2;
     const float pureWhite = 1.0;
 
-    vec3 color = texture(u_Texture, Input.TexCoord).rgb * 1.0;
+    vec3 color = texture(u_Texture, Input.TexCoord).rgb * 1.0; // Exposure;
     float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
     float mappedLuminance = (luminance * (1.0 + luminance / (pureWhite * pureWhite) ) ) / (1.0 + luminance);
     

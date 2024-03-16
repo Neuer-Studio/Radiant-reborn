@@ -22,12 +22,12 @@ namespace Radiant
 		virtual ~Material() = default;
 		virtual void Use() const = 0;
 
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value) const = 0;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value) const = 0;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value) const = 0;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, float value) const = 0;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, bool value) const = 0;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size) const = 0; // NOTE: Using for update structs
+		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value); //TODO: static
+		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value);
+		static void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value);
+		static void SetUBO(BindingPoint binding, const std::string& name, float value);
+		static void SetUBO(BindingPoint binding, const std::string& name, bool value);
+		static void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size); // NOTE: Using for update structs
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const = 0;
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const = 0;
 

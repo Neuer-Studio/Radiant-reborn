@@ -11,14 +11,15 @@ namespace Radiant
 
 		virtual void Use() const override;
 
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value) const override;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value) const override;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value) const override;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, float value) const override;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, bool value) const override;
+		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value);
+		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value);
+		static void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value);
+		static void SetUBO(BindingPoint binding, const std::string& name, float value);
+		static void SetUBO(BindingPoint binding, const std::string& name, bool value);
+		static void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size);
+
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const override;
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const override;
-		virtual void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size) const override;
 
 		virtual void UpdateForRendering() const override;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const override;

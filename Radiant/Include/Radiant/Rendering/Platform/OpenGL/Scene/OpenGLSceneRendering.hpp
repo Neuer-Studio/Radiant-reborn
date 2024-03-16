@@ -14,6 +14,7 @@ namespace Radiant
 		virtual void Init() override;
 
 		virtual Memory::Shared<Image2D> GetFinalPassImage() const override;
+		virtual Memory::Shared<Image2D> GetShadowMapPassImage() const override;
 
 		virtual void SetEnvMapRotation(float rotation) override { m_EnvMapRotation = rotation; }
 		virtual void SetRadiancePrefilter(bool enable) override { m_RadiancePrefilter = enable; }
@@ -32,6 +33,7 @@ namespace Radiant
 	private:
 		void CompositePass();
 		void GeometryPass();
+		void ShadowMapPass();
 		void FlushDrawList();
 	private:
 		Environment m_Environment;

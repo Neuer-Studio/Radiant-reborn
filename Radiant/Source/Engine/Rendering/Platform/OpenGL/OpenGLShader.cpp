@@ -232,9 +232,9 @@ namespace Radiant
 			uint32_t bufferSize = compiler.get_declared_struct_size(bufferType);
 			std::string bufferName = resource.name;
 			
-			if (m_UniformBuffers.find(bindingPoint) == m_UniformBuffers.end())
+			if (s_UniformBuffers.find(bindingPoint) == s_UniformBuffers.end())
 			{
-				ShaderUniformBufferObject& buffer = m_UniformBuffers[bindingPoint];
+				ShaderUniformBufferObject& buffer = s_UniformBuffers[bindingPoint];
 				buffer.Name = bufferName;
 				buffer.Binding = bindingPoint;
 				buffer.Size = bufferSize;
@@ -266,7 +266,7 @@ namespace Radiant
 
 			else
 			{
-				auto& buffer = m_UniformBuffers[bindingPoint];
+				auto& buffer = s_UniformBuffers[bindingPoint]; // TODDO: static
 
 				RADIANT_VERIFY(buffer.Name == resource.name);
 				glDeleteBuffers(1, &buffer.RenderingID);

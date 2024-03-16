@@ -43,7 +43,7 @@ namespace Radiant
 		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
-		std::unordered_map<BindingPoint, ShaderUniformBufferObject> m_UniformBuffers; // UBOs
+		inline static std::unordered_map<BindingPoint, ShaderUniformBufferObject> s_UniformBuffers; // UBOs
 		std::unordered_map<std::string, Uniform> m_Uniforms; // plain uniforms
 
 	private:

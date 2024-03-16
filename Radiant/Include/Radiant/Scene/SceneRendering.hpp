@@ -31,6 +31,7 @@ namespace Radiant
 		virtual void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const = 0;
 
 		virtual Memory::Shared<Image2D> GetFinalPassImage() const = 0;
+		virtual Memory::Shared<Image2D> GetShadowMapPassImage() const = 0;
 
 		virtual Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const = 0;
 
