@@ -59,10 +59,10 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLPipeline::Use(BindUsage use) const
+	void OpenGLPipeline::Use(BindUsage use, const std::vector<std::string_view>& attributesToEnable) const
 	{
 		const Memory::Shared<const OpenGLPipeline> instance = this;
-		Rendering::SubmitCommand([instance, use]()
+		Rendering::SubmitCommand([instance, use, attributesToEnable]() mutable
 			{
 				if (use == BindUsage::Unbind)
 				{
@@ -74,31 +74,54 @@ namespace Radiant
 
 				const auto& layout = instance->m_Specification.Layout;
 				uint32_t attribIndex = 0;
-				for (const auto& element : layout)
+
+				auto setVertexAttr = [](ShaderDataType type, uint32_t attribIndex, uint32_t count, uint32_t stride, uint32_t offset, bool normalized) -> void
 				{
-					auto glBaseType = OpenGLShaderDataType(element.Type);
+					auto glBaseType = OpenGLShaderDataType(type);
 					glEnableVertexAttribArray(attribIndex);
 					if (glBaseType == GL_INT)
 					{
 						glVertexAttribIPointer(attribIndex,
-							element.GetComponentCount(),
+							count,
 							glBaseType,
-							layout.GetStride(),
-							(const void*)(intptr_t)element.Offset);
+							stride,
+							(const void*)(intptr_t)offset);
 					}
 					else
 					{
 						glVertexAttribPointer(attribIndex,
-							element.GetComponentCount(),
+							count,
 							glBaseType,
-							element.Normalized ? GL_TRUE : GL_FALSE,
-							layout.GetStride(),
-							(const void*)(intptr_t)element.Offset);
+							normalized ? GL_TRUE : GL_FALSE,
+							stride,
+							(const void*)(intptr_t)offset);
 					}
-					attribIndex++;
+				};
 
-
+				if (attributesToEnable.empty())
+				{
+					for (const auto& element : layout)
+					{
+						setVertexAttr(element.Type, attribIndex, element.GetComponentCount(), layout.GetStride(), element.Offset, element.Normalized);
+						attribIndex++;
+					}
 				}
+
+				else
+				{
+					for (const auto& element : layout)
+					{
+						if (std::find(attributesToEnable.begin(), attributesToEnable.end(), element.Name) == std::end(attributesToEnable))
+						{
+							attribIndex++;
+							continue;
+						}
+
+						setVertexAttr(element.Type, attribIndex, element.GetComponentCount(), layout.GetStride(), element.Offset, element.Normalized);
+						attribIndex++;
+					}
+				}
+
 			});
 	}
 }

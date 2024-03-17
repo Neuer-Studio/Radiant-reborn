@@ -15,7 +15,7 @@ namespace Radiant
 
 		virtual void Invalidate() override;
 
-		virtual void Use(BindUsage use = BindUsage::Bind) const override;
+		virtual void Use(BindUsage use = BindUsage::Bind, const std::vector<std::string_view>& attributesToEnable = {}) const override;
 	private:
 		PipelineSpecification m_Specification;
 		RenderingID m_RendererID = 0;

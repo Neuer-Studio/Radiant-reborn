@@ -28,6 +28,13 @@ namespace Radiant
 		Memory::Shared<Material> material;
 	};
 
+	struct ShadowData
+	{
+		Memory::Shared<Pipeline> ShadowPassPipeline;
+		Memory::Shared<Material> ShadowMapMaterial;
+		glm::mat4 ViewProj;
+	};
+
 	struct CompositeData // TODO: Move to RenderPass
 	{
 		Memory::Shared<Pipeline> pipeline;
@@ -38,6 +45,7 @@ namespace Radiant
 	{
 		GeometryData GeoData;
 		CompositeData CompData;
+		ShadowData Shadowdata;
 	};
 
 	struct DrawCommand
@@ -55,8 +63,6 @@ namespace Radiant
 		Memory::Shared<Pipeline> GridPipeline;
 		Memory::Shared<Material> GridMaterial;
 		Memory::Shared<Pipeline> SkyboxPipeline;
-		Memory::Shared<Pipeline> ShadowPassPipeline;
-		Memory::Shared<Material> ShadowMapMaterial;
 		Memory::Shared<Material> SkyboxMaterial;
 		struct LightEnvironment LightEnvironment;
 		Memory::Shared<Texture2D> BRDF_LUT;
@@ -165,16 +171,15 @@ namespace Radiant
 
 		// Shadow map
 
-		/*{
-			FramebufferSpecification shadowMapFramebufferSpec;
-			shadowMapFramebufferSpec.Width = 4096;
-			shadowMapFramebufferSpec.Height = 4096;
-			shadowMapFramebufferSpec.Attachments = { ImageFormat::RGBA16F };
-
+		{
 			PipelineSpecification ps;
 			ps.DebugName = "Shadow map";
 			ps.Layout = {
 				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float3, "a_Normals" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+				{ ShaderDataType::Float3, "a_Tangent" },
+				{ ShaderDataType::Float3, "a_Bitangent" }
 			};
 			ps.Shader = Rendering::GetShaderLibrary()->Get("ShadowMap.glsl");
 
@@ -183,9 +188,9 @@ namespace Radiant
 			renderPassSpec.DebugName = "Geometry Render Pass";
 			ps.RenderPass = RenderPass::Create(renderPassSpec);
 
-			s_SceneInfo->ShadowMapMaterial = Material::Create(ps.Shader);
-			s_SceneInfo->ShadowPassPipeline = Pipeline::Create(ps);
-		}*/
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial = Material::Create(ps.Shader);
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline = Pipeline::Create(ps);
+		}
 
 		s_SceneInfo->BRDF_LUT = Texture2D::Create("Resources/Textures/BRDF_LUT.tga");
 		s_SceneInfo->MeshDrawList.reserve(100); // TODO: Add a capcaity from YAML(scene)
@@ -198,7 +203,7 @@ namespace Radiant
 
 	Radiant::Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetShadowMapPassImage() const
 	{
-		return s_SceneInfo->ShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage();
+		return s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage();
 	}
 
 	void OpenGLSceneRendering::SetSceneVeiwPortSize(const glm::vec2& size)
@@ -247,7 +252,8 @@ namespace Radiant
 		FlushDrawList();
 
 		Material::SetUBO(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection); 
-		Material::SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection); 
+		Material::SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
+		Material::SetUBO(0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View);
 
 		s_SceneInfo->GridMaterial->SetMat4("u_Transform", transform); //TODO: UBO
 
@@ -350,10 +356,6 @@ namespace Radiant
 		s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->SkyboxPipeline, nullptr);
 
-		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvRadianceTex", m_Environment.Radiance);
-		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvIrradianceTex", m_Environment.Irradiance);
-		s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
-
 		for (const auto& mesh : s_SceneInfo->MeshDrawList) 
 		{
 			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_Transform", mesh.Transform);
@@ -366,7 +368,6 @@ namespace Radiant
 			if (diffuse.Enabled)
 			{
 				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_AlbedoTexture", diffuse.Texture->GetImage2D());
-
 				if (normal.Enabled)
 					s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_NormalTexture", normal.Texture->GetImage2D());
 			}
@@ -380,6 +381,7 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Metalness", metalness.Metalness); 
 			s_SceneInfo->RenderPassList.GeoData.material->SetVec3("u_AlbedoColor", diffuse.AlbedoColor);
 
+			//UBO
 			Material::SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
 			Material::SetUBO(2, "u_CameraPosition", &s_SceneInfo->SceneCamera.CameraPos);
 			Material::SetUBO(2, "u_EnvMapRotation", m_EnvMapRotation);
@@ -390,6 +392,16 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseAlbedoTexture", diffuse.Enabled);
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseMetalnessTexture", metalness.Enabled);
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseRoughnessTexture", roughness.Enabled);
+
+			// Env. map
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvRadianceTex", m_Environment.Radiance);
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvIrradianceTex", m_Environment.Irradiance);
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
+
+			//Shadow
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_ShadowVP", s_SceneInfo->RenderPassList.Shadowdata.ViewProj);
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->
+																						   GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage());
 
 			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
 			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);
@@ -405,7 +417,7 @@ namespace Radiant
 
 	void OpenGLSceneRendering::ShadowMapPass()
 	{
-		Rendering::BeginRenderPass(s_SceneInfo->ShadowPassPipeline->GetSpecification().RenderPass);
+		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().RenderPass);
 
 		/*
 		Renderer::Submit([]()
@@ -418,10 +430,20 @@ namespace Radiant
 
 		for (const auto& mesh : s_SceneInfo->MeshDrawList)
 		{
-			s_SceneInfo->ShadowMapMaterial->SetMat4("u_Transform", mesh.Transform);
+			float near_plane = 1.0f, far_plane = 7.5f;
+			glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
-			s_SceneInfo->ShadowPassPipeline->GetSpecification().Shader->Use();
-			//Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->ShadowPassPipeline);
+			glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+				glm::vec3(0.0f, 0.0f, 0.0f),
+				glm::vec3(0.0f, 1.0f, 0.0f));
+
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_Transform", mesh.Transform);
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", lightProjection * lightView);
+
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().Shader->Use();
+			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline);
+
+			s_SceneInfo->RenderPassList.Shadowdata.ViewProj = lightProjection * lightView;
 		}
 
 		Rendering::EndRenderPass();
@@ -439,7 +461,7 @@ namespace Radiant
 
 	void OpenGLSceneRendering::FlushDrawList()
 	{
-		//ShadowMapPass(); 
+		ShadowMapPass(); 
 		GeometryPass();
 		CompositePass();
 

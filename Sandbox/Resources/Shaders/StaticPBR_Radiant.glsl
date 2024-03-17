@@ -16,10 +16,14 @@ layout (location = 4) in vec3 a_Bitangent;
 layout (std140, binding = 0) uniform TransformUniforms
 {
    mat4 u_ViewProjectionMatrix;
-   mat4 u_InversedViewProjectionMatrix;
+   mat4 u_InversedViewProjectionMatrix; 
+   mat4 u_ViewMatrix;
 };
 
 layout (location = 0) uniform mat4 u_Transform;
+
+// Shadows
+layout (location = 1) uniform mat4 u_ShadowVP;
 
 layout(location=0) out VertexOutput
 {
@@ -27,18 +31,24 @@ layout(location=0) out VertexOutput
 	vec3 Normal;
 	vec2 TexCoord;
 	mat3 WorldNormals;
+
+    vec4 ShadowMapCoords;
+    //vec3 ViewPosition;
 } vs_Output;
 
 void main()
 {
-      vs_Output.WorldPosition = vec3(u_Transform * vec4(a_Position, 1.0));
-      vs_Output.TexCoord = vec2(a_TexCoord.x, 1.0-a_TexCoord.y);
-      vs_Output.Normal = vec3(u_Transform * vec4(a_Normals, 1.0));
+    vs_Output.WorldPosition = vec3(u_Transform * vec4(a_Position, 1.0));
+    vs_Output.TexCoord = vec2(a_TexCoord.x, 1.0-a_TexCoord.y);
+    vs_Output.Normal = vec3(u_Transform * vec4(a_Normals, 1.0));
 
-      // Pass tangent space basis vectors (for normal mapping).
-      vs_Output.WorldNormals = mat3(u_Transform) * mat3(a_Tangent, a_Bitangent, a_Normals);
+    // Pass tangent space basis vectors (for normal mapping).
+    vs_Output.WorldNormals = mat3(u_Transform) * mat3(a_Tangent, a_Bitangent, a_Normals);
 
-     gl_Position = u_ViewProjectionMatrix * u_Transform * vec4(a_Position, 1.0);
+   // vs_Output.ViewPosition = vec3(u_ViewMatrix * vec4(vs_Output.WorldPosition, 1.0));
+    vs_Output.ShadowMapCoords = u_ShadowVP * vec4(vs_Output.WorldPosition, 1.0);
+
+    gl_Position = u_ViewProjectionMatrix * u_Transform * vec4(a_Position, 1.0);
 }
 
 #type fragment
@@ -58,27 +68,34 @@ layout(location=0) in VertexOutput
 	vec3 Normal;
 	vec2 TexCoord;
 	mat3 WorldNormals;
+
+    vec4 ShadowMapCoords;
+     //vec3 ViewPosition;
 } vs_Input;
 
 // PBR texture inputs
-layout(binding=0) uniform sampler2D u_AlbedoTexture;
-layout(binding=11) uniform sampler2D u_NormalTexture; // with bidning = 1 have error (FB loading as normal map)
-layout(binding=2) uniform sampler2D u_MetalnessTexture;
-layout(binding=3) uniform sampler2D u_RoughnessTexture;
+layout(binding= 0) uniform sampler2D u_AlbedoTexture;
+layout(binding= 1) uniform sampler2D u_NormalTexture;
+layout(binding= 2) uniform sampler2D u_MetalnessTexture;
+layout(binding= 3) uniform sampler2D u_RoughnessTexture;
 // Environment maps
-layout(binding=4) uniform samplerCube u_EnvRadianceTex;
-layout(binding=5) uniform samplerCube u_EnvIrradianceTex;
+layout(binding= 4) uniform samplerCube u_EnvRadianceTex;
+layout(binding= 5) uniform samplerCube u_EnvIrradianceTex;
+
+// Shadows
+layout(binding = 2) uniform sampler2D u_ShadowMapTexture;
+
 // BRDF LUT
-layout(binding=1) uniform sampler2D u_BRDFLUTTexture;
+layout(binding = 3) uniform sampler2D u_BRDFLUTTexture;
 
-layout (location = 1) uniform vec3 u_AlbedoColor; // u_Transform = 0
-layout (location = 2) uniform float u_Metalness;
-layout (location = 3) uniform float u_Roughness;
+layout (location = 2) uniform vec3 u_AlbedoColor; // u_Transform is already using binding =  0
+layout (location = 3) uniform float u_Metalness; // u_LightView is already using binding =  1
+layout (location = 4) uniform float u_Roughness;
 
-layout(location = 4) uniform bool u_UseAlbedoTexture;
-layout(location = 5) uniform bool u_UseNormalTexture;
-layout(location = 6) uniform bool u_UseMetalnessTexture;
-layout(location = 7) uniform bool u_UseRoughnessTexture;
+layout(location = 5) uniform bool u_UseAlbedoTexture;
+layout(location = 6) uniform bool u_UseNormalTexture;
+layout(location = 7) uniform bool u_UseMetalnessTexture;
+layout(location = 8) uniform bool u_UseRoughnessTexture;
 
 struct EnvironmentLight 
 {
@@ -276,6 +293,35 @@ vec3 Lighting(vec3 F0)
     return result;
 }
 
+float ShadowMap(vec4 ShadowMapCoords)
+{
+    vec3 projCoords = ShadowMapCoords.xyz / ShadowMapCoords.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(u_ShadowMapTexture, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    vec3 normal = m_Params.Normal;
+    vec3 lightDir = -u_EnvironmentLight[0].Direction;
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(u_ShadowMapTexture, 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(u_ShadowMapTexture, projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+    
+    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
+    
+    return shadow;
+}
+
 vec3 IBL(vec3 F0, vec3 Lr)
 {
     vec3 irradiance = texture(u_EnvIrradianceTex, m_Params.Normal).rgb;
@@ -324,7 +370,8 @@ void main()
 
     // Fresnel reflectance, metals use albedo
     vec3 F0 = mix(Fdielectric, m_Params.Albedo, m_Params.Metalness);
-    vec3 lightContribution = Lighting(F0);
+    float shadowFactor = ShadowMap(vs_Input.ShadowMapCoords);
+    vec3 lightContribution = Lighting(F0) * (1.0 - shadowFactor);
 
     vec3 Lr = 2.0 * m_Params.NdotV * m_Params.Normal - m_Params.View;
     vec3 iblContribution = IBL(F0, Lr);

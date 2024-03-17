@@ -117,6 +117,13 @@ namespace Radiant
 
 			}
 
+			ImGui::Begin("Viewport (Depth Test)");
+			{
+				if (Scene::GetSceneRendering()->GetShadowMapPassImage())
+					ImGui::Image((void*)Scene::GetSceneRendering()->GetShadowMapPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
+			}
+			ImGui::End();
+
 			ImGui::End();
 			ImGui::PopStyleVar();
 
@@ -126,6 +133,8 @@ namespace Radiant
 			ImGui::End();
 
 		}
+
+
 	private:
 		Memory::Shared<Scene> m_Scene;
 		ImVec2 m_ViewportSize;

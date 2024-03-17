@@ -26,8 +26,8 @@ namespace Radiant
 
 		virtual void Invalidate() = 0;
 
-		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
-
+		virtual void Use(BindUsage use = BindUsage::Bind, const std::vector<std::string_view>& attributesToEnable = {}) const = 0; //NOTE (Danya): If we pass vector as emmty -> display all attributes
+ 
 		static Memory::Shared<Pipeline> Create(const PipelineSpecification& spec);
 	};
 }

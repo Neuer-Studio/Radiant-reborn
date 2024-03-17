@@ -9,15 +9,12 @@ layout (location = 2) in vec2 a_TexCoord;
 layout (location = 3) in vec3 a_Tangent;
 layout (location = 4) in vec3 a_Bitangent;
 
-layout (std140, binding = 0) uniform TransformUniforms
-{
-   mat4 u_ViewProjectionMatrix;
-   mat4 u_InversedViewProjectionMatrix;
-}; // CREATING AGAIN. WTF?
+layout (location = 0) uniform mat4 u_Transform; 
+layout (location = 1) uniform mat4 u_ViewProjection; // should be outside ubo (ortho matrix)
 
 void main()
 {
-	gl_Position = u_ViewProjectionMatrix * vec4(a_Position, 1.0);
+	gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
 }
 
 #type fragment

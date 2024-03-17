@@ -40,9 +40,6 @@ namespace Radiant
 			Scene::GetSceneRendering()->SetEnvMapRotation(rotation);
 
 			ImGui::Separator();
-
-		/*	if(m_Context->GetSceneRendering()->GetShadowMapPassImage())
-				ImGui::Image((void*)m_Context->GetSceneRendering()->GetShadowMapPassImage()->GetTextureID(), {100.f, 100.f});*/
 		}
 		ImGui::End();
 	}

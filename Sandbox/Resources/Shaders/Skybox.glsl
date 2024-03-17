@@ -9,6 +9,7 @@ layout(std140, binding=0) uniform TransformUniforms
 {
 	mat4 u_ViewProjectionMatrix;
 	mat4 u_InversedViewProjectionMatrix;
+	mat4 u_ViewMatrix;
 };
 
 layout(location=0) in vec3 a_Position;
