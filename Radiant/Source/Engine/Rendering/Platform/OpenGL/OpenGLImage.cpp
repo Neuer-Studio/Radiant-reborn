@@ -59,6 +59,8 @@ namespace Radiant
 			{
 			case TextureRendererType::Texture2D:
 				return GL_TEXTURE_2D;
+			case TextureRendererType::Texture2D_MS:
+				return GL_TEXTURE_2D_MULTISAMPLE;
 			case TextureRendererType::TextureCube:
 				return GL_TEXTURE_CUBE_MAP;
 			}
@@ -115,7 +117,10 @@ namespace Radiant
 		glCreateTextures(texType, 1, &m_RenderingID);
 
 		auto internalformat = Utils::RadiantInternalFormatToOGL(m_Specification.Format);
-		glTextureStorage2D(m_RenderingID, m_MipmapLevels, internalformat, m_Specification.Width, m_Specification.Height);
+		if(m_Specification.Type == TextureRendererType::Texture2D_MS)
+			glTextureStorage2DMultisample(m_RenderingID, 2, internalformat, m_Specification.Width, m_Specification.Height, GL_FALSE);
+		else
+			glTextureStorage2D(m_RenderingID, m_MipmapLevels, internalformat, m_Specification.Width, m_Specification.Height);
 
 		if (m_Specification.Data)
 		{ 

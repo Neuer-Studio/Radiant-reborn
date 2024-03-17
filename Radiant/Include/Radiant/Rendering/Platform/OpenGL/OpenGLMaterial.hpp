@@ -18,12 +18,13 @@ namespace Radiant
 		static void SetUBO(BindingPoint binding, const std::string& name, bool value);
 		static void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size);
 
-		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D) const override;
-		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D) const override;
+		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D, uint32_t sampler = 0) const override;
+		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D, uint32_t sampler = 0) const override;
 
 		virtual void UpdateForRendering() const override;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const override;
 		virtual void SetBool(const std::string& name, bool value) const override;
+		virtual void SetUint(const std::string& name, uint32_t value) const override;
 		virtual void SetFloat(const std::string& name, float value) const override;
 		virtual void SetVec3(const std::string& name, const glm::vec3 value) const override;
 	private:

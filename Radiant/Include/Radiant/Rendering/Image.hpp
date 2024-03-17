@@ -20,6 +20,7 @@ namespace Radiant
 	enum class TextureRendererType
 	{
 		Texture2D = 0,
+		Texture2D_MS = 1,
 		TextureCube,
 	};
 

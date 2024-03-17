@@ -36,10 +36,15 @@ namespace Radiant
 			ImGui::Checkbox("Radiance Prefiltering", &enable);
 			Scene::GetSceneRendering()->SetRadiancePrefilter(enable);
 
+			int samples = (int)m_Context->m_SamplesCount;
 			ImGui::SliderFloat("Env Map Rotation", &rotation, -360.0f, 360.0f);
+			ImGui::SliderInt("Samples Scene", &samples, 1, 16);
+			ImGui::SliderFloat("Exposure", &m_Context->m_Exposure, 0.0f, 100.0f);
 			Scene::GetSceneRendering()->SetEnvMapRotation(rotation);
 
 			ImGui::Separator();
+
+			m_Context->m_SamplesCount = (uint32_t)samples;
 		}
 		ImGui::End();
 	}

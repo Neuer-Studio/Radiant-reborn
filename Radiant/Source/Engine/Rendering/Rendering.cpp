@@ -158,6 +158,7 @@ namespace Radiant
 			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/Skybox.glsl");
 			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/StaticPBR_Radiant.glsl");
 			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/SceneComposite.glsl");
+			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/SceneCompositeMSAA.glsl");
 			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/Grid.glsl");
 			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/ShadowMap.glsl");
 		}

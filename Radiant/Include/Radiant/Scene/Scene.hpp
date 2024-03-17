@@ -38,6 +38,9 @@ namespace Radiant
 		Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const;
 		LightEnvironment GetLightEnvironment() const { return m_LightEnvironment; }
 
+		inline const float GetSceneExposure() const { return m_Exposure; }
+		inline const uint32_t GetSceneSamplesCount() const { return m_SamplesCount; }
+
 		inline void SetViewportSize(uint32_t width, uint32_t height)
 		{
 			m_ViewportWidth = width;
@@ -48,6 +51,9 @@ namespace Radiant
 
 		static SceneRendering* GetSceneRendering();
 	private:
+		float m_Exposure = 1.0f;
+		uint32_t m_SamplesCount = 2;
+
 		std::string m_SceneName;
 		entt::registry m_Registry;
 

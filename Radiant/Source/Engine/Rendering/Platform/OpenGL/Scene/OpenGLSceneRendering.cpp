@@ -33,6 +33,7 @@ namespace Radiant
 		Memory::Shared<Pipeline> ShadowPassPipeline;
 		Memory::Shared<Material> ShadowMapMaterial;
 		glm::mat4 ViewProj;
+		RenderingID ShadowMapSampler;
 	};
 
 	struct CompositeData // TODO: Move to RenderPass
@@ -93,7 +94,7 @@ namespace Radiant
 
 		{
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 1, { ImageFormat::RGBA16F, ImageFormat::DEPTH32F } });
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 2, { ImageFormat::RGBA16F, ImageFormat::DEPTH32F } });
 			renderPassSpec.DebugName = "Geometry Render Pass";
 
 			PipelineSpecification pipelineSpecification;
@@ -128,7 +129,7 @@ namespace Radiant
 
 			pipelineSpecification.DebugName = "Scene Composite";
 			pipelineSpecification.RenderPass = RenderPass::Create(renderPassSpec);
-			pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get("SceneComposite.glsl");
+			pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get("SceneCompositeMSAA.glsl"); //TODO
 			s_SceneInfo->RenderPassList.CompData.pipeline = Pipeline::Create(pipelineSpecification);
 
 			s_SceneInfo->RenderPassList.CompData.material = Material::Create(pipelineSpecification.Shader);
@@ -190,6 +191,18 @@ namespace Radiant
 
 			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial = Material::Create(ps.Shader);
 			s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline = Pipeline::Create(ps);
+
+			Rendering::SubmitCommand([]()
+				{
+					glGenSamplers(1, &s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
+
+					// Setup the shadowmap depth sampler
+					glSamplerParameteri(s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glSamplerParameteri(s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glSamplerParameteri(s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					glSamplerParameteri(s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				});
+
 		}
 
 		s_SceneInfo->BRDF_LUT = Texture2D::Create("Resources/Textures/BRDF_LUT.tga");
@@ -401,7 +414,8 @@ namespace Radiant
 			//Shadow
 			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_ShadowVP", s_SceneInfo->RenderPassList.Shadowdata.ViewProj);
 			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->
-																						   GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage());
+																						   GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
+																							s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
 
 			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
 			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);
@@ -419,14 +433,12 @@ namespace Radiant
 	{
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().RenderPass);
 
-		/*
-		Renderer::Submit([]()
+		Rendering::SubmitCommand([]()
 		{
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		});
-
-		*/
+		
 
 		for (const auto& mesh : s_SceneInfo->MeshDrawList)
 		{
@@ -446,13 +458,19 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.Shadowdata.ViewProj = lightProjection * lightView;
 		}
 
+		Rendering::SubmitCommand([]()
+			{
+				glDisable(GL_CULL_FACE);
+			});
+
 		Rendering::EndRenderPass();
 	}
 
 	void OpenGLSceneRendering::CompositePass()
 	{
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
-		//s_SceneInfo->RenderPassList.CompData.material->SetUniform("Uniforms", "Exposure", 1.0f);
+		s_SceneInfo->RenderPassList.CompData.material->SetFloat("u_Exposure", m_Scene->GetSceneExposure());
+		s_SceneInfo->RenderPassList.CompData.material->SetUint("u_SamplesCount", m_Scene->GetSceneSamplesCount());
 		s_SceneInfo->RenderPassList.CompData.material->SetImage2D("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorAttachmentImage());
 		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);

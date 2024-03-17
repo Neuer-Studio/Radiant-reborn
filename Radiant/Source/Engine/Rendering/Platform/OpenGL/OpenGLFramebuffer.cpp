@@ -8,9 +8,19 @@ namespace Radiant
 {
 	namespace Utils
 	{
-		static GLenum TextureTarget()
+		static GLenum TextureTarget(bool multisampled)
 		{
-			return GL_TEXTURE_2D;
+			return multisampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		}
+
+		static void CreateTextures(bool multisampled, RenderingID* outID, uint32_t count)
+		{
+			glCreateTextures(TextureTarget(multisampled), 1, outID);
+		}
+
+		static void BindTexture(bool multisampled, RenderingID id)
+		{
+			glBindTexture(TextureTarget(multisampled), id);
 		}
 
 		static std::optional<RenderingID> GenFramebuffer(uint32_t count = 1)
@@ -38,10 +48,10 @@ namespace Radiant
 		{
 			Memory::Shared<Image2D> image;
 
-			image = Image2D::Create({ width, height, format, TextureRendererType::Texture2D, {} });
+			image = Image2D::Create({ width, height, format, samples > 1 ? TextureRendererType::Texture2D_MS : TextureRendererType::Texture2D, {} });
 			image.As<OpenGLImage2D>()->Invalidate();
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, Utils::TextureTarget(), image->GetTextureID(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, Utils::TextureTarget(samples > 1), image->GetTextureID(), 0);
 			return image;
 		}
 
@@ -60,10 +70,10 @@ namespace Radiant
 		{
 			Memory::Shared<Image2D> image;
 
-			image = Image2D::Create({ width, height, format, TextureRendererType::Texture2D, {} });
+			image = Image2D::Create({ width, height, format, samples > 1 ? TextureRendererType::Texture2D_MS : TextureRendererType::Texture2D, {} });
 			image.As<OpenGLImage2D>()->Invalidate();
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, Utils::DepthAttachmentType(format), Utils::TextureTarget(), image->GetTextureID(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, Utils::DepthAttachmentType(format), Utils::TextureTarget(samples > 1), image->GetTextureID(), 0);
 			return image;
 		}
 
