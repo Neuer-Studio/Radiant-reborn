@@ -42,5 +42,10 @@ void main()
     
     vec3 mappedColor = (mappedLuminance / luminance) * color;
 
-    o_Color = vec4(mappedColor, 1.0);
+    // Gamma correction.
+	o_Color = vec4(pow(mappedColor, vec3(1.0 / gamma)), 1.0);
+
+	// Show over-exposed areas
+	// if (o_Color.r > 1.0 || o_Color.g > 1.0 || o_Color.b > 1.0)
+	// 	o_Color.rgb *= vec3(1.0, 0.25, 0.25);
 }

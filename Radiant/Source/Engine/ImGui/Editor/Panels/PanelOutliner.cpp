@@ -318,8 +318,8 @@ namespace Radiant
 
 		DrawComponentUI<DirectionalLightComponent>("Directional Light", entity, [&](DirectionalLightComponent& dl)
 			{
-				DrawVec3UI("Direction", dl.Radiance);
-				ImGui::SliderFloat("Multiplier", &dl.Multiplier, 1.0, 10.0);
+				ImGui::ColorEdit3("Radiance", &dl.Radiance[0]);
+				ImGui::SliderFloat("Multiplier", &dl.Multiplier, 0.0, 10.0);
 			});
 
 		DrawComponentUI<MeshComponent>("Mesh", entity, [&](MeshComponent& mc)

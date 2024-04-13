@@ -31,15 +31,19 @@ namespace Radiant
 
 			ImGui::Separator();
 			ImGui::Text("Shader Parameters");
-			static bool enable = false;
+			static float valueIBLContribution = 1.0;
 			static float rotation = 0.0f;
-			ImGui::Checkbox("Radiance Prefiltering", &enable);
-			Scene::GetSceneRendering()->SetRadiancePrefilter(enable);
+			ImGui::SliderFloat("Radiance Prefiltering", &valueIBLContribution, 0.0, 1.0);
+			Scene::GetSceneRendering()->SetIBLContribution(valueIBLContribution);
 
 			int samples = (int)m_Context->m_SamplesCount;
 			ImGui::SliderFloat("Env Map Rotation", &rotation, -360.0f, 360.0f);
 			ImGui::SliderInt("Samples Scene", &samples, 1, 16);
-			ImGui::SliderFloat("Exposure", &m_Context->m_Exposure, 0.0f, 100.0f);
+			ImGui::SliderFloat("Exposure", &m_Context->m_Exposure, 0.1f, 100.0f);
+
+			float lod = m_Context->GetSceneRendering()->GetTexureLod();
+			ImGui::SliderFloat("SkyBox LOD", &lod, 0.0f, 100.0f);
+			m_Context->GetSceneRendering()->SetTexureLod(lod);
 			Scene::GetSceneRendering()->SetEnvMapRotation(rotation);
 
 			ImGui::Separator();

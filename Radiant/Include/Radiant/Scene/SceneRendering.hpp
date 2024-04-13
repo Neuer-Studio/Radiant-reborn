@@ -26,7 +26,14 @@ namespace Radiant
 		virtual void SetEnvironment(const Environment& env) = 0;
 
 		virtual void SetEnvMapRotation(float rotation) = 0;
-		virtual void SetRadiancePrefilter(bool enable = true) = 0;
+		virtual void SetIBLContribution(float value) = 0;
+		virtual void OnImGuiRender() = 0;
+		virtual const float GetTexureLod() const { return m_TextureLod; }
+		virtual void SetTexureLod(float lod) 
+		{ 
+			m_TextureLod = lod; 
+			Material::SetUBO(10, "u_TextureLod", m_TextureLod);
+		}
 
 		virtual void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const = 0;
 
@@ -36,6 +43,9 @@ namespace Radiant
 		virtual Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const = 0;
 
 		static SceneRendering* Create(const Memory::Shared<Scene>& scene);
+	private:
+		float m_TextureLod = 1.0f;
+		float m_SkyIntensity = 1.0f;
 				
 	};
 }

@@ -14,7 +14,7 @@ namespace Radiant
 	struct DirectionalLight
 	{
 		glm::vec3 Direction = { 0.0f, 0.0f, 0.0f };
-		alignas(16) glm::vec3 Radiance = { 0.0f, 0.0f, 0.0f }; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
+		alignas(16) glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f }; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
 		
 		float Multiplier = 1.0f;
 	};
@@ -51,7 +51,7 @@ namespace Radiant
 
 		static SceneRendering* GetSceneRendering();
 	private:
-		float m_Exposure = 1.0f;
+		float m_Exposure = 0.8f;
 		uint32_t m_SamplesCount = 2;
 
 		std::string m_SceneName;

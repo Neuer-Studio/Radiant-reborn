@@ -16,8 +16,10 @@ namespace Radiant
 		virtual Memory::Shared<Image2D> GetFinalPassImage() const override;
 		virtual Memory::Shared<Image2D> GetShadowMapPassImage() const override;
 
+		virtual void OnImGuiRender() override;
+
 		virtual void SetEnvMapRotation(float rotation) override { m_EnvMapRotation = rotation; }
-		virtual void SetRadiancePrefilter(bool enable) override { m_RadiancePrefilter = enable; }
+		virtual void SetIBLContribution(float value) override { m_IBLContribution = value; }
 
 		virtual void SetSceneVeiwPortSize(const glm::vec2& size) override;
 		virtual void BeginScene(const Camera& camera) override;
@@ -40,7 +42,7 @@ namespace Radiant
 		Memory::Shared<Scene> m_Scene;
 
 		float m_EnvMapRotation = 0.0f;
-		bool m_RadiancePrefilter = false;
+		float m_IBLContribution = 1.0;
 
 		uint32_t m_ViewportWidth, m_ViewportHeight;
 	};

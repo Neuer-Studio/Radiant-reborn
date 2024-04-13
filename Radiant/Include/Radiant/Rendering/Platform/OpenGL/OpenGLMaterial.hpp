@@ -27,6 +27,7 @@ namespace Radiant
 		virtual void SetUint(const std::string& name, uint32_t value) const override;
 		virtual void SetFloat(const std::string& name, float value) const override;
 		virtual void SetVec3(const std::string& name, const glm::vec3 value) const override;
+		virtual void SetVec4(const std::string& name, const glm::vec4 value) const override;
 	private:
 		Memory::Shared<Shader> m_Shader;
 		mutable Memory::Buffer m_BufferValues;

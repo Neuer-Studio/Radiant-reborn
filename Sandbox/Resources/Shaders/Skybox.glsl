@@ -31,11 +31,17 @@ void main()
 // Environment skybox: Fragment program.
 
 layout(location=0) in vec3 v_Position;
-layout(location=0) out vec4 color;
+layout(location=0) out vec4 finalColor;
 
 layout(binding=0) uniform samplerCube u_EnvTexture;
+layout(std140, binding=10) uniform SkyAttributes
+{
+	float u_TextureLod;
+	float u_SkyIntensity;
+};
 
 void main()
 {
-	color = textureLod(u_EnvTexture, v_Position, 0);
+	vec3 color = textureLod(u_EnvTexture, v_Position, u_TextureLod).rgb * u_SkyIntensity;
+	finalColor = vec4(color, 1.0);
 }

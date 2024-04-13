@@ -18,6 +18,7 @@
 namespace Radiant
 {
 	static constexpr int kEnvMapSize = 2048;
+	static constexpr int kShadowMapSize = 4096;
 	static constexpr int kIrradianceMapSize = 32;
 	static constexpr int kBRDF_LUT_Size = 256;
 	static constexpr int kLightEnvironmentSize = sizeof(LightEnvironment);
@@ -32,7 +33,21 @@ namespace Radiant
 	{
 		Memory::Shared<Pipeline> ShadowPassPipeline;
 		Memory::Shared<Material> ShadowMapMaterial;
-		glm::mat4 ViewProj;
+		float ShadowMapSize = 20.0f;
+		float LightDistance = 0.1f;
+		glm::mat4 LightMatrices;
+		glm::mat4 LightViewMatrix;
+		float CascadeSplitLambda = 0.91f;
+		glm::vec4 CascadeSplits;
+		float CascadeFarPlaneOffset = 15.0f, CascadeNearPlaneOffset = -15.0f;
+		bool ShowCascades = false;
+		bool SoftShadows = true;
+		float LightSize = 0.5f;
+		float MaxShadowDistance = 200.0f;
+		float ShadowFade = 25.0f;
+		float CascadeTransitionFade = 1.0f;
+		bool CascadeFading = true;
+
 		RenderingID ShadowMapSampler;
 	};
 
@@ -94,7 +109,7 @@ namespace Radiant
 
 		{
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 2, { ImageFormat::RGBA16F, ImageFormat::DEPTH32F } });
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ m_ViewportWidth, m_ViewportHeight, 8, { ImageFormat::RGBA16F, ImageFormat::DEPTH32F } });
 			renderPassSpec.DebugName = "Geometry Render Pass";
 
 			PipelineSpecification pipelineSpecification;
@@ -185,7 +200,7 @@ namespace Radiant
 			ps.Shader = Rendering::GetShaderLibrary()->Get("ShadowMap.glsl");
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ 1024, 1024, 1, { ImageFormat::DEPTH32F } });
+			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ kShadowMapSize, kShadowMapSize, 1, { ImageFormat::DEPTH32F } });
 			renderPassSpec.DebugName = "Geometry Render Pass";
 			ps.RenderPass = RenderPass::Create(renderPassSpec);
 
@@ -207,6 +222,11 @@ namespace Radiant
 
 		s_SceneInfo->BRDF_LUT = Texture2D::Create("Resources/Textures/BRDF_LUT.tga");
 		s_SceneInfo->MeshDrawList.reserve(100); // TODO: Add a capcaity from YAML(scene)
+
+		{
+			Material::SetUBO(10, "u_TextureLod", GetTexureLod());
+			Material::SetUBO(10, "u_SkyIntensity", 1.0f);
+		}
 	}
 
 	Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetFinalPassImage() const
@@ -217,6 +237,11 @@ namespace Radiant
 	Radiant::Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetShadowMapPassImage() const
 	{
 		return s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage();
+	}
+
+	void OpenGLSceneRendering::OnImGuiRender()
+	{
+
 	}
 
 	void OpenGLSceneRendering::SetSceneVeiwPortSize(const glm::vec2& size)
@@ -233,14 +258,136 @@ namespace Radiant
 		}
 	}
 
+	struct FrustumBounds
+	{
+		float r, l, b, t, f, n;
+	};
+
+	struct CascadeData
+	{
+		glm::mat4 ViewProj;
+		glm::mat4 View;
+		float SplitDepth;
+	};
+
+	static void CalculateCascades(CascadeData* cascades, const glm::vec3& lightDirection)
+	{
+		FrustumBounds frustumBounds[3];
+
+		auto viewProjection = s_SceneInfo->SceneCamera.ViewProjection;
+
+		const int SHADOW_MAP_CASCADE_COUNT = 4;
+		float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
+
+		// TODO: less hard-coding!
+		float nearClip = 0.1f;
+		float farClip = 1000.0f;
+		float clipRange = farClip - nearClip;
+
+		float minZ = nearClip;
+		float maxZ = nearClip + clipRange;
+
+		float range = maxZ - minZ;
+		float ratio = maxZ / minZ;
+
+		// Calculate split depths based on view camera frustum
+		// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+		{
+			float p = (i + 1) / static_cast<float>(SHADOW_MAP_CASCADE_COUNT);
+			float log = minZ * std::pow(ratio, p);
+			float uniform = minZ + range * p;
+			float d = s_SceneInfo->RenderPassList.Shadowdata.CascadeSplitLambda * (log - uniform) + uniform;
+			cascadeSplits[i] = (d - nearClip) / clipRange;
+		}
+
+		cascadeSplits[3] = 0.3f;
+
+		// Manually set cascades here
+		// cascadeSplits[0] = 0.05f;
+		// cascadeSplits[1] = 0.15f;
+		// cascadeSplits[2] = 0.3f;
+		// cascadeSplits[3] = 1.0f;
+
+		// Calculate orthographic projection matrix for each cascade
+		float lastSplitDist = 0.0;
+		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+		{
+			float splitDist = cascadeSplits[i];
+
+			glm::vec3 frustumCorners[8] =
+			{
+				glm::vec3(-1.0f,  1.0f, -1.0f),
+				glm::vec3(1.0f,  1.0f, -1.0f),
+				glm::vec3(1.0f, -1.0f, -1.0f),
+				glm::vec3(-1.0f, -1.0f, -1.0f),
+				glm::vec3(-1.0f,  1.0f,  1.0f),
+				glm::vec3(1.0f,  1.0f,  1.0f),
+				glm::vec3(1.0f, -1.0f,  1.0f),
+				glm::vec3(-1.0f, -1.0f,  1.0f),
+			};
+
+			// Project frustum corners into world space
+			glm::mat4 invCam = glm::inverse(viewProjection);
+			for (uint32_t i = 0; i < 8; i++)
+			{
+				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
+				frustumCorners[i] = invCorner / invCorner.w;
+			}
+
+			for (uint32_t i = 0; i < 4; i++)
+			{
+				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
+				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
+				frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+			}
+
+			// Get frustum center
+			glm::vec3 frustumCenter = glm::vec3(0.0f);
+			for (uint32_t i = 0; i < 8; i++)
+				frustumCenter += frustumCorners[i];
+
+			frustumCenter /= 8.0f;
+
+			//frustumCenter *= 0.01f;
+
+			float radius = 0.0f;
+			for (uint32_t i = 0; i < 8; i++)
+			{
+				float distance = glm::length(frustumCorners[i] - frustumCenter);
+				radius = glm::max(radius, distance);
+			}
+			radius = std::ceil(radius * 16.0f) / 16.0f;
+
+			glm::vec3 maxExtents = glm::vec3(radius);
+			glm::vec3 minExtents = -maxExtents;
+
+			glm::vec3 lightDir = -lightDirection;
+			glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 0.0f, 1.0f));
+			glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f + s_SceneInfo->RenderPassList.Shadowdata.CascadeNearPlaneOffset, maxExtents.z - minExtents.z + s_SceneInfo->RenderPassList.Shadowdata.CascadeFarPlaneOffset);
+
+			// Store split distance and matrix in cascade
+			cascades[i].SplitDepth = (nearClip + splitDist * clipRange) * -1.0f;
+			cascades[i].ViewProj = lightOrthoMatrix * lightViewMatrix;
+			cascades[i].View = lightViewMatrix;
+
+			lastSplitDist = cascadeSplits[i];
+		}
+	}
+
 	void OpenGLSceneRendering::BeginScene(const Camera& camera)
 	{
 		s_SceneInfo->SceneCamera.ViewProjection = camera.GetViewProjection();
 		s_SceneInfo->SceneCamera.View = camera.GetViewMatrix();
 		s_SceneInfo->SceneCamera.Projection = camera.GetProjectionMatrix();
+		s_SceneInfo->SceneCamera.CameraPos = camera.GetPosition();
 		s_SceneInfo->SceneCamera.InversedViewProjection = glm::inverse(camera.GetViewProjection());
 
 		s_SceneInfo->LightEnvironment = m_Scene->GetLightEnvironment();
+		CascadeData cascades[4];
+		CalculateCascades(cascades, s_SceneInfo->LightEnvironment.DirectionalLights.Direction);
+		s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix = cascades[0].View;
+		s_SceneInfo->RenderPassList.Shadowdata.LightMatrices = cascades[0].ViewProj;
 
 		s_SceneInfo->Updated = true;
 	}
@@ -290,7 +437,16 @@ namespace Radiant
 		if (!equirectangularConversionShader)
 			equirectangularConversionShader = Rendering::GetShaderLibrary()->Get("equirect2cube_cs.glsl");
 
-		auto envTextureUnfiltered = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA32F, TextureRendererType::TextureCube,nullptr });
+		ImageSpecification spec;
+
+		spec.Width = kEnvMapSize;
+		spec.Height = kEnvMapSize;
+		spec.Format = ImageFormat::RGBA32F;
+		spec.TextureSamples = 1;
+		spec.Type = TextureRendererType::TextureCube;
+		spec.Data = std::nullopt;
+
+		auto envTextureUnfiltered = Image2D::Create(spec);
 	
 		Rendering::SubmitCommand([envTextureUnfiltered]()
 			{
@@ -316,7 +472,7 @@ namespace Radiant
 
 		// Compute pre-filtered specular environment map.
 
-		auto envTexture = Image2D::Create({ kEnvMapSize, kEnvMapSize,ImageFormat::RGBA32F, TextureRendererType::TextureCube,nullptr });
+		auto envTexture = Image2D::Create(spec);
 		
 		if(!envFilteringShader)
 			envFilteringShader = Shader::Create("Resources/Shaders/spmap_cs.glsl");
@@ -344,7 +500,7 @@ namespace Radiant
 
 		// Compute diffuse irradiance cubemap.
 
-		auto irmapTexture = Image2D::Create({ kIrradianceMapSize, kIrradianceMapSize,ImageFormat::RGBA32F, TextureRendererType::TextureCube,nullptr });
+		auto irmapTexture = Image2D::Create(spec);
 
 		if(!envIrradianceShader)
 			envIrradianceShader = Shader::Create("Resources/Shaders/irmap_cs.glsl");
@@ -396,9 +552,9 @@ namespace Radiant
 
 			//UBO
 			Material::SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
-			Material::SetUBO(2, "u_CameraPosition", &s_SceneInfo->SceneCamera.CameraPos);
+			Material::SetUBO(2, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
 			Material::SetUBO(2, "u_EnvMapRotation", m_EnvMapRotation);
-			Material::SetUBO(2, "u_RadiancePrefilter", m_RadiancePrefilter);
+			Material::SetUBO(2, "u_IBLContribution", m_IBLContribution);
 
 			//Update toggles
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseNormalTexture", normal.Enabled);
@@ -412,7 +568,7 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
 
 			//Shadow
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_ShadowVP", s_SceneInfo->RenderPassList.Shadowdata.ViewProj);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices);
 			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->
 																						   GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
 																							s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
@@ -438,24 +594,16 @@ namespace Radiant
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		});
-		
 
 		for (const auto& mesh : s_SceneInfo->MeshDrawList)
 		{
-			float near_plane = 1.0f, far_plane = 7.5f;
-			glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-
-			glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-				glm::vec3(0.0f, 0.0f, 0.0f),
-				glm::vec3(0.0f, 1.0f, 0.0f));
 
 			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_Transform", mesh.Transform);
-			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", lightProjection * lightView);
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices);
 
 			s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().Shader->Use();
 			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline);
 
-			s_SceneInfo->RenderPassList.Shadowdata.ViewProj = lightProjection * lightView;
 		}
 
 		Rendering::SubmitCommand([]()

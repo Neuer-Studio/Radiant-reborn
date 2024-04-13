@@ -36,6 +36,8 @@ namespace Radiant
 		Rendering::GetRenderingCommandBuffer().Execute();
 
 		PushLayer(m_ImGuiLayer);
+
+		m_Window->Maximize();
 	}
 
 	Application::~Application()

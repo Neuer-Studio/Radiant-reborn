@@ -51,40 +51,40 @@ namespace Radiant
 
 		virtual void OnImGuiRender() override
 		{
+			static bool p_open = true;
+
+			static bool opt_fullscreen_persistant = true;
+			static ImGuiDockNodeFlags opt_flags = ImGuiDockNodeFlags_None;
+			bool opt_fullscreen = opt_fullscreen_persistant;
+
+			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+		// because it would be confusing to have two docking targets within each others.
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+			if (opt_fullscreen)
+			{
+				ImGuiViewport* viewport = ImGui::GetMainViewport();
+				ImGui::SetNextWindowPos(viewport->Pos);
+				ImGui::SetNextWindowSize(viewport->Size);
+				ImGui::SetNextWindowViewport(viewport->ID);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+				window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+				window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+			ImGui::Begin("DockSpace Demo", &p_open, window_flags);
+			ImGui::PopStyleVar();
+
+			if (opt_fullscreen)
+				ImGui::PopStyleVar(2);
+
 			// ImGui + Dockspace Setup ------------------------------------------------------------------------------
 			ImGuiIO& io = ImGui::GetIO();
 			ImGuiStyle& style = ImGui::GetStyle();
 			auto boldFont = io.Fonts->Fonts[0];
 
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || (ImGui::IsMouseClicked(ImGuiMouseButton_Right)))
-			{
-			}
-
-			io.ConfigWindowsResizeFromEdges = io.BackendFlags & ImGuiBackendFlags_HasMouseCursors;
-
-			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-			// because it would be confusing to have two docking targets within each others.
-			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar;
-
-			ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->Pos);
-			ImGui::SetNextWindowSize(viewport->Size);
-			ImGui::SetNextWindowViewport(viewport->ID);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-			window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-			window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
 			bool isMaximized = Application::GetInstance().GetWindow()->IsWindowMaximized();
-
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, isMaximized ? ImVec2(6.0f, 6.0f) : ImVec2(1.0f, 1.0f));
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 3.0f);
-			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f });
-			ImGui::Begin("DockSpace Demo", nullptr, window_flags);
-			ImGui::PopStyleColor(); // MenuBarBg
-			ImGui::PopStyleVar(2);
-
-			ImGui::PopStyleVar(2);
 
 			m_Outliner->DrawComponentsUI();
 
@@ -117,12 +117,7 @@ namespace Radiant
 
 			}
 
-			ImGui::Begin("Viewport (Depth Test)");
-			{
-				if (Scene::GetSceneRendering()->GetShadowMapPassImage())
-					ImGui::Image((void*)Scene::GetSceneRendering()->GetShadowMapPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
-			}
-			ImGui::End();
+			Scene::GetSceneRendering()->OnImGuiRender();
 
 			ImGui::End();
 			ImGui::PopStyleVar();

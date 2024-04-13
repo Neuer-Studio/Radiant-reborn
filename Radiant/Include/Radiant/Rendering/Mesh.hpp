@@ -6,6 +6,11 @@
 
 #include <glm/glm.hpp>
 
+struct aiNode;
+struct aiAnimation;
+struct aiNodeAnim;
+struct aiScene;
+
 namespace Assimp
 {
 	class Importer;
@@ -61,12 +66,11 @@ namespace Radiant
 		Memory::Shared<IndexBuffer> m_IndexBuffer;
 		Memory::Shared<Material> m_Material;
 
-		std::vector<Vertex> m_Vertices;
+		std::vector<Vertex> m_StaticVertices;
 		std::vector<Index> m_Indices;
 
 		std::string m_Name;
 		std::filesystem::path m_AssetPath;
-
 
 		//Note: Enabled - flag: is texture has been loaded
 		struct

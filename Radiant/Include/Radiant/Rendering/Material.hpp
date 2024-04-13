@@ -28,7 +28,7 @@ namespace Radiant
 		static void SetUBO(BindingPoint binding, const std::string& name, float value);
 		static void SetUBO(BindingPoint binding, const std::string& name, bool value);
 		static void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size); // NOTE: Using for update structs
-		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D, uint32_t sampler = 0)const = 0; //TODO: std::optional
+		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D, uint32_t sampler = 0)const = 0; //TODO: sampler -> std::optional
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D, uint32_t sampler = 0) const = 0;
 
 		virtual void UpdateForRendering() const = 0;
@@ -37,6 +37,7 @@ namespace Radiant
 		virtual void SetUint(const std::string& name, uint32_t value) const = 0;
 		virtual void SetFloat(const std::string& name, float value) const = 0;
 		virtual void SetVec3(const std::string& name, const glm::vec3 value) const = 0;
+		virtual void SetVec4(const std::string& name, const glm::vec4 value) const = 0;
 
 		static Memory::Shared<Material> Create(const Memory::Shared<Shader>& shader);
 
