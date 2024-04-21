@@ -9,6 +9,8 @@ namespace Radiant
 	public:
 		OpenGLMaterial(const Memory::Shared<Shader>& shader);
 
+		virtual const Memory::Shared<Shader>& GetShader() const override { return m_Shader; }
+
 		virtual void Use() const override;
 
 		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value);

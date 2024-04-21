@@ -170,9 +170,9 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+				// RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
-				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+				// instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniformMatrix4fv(buffer.Uniform.Binding, 1, GL_FALSE, glm::value_ptr(value));
@@ -189,9 +189,9 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+				// RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
-				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+				// instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniform1i(buffer.Uniform.Binding, value ? 1 : 0);
@@ -208,9 +208,9 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+				// RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
-				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+				// instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniform1ui(buffer.Uniform.Binding, value);
@@ -227,9 +227,9 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+				// RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
-				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+				// instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniform1f(buffer.Uniform.Binding, value);
@@ -246,9 +246,9 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+				// RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
-				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+				// instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniform3f(buffer.Uniform.Binding, value.x, value.y, value.z);
@@ -265,9 +265,9 @@ namespace Radiant
 		Rendering::SubmitCommand([name, instance, value]() mutable
 			{
 				const auto& buffer = instance->m_Shader.As<OpenGLShader>()->m_Uniforms[name];
-				RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
+				// RADIANT_VERIFY(buffer.Uniform.Binding != (uint32_t)-1);
 
-				instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
+				// instance->m_BufferValues.Write((void*)&value, buffer.Size, buffer.totalOffset);
 
 				glUseProgram(instance->m_Shader.As<OpenGLShader>()->m_RenderingID);
 				glUniform4f(buffer.Uniform.Binding, value.x, value.y, value.z, value.w);

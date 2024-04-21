@@ -64,14 +64,49 @@ namespace Radiant
 			});
 	}
 
-	void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline)
+	void Rendering::SubmitMeshWithMaterial(const DrawSpecificationCommand& specification, const Memory::Shared<Pipeline>& pipeline)
+	{
+		RADIANT_VERIFY(pipeline);
+
+		RADIANT_VERIFY(specification.Mesh);
+		RADIANT_VERIFY(specification.Material);
+
+		specification.Mesh->GetVertexBuffer()->Use();
+		pipeline->Use();
+		specification.Mesh->GetIndexBuffer()->Use();
+
+		const auto& shader = pipeline->GetSpecification().Shader;
+		RADIANT_VERIFY(shader);
+
+		for (const Submesh& submesh : specification.Mesh->GetSubmeshes())
+		{
+			specification.Material->SetMat4("u_Transform", specification.Transform );
+			shader->Use();
+
+			Rendering::SubmitCommand([submesh]()
+				{
+					glEnable(GL_DEPTH_TEST);
+					glDrawElementsBaseVertex(GL_TRIANGLES, submesh.IndexCount, GL_UNSIGNED_INT, (void*)(sizeof(uint32_t) * submesh.BaseIndex), submesh.BaseVertex);
+					glDisable(GL_DEPTH_TEST);
+				});
+
+		}
+		// Rendering::DrawPrimitive(Primitives::Triangle, specification.Mesh->GetIndexCount(), true);
+	}
+
+	/*void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline)
 	{
 		mesh->GetVertexBuffer()->Use();
 		pipeline->Use();
 		mesh->GetIndexBuffer()->Use();
 
+		for (const Submesh& submesh : mesh->GetSubmeshes())
+		{
+
+		}
+
 		Rendering::DrawPrimitive(Primitives::Triangle, mesh->GetIndexCount(), true);
-	}
+	}*/
 
 	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest)
 	{

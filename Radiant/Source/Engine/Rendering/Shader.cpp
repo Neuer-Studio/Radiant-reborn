@@ -38,16 +38,18 @@ namespace Radiant
 
 	Radiant::Memory::Shared<Radiant::Shader> Shader::Create(const std::filesystem::path& path)
 	{
+		Memory::Shared<Radiant::Shader> shader = nullptr;
 		switch (RenderingAPI::GetAPI())
 		{
 			case RenderingAPIType::OpenGL:
 			{
-				return Memory::Shared<OpenGLShader>::Create(path);
+				shader = Memory::Shared<OpenGLShader>::Create(path);
 			}
 		}
 
-		RADIANT_VERIFY(false);
-		return nullptr;
+		RADIANT_VERIFY(shader);
+		s_AllShaders.push_back(shader);
+		return shader;
 	}
 
 	void ShaderLibrary::Add(const Memory::Shared<Shader>& shader)

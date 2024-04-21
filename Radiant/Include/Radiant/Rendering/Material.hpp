@@ -22,6 +22,8 @@ namespace Radiant
 		virtual ~Material() = default;
 		virtual void Use() const = 0;
 
+		virtual const Memory::Shared<Shader>& GetShader() const = 0;
+
 		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value); //TODO: static
 		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value);
 		static void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value);

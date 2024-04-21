@@ -68,7 +68,6 @@ namespace Radiant
 	{
 		glm::mat4 Transform;
 		Memory::Shared<Mesh> Mesh;
-		Memory::Shared<Material> Material;
 	};
 
 	struct SceneInfo
@@ -225,7 +224,7 @@ namespace Radiant
 
 		{
 			Material::SetUBO(10, "u_TextureLod", GetTexureLod());
-			Material::SetUBO(10, "u_SkyIntensity", 1.0f);
+			Material::SetUBO(10, "u_SkyIntensity", 0.8f);
 		}
 	}
 
@@ -422,7 +421,7 @@ namespace Radiant
 
 	void OpenGLSceneRendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
 	{
-		s_SceneInfo->MeshDrawList.push_back({ transform, mesh, nullptr });
+		s_SceneInfo->MeshDrawList.push_back( { transform, mesh } );
 	}
 
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
@@ -500,6 +499,10 @@ namespace Radiant
 
 		// Compute diffuse irradiance cubemap.
 
+		//NOTE: This way to change image size to load irradiance map
+		spec.Width = kIrradianceMapSize;
+		spec.Height = kIrradianceMapSize;
+
 		auto irmapTexture = Image2D::Create(spec);
 
 		if(!envIrradianceShader)
@@ -527,8 +530,6 @@ namespace Radiant
 
 		for (const auto& mesh : s_SceneInfo->MeshDrawList) 
 		{
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_Transform", mesh.Transform);
-
 			const auto& diffuse = mesh.Mesh->GetMaterialDiffuseData();
 			const auto& normal = mesh.Mesh->GetMaterialNormalData();
 			const auto& roughness = mesh.Mesh->GetMaterialRoughnessData();
@@ -573,8 +574,7 @@ namespace Radiant
 																						   GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
 																							s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
 
-			s_SceneInfo->RenderPassList.GeoData.material->Use(); // NOTE: Using shader
-			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.pipeline);
+			Rendering::SubmitMeshWithMaterial( { mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.material }, s_SceneInfo->RenderPassList.GeoData.pipeline);
 		}
 
 		if (s_SceneInfo->ShowGrid)
@@ -594,15 +594,19 @@ namespace Radiant
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		});
+		glm::vec3 lightInvDir = glm::vec3(s_SceneInfo->LightEnvironment.DirectionalLights.Direction);
 
+		// Compute the MVP matrix from the light's point of view
+		glm::mat4 depthProjectionMatrix = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
+		glm::mat4 depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+		glm::mat4 depthModelMatrix = glm::mat4(1.0);
+		glm::mat4 depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+
+		s_SceneInfo->RenderPassList.Shadowdata.LightMatrices = depthMVP;
 		for (const auto& mesh : s_SceneInfo->MeshDrawList)
 		{
-
-			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_Transform", mesh.Transform);
-			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices);
-
-			s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().Shader->Use();
-			Rendering::SubmitMesh(mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline);
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices); 
+			Rendering::SubmitMeshWithMaterial( { mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial }, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline);
 
 		}
 

@@ -125,8 +125,25 @@ namespace Radiant
 			m_Outliner->DrawImGuiUI();
 			m_SceneRenderingPanel->DrawImGuiUI();
 			//m_ScenePanel->DrawImGuiUI();
-			ImGui::End();
+			ImGui::Begin("Models");
+			if (ImGui::TreeNode("Shaders"))
+			{
+				auto& shaders =Shader::s_AllShaders;
+				for (auto& shader : shaders)
+				{
+					if (ImGui::TreeNode(shader->GetShaderName().c_str()))
+					{
+						std::string buttonName = "Reload##" + shader->GetShaderName();
+						if (ImGui::Button(buttonName.c_str()))
+							shader->Reload();
+						ImGui::TreePop();
+					}
+				}
+				ImGui::TreePop();
+			}
 
+			ImGui::End();
+			ImGui::End();
 		}
 
 
