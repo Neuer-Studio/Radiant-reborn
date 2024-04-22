@@ -16,7 +16,7 @@ namespace Radiant
 		glm::vec3 Direction = { 0.0f, 0.0f, 0.0f };
 		alignas(16) glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f }; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
 		
-		float Multiplier = 1.0f;
+		float Multiplier = 0.0f;
 	};
 
 	struct LightEnvironment

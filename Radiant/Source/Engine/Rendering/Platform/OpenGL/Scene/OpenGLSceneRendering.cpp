@@ -31,11 +31,11 @@ namespace Radiant
 
 	struct ShadowData
 	{
-		Memory::Shared<Pipeline> ShadowPassPipeline;
+		Memory::Shared<Pipeline> ShadowPassPipeline[4];
 		Memory::Shared<Material> ShadowMapMaterial;
 		float ShadowMapSize = 20.0f;
 		float LightDistance = 0.1f;
-		glm::mat4 LightMatrices;
+		glm::mat4 LightMatrices[4];
 		glm::mat4 LightViewMatrix;
 		float CascadeSplitLambda = 0.91f;
 		glm::vec4 CascadeSplits;
@@ -197,16 +197,20 @@ namespace Radiant
 				{ ShaderDataType::Float3, "a_Bitangent" }
 			};
 			ps.Shader = Rendering::GetShaderLibrary()->Get("ShadowMap.glsl");
-
-			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Framebuffer::Create({ kShadowMapSize, kShadowMapSize, 1, { ImageFormat::DEPTH32F } });
-			renderPassSpec.DebugName = "Geometry Render Pass";
-			ps.RenderPass = RenderPass::Create(renderPassSpec);
-
 			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial = Material::Create(ps.Shader);
-			s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline = Pipeline::Create(ps);
 
-			Rendering::SubmitCommand([]()
+			// 4 cascades
+			for (int i = 0; i < 4; i++)
+			{
+				RenderPassSpecification shadowMapRenderPassSpec;
+				shadowMapRenderPassSpec.TargetFramebuffer = Framebuffer::Create({ kShadowMapSize, kShadowMapSize, 1, { ImageFormat::DEPTH32F } });
+				shadowMapRenderPassSpec.DebugName = "Geometry Render Pass";
+				ps.RenderPass = RenderPass::Create(shadowMapRenderPassSpec);
+
+				s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i] = Pipeline::Create(ps);
+			}
+
+			Rendering::SubmitCommand([ ]()
 				{
 					glGenSamplers(1, &s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
 
@@ -235,7 +239,7 @@ namespace Radiant
 
 	Radiant::Memory::Shared<Radiant::Image2D> OpenGLSceneRendering::GetShadowMapPassImage() const
 	{
-		return s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage();
+		return nullptr;
 	}
 
 	void OpenGLSceneRendering::OnImGuiRender()
@@ -383,10 +387,6 @@ namespace Radiant
 		s_SceneInfo->SceneCamera.InversedViewProjection = glm::inverse(camera.GetViewProjection());
 
 		s_SceneInfo->LightEnvironment = m_Scene->GetLightEnvironment();
-		CascadeData cascades[4];
-		CalculateCascades(cascades, s_SceneInfo->LightEnvironment.DirectionalLights.Direction);
-		s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix = cascades[0].View;
-		s_SceneInfo->RenderPassList.Shadowdata.LightMatrices = cascades[0].ViewProj;
 
 		s_SceneInfo->Updated = true;
 	}
@@ -413,6 +413,7 @@ namespace Radiant
 		Material::SetUBO(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection); 
 		Material::SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
 		Material::SetUBO(0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View);
+		Material::SetUBO(2, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
 
 		s_SceneInfo->GridMaterial->SetMat4("u_Transform", transform); //TODO: UBO
 
@@ -553,7 +554,6 @@ namespace Radiant
 
 			//UBO
 			Material::SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
-			Material::SetUBO(2, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
 			Material::SetUBO(2, "u_EnvMapRotation", m_EnvMapRotation);
 			Material::SetUBO(2, "u_IBLContribution", m_IBLContribution);
 
@@ -569,10 +569,28 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
 
 			//Shadow
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices);
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->
-																						   GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
-																							s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade0", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[0]);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade1", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[1]);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade2", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[2]);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade3", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[3]);
+			s_SceneInfo->RenderPassList.GeoData.material->SetVec4("u_CascadeSplits", s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits);
+			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightView", s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix);
+
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture1", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[0]->
+				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
+				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
+
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture2", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[1]->
+				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
+				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
+
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture3", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[2]->
+				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
+				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
+
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture4", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[3]->
+				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
+				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
 
 			Rendering::SubmitMeshWithMaterial( { mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.material }, s_SceneInfo->RenderPassList.GeoData.pipeline);
 		}
@@ -587,35 +605,50 @@ namespace Radiant
 
 	void OpenGLSceneRendering::ShadowMapPass()
 	{
-		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline->GetSpecification().RenderPass);
-
+		auto& directionalLights = s_SceneInfo->LightEnvironment.DirectionalLights;
+		if (directionalLights.Multiplier == 0.0f)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				// Clear shadow maps
+				Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]->GetSpecification().RenderPass);
+				Rendering::EndRenderPass();
+			}
+			return;
+		}
 		Rendering::SubmitCommand([]()
 		{
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
 		});
-		glm::vec3 lightInvDir = glm::vec3(s_SceneInfo->LightEnvironment.DirectionalLights.Direction);
 
-		// Compute the MVP matrix from the light's point of view
-		glm::mat4 depthProjectionMatrix = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
-		glm::mat4 depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4(1.0);
-		glm::mat4 depthMVP = depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+		CascadeData cascades[4];
+		CalculateCascades(cascades, directionalLights.Direction);
+		s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix = cascades[0].View;
 
-		s_SceneInfo->RenderPassList.Shadowdata.LightMatrices = depthMVP;
-		for (const auto& mesh : s_SceneInfo->MeshDrawList)
+		for(int i = 0; i < 4; i++)
 		{
-			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices); 
-			Rendering::SubmitMeshWithMaterial( { mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial }, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline);
+			Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]->GetSpecification().RenderPass);
 
+			s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits[i] = cascades[i].SplitDepth;
+			glm::mat4 shadowMapVP = cascades[i].ViewProj;
+			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4("u_ViewProjection", shadowMapVP);
+
+			static glm::mat4 scaleBiasMatrix = glm::scale(glm::mat4(1.0f), { 0.5f, 0.5f, 0.5f }) * glm::translate(glm::mat4(1.0f), { 1, 1, 1 });
+			s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[i] = scaleBiasMatrix * cascades[i].ViewProj;
+
+			for (const auto& mesh : s_SceneInfo->MeshDrawList)
+			{
+				Rendering::SubmitMeshWithMaterial({ mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial }, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]);
+			}
+
+			Rendering::EndRenderPass();
 		}
 
 		Rendering::SubmitCommand([]()
 			{
 				glDisable(GL_CULL_FACE);
 			});
-
-		Rendering::EndRenderPass();
 	}
 
 	void OpenGLSceneRendering::CompositePass()

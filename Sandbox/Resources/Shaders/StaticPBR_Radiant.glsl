@@ -24,7 +24,10 @@ layout (std140, binding = 0) uniform TransformUniforms
 layout (location = 0) uniform mat4 u_Transform;
 
 // Shadows
-layout (location = 1) uniform mat4 u_LightMatrixCascade;
+layout (location = 11) uniform mat4 u_LightMatrixCascade0;
+layout (location = 12) uniform mat4 u_LightMatrixCascade1;
+layout (location = 13) uniform mat4 u_LightMatrixCascade2;
+layout (location = 14) uniform mat4 u_LightMatrixCascade3;
 
 layout(location=0) out VertexOutput
 {
@@ -34,7 +37,7 @@ layout(location=0) out VertexOutput
 	mat3 WorldNormals;
 	mat3 WorldTransform;
 	vec3 Binormal;
-	vec4 ShadowMapCoords;
+	vec4 ShadowMapCoords[4];
 	vec3 ViewPosition;
 } vs_Output;
 
@@ -48,7 +51,11 @@ void main()
   	vs_Output.ViewPosition = vec3(u_ViewMatrix * vec4(vs_Output.WorldPosition, 1.0));
 	vs_Output.WorldTransform = mat3(u_Transform);
 	vs_Output.Binormal = a_Bitangent;
-    vs_Output.ShadowMapCoords =  u_LightMatrixCascade * vec4(vs_Output.WorldPosition, 1.0);
+
+    vs_Output.ShadowMapCoords[0] = u_LightMatrixCascade0 * vec4(vs_Output.WorldPosition, 1.0);
+	vs_Output.ShadowMapCoords[1] = u_LightMatrixCascade1 * vec4(vs_Output.WorldPosition, 1.0);
+	vs_Output.ShadowMapCoords[2] = u_LightMatrixCascade2 * vec4(vs_Output.WorldPosition, 1.0);
+	vs_Output.ShadowMapCoords[3] = u_LightMatrixCascade3 * vec4(vs_Output.WorldPosition, 1.0);
 
     gl_Position = u_ViewProjectionMatrix * u_Transform * vec4(a_Position, 1.0);
 }
@@ -72,7 +79,7 @@ layout(location=0) in VertexOutput
 	mat3 WorldNormals;
 	mat3 WorldTransform;
 	vec3 Binormal;
-	vec4 ShadowMapCoords;
+	vec4 ShadowMapCoords[4];
 	vec3 ViewPosition;
 } vs_Input;
 
@@ -86,12 +93,18 @@ layout(binding= 4) uniform samplerCube u_EnvRadianceTex;
 layout(binding= 5) uniform samplerCube u_EnvIrradianceTex;
 
 // Shadows
-layout(binding = 10) uniform sampler2D u_ShadowMapTexture;
+layout(binding = 20) uniform sampler2D u_ShadowMapTexture1;
+layout(binding = 21) uniform sampler2D u_ShadowMapTexture2;
+layout(binding = 22) uniform sampler2D u_ShadowMapTexture3;
+layout(binding = 23) uniform sampler2D u_ShadowMapTexture4;
+
+layout (location = 16) uniform vec4 u_CascadeSplits;
 
 // BRDF LUT
 layout(binding = 3) uniform sampler2D u_BRDFLUTTexture;
 
-layout (location = 2) uniform vec3 u_AlbedoColor; // u_Transform is already using binding =  0
+layout (location = 1) uniform mat4 u_LightView; // u_Transform is already using binding =  0
+layout (location = 2) uniform vec3 u_AlbedoColor; 
 layout (location = 3) uniform float u_Metalness; // u_LightView is already using binding =  1
 layout (location = 4) uniform float u_Roughness;
 
@@ -320,10 +333,9 @@ float GetShadowBias()
 float HardShadows_DirectionalLight(sampler2D shadowMap, vec3 shadowCoords)
 {
 	float bias = GetShadowBias();
-	float shadowMapDepth = texture(shadowMap, shadowCoords.xy * 0.5 + 0.5).x;
-	return step(shadowCoords.z, shadowMapDepth + bias) * ShadowFade;
+	float z = texture(shadowMap, shadowCoords.xy).x;
+	return 1.0 - step(z + bias, shadowCoords.z) * ShadowFade;
 }
-
 // Penumbra
 
 // this search area estimation comes from the following article: 
@@ -334,11 +346,12 @@ float SearchWidth(float uvLightSize, float receiverDistance)
 	return uvLightSize * (receiverDistance - NEAR) / u_CameraPosition.z;
 }
 
-float SearchRegionRadiusUV(float zWorld)
+float u_light_zNear = 0.0; // 0.01 gives artifacts? maybe because of ortho proj?
+float u_light_zFar = 10000.0;
+vec2 u_lightRadiusUV = vec2(0.05);
+vec2 searchRegionRadiusUV(float zWorld)
 {
-	const float light_zNear = 0.0; // 0.01 gives artifacts? maybe because of ortho proj?
-	const float lightRadiusUV = 0.05;
-    return lightRadiusUV * (zWorld - light_zNear) / zWorld;
+    return u_lightRadiusUV * (zWorld - u_light_zNear) / zWorld;
 }
 
 const vec2 PoissonDistribution[64] = vec2[](
@@ -440,7 +453,8 @@ float FindBlockerDistance_DirectionalLight(sampler2D shadowMap, vec3 shadowCoord
 	int blockers = 0;
 	float avgBlockerDistance = 0;
 
-	float searchWidth = SearchRegionRadiusUV(shadowCoords.z);
+	float zEye = -(u_LightView * vec4(vs_Input.WorldPosition, 1.0)).z;
+	vec2 searchWidth = searchRegionRadiusUV(zEye);
 	for (int i = 0; i < numBlockerSearchSamples; i++)
 	{
 		float z = textureLod(shadowMap, (shadowCoords.xy * 0.5 + 0.5) + SamplePoisson(i) * searchWidth, 0).r;
@@ -507,19 +521,19 @@ float ShadowMap(vec4 ShadowMapCoords)
 
     if(projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0) return 0.0;
 
-    float closestDepth = texture(u_ShadowMapTexture, projCoords.xy).r;
+    float closestDepth = texture(u_ShadowMapTexture3, projCoords.xy).r;
     float currentDepth = projCoords.z;
 
     vec3 normal = m_Params.Normal;
     vec3 lightDir = u_EnvironmentLight[0].Direction;
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(u_ShadowMapTexture, 0);
+    vec2 texelSize = 1.0 / textureSize(u_ShadowMapTexture1, 0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(u_ShadowMapTexture, projCoords.xy + vec2(x, y) * texelSize).r; 
+            float pcfDepth = texture(u_ShadowMapTexture4, projCoords.xy + vec2(x, y) * texelSize).r; 
             shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
         }    
     }
@@ -553,10 +567,56 @@ void main()
 	// Fresnel reflectance, metals use albedo
 	vec3 F0 = mix(Fdielectric, m_Params.Albedo, m_Params.Metalness);
 
-	float shadowAmount = ShadowMap(vs_Input.ShadowMapCoords);
+	//float shadowAmount = ShadowMap(vs_Input.ShadowMapCoords);
 
-	vec3 lightContribution = Lighting(F0)  * (1.0 - shadowAmount);
+    float shadowAmount = 1.0;
+    float cascadeTransitionFade = 1.0; // u_CascadeTransitionFade;
+
+    const uint SHADOW_MAP_CASCADE_COUNT = 4;
+	for(uint i = 0; i < SHADOW_MAP_CASCADE_COUNT - 1; i++)
+	{
+		if(vs_Input.ViewPosition.z < u_CascadeSplits[i])
+			CascadeIndex = i + 1;
+	}
+    float shadowDistance = 200.0;
+	float transitionDistance = 25.0;
+	float distance = length(vs_Input.ViewPosition);
+	ShadowFade = distance - (shadowDistance - transitionDistance);
+	ShadowFade /= transitionDistance;
+	ShadowFade = clamp(1.0 - ShadowFade, 0.0, 1.0);
+
+    vec3 shadowMapCoords = (vs_Input.ShadowMapCoords[CascadeIndex].xyz / vs_Input.ShadowMapCoords[CascadeIndex].w);
+
+    switch(CascadeIndex)
+    {
+        case 0:
+        {
+            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture1, shadowMapCoords);
+            break;
+        }
+        case 1:
+        {
+            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture2, shadowMapCoords);
+            break;
+        }
+        case 2:
+        {
+            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture3, shadowMapCoords);
+            break;
+        }
+        case 3:
+        {
+            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture4, shadowMapCoords);
+            break;
+        }
+    }
+
+    //shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture1, shadowMapCoords);
+
+
+	vec3 lightContribution = Lighting(F0)  * ( shadowAmount);
 	vec3 iblContribution = IBL(F0, Lr);
 
-	o_Color = vec4( iblContribution + lightContribution, 1.0);
+	o_Color = vec4( lightContribution, 1.0);
+   
 }

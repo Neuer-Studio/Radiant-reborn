@@ -33,6 +33,8 @@ namespace Radiant
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D, uint32_t sampler = 0)const = 0; //TODO: sampler -> std::optional
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D, uint32_t sampler = 0) const = 0;
 
+		virtual const SamplerUniform& GetSamplerInformation(const std::string& name) const = 0;
+
 		virtual void UpdateForRendering() const = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const = 0;
 		virtual void SetBool(const std::string& name, bool value) const = 0;

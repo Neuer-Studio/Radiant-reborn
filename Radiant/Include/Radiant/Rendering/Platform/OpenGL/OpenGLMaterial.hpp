@@ -23,6 +23,8 @@ namespace Radiant
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Texture2D>& texture2D, uint32_t sampler = 0) const override;
 		virtual void SetImage2D(const std::string& name, const Memory::Shared<Image2D>& image2D, uint32_t sampler = 0) const override;
 
+		virtual const SamplerUniform& GetSamplerInformation(const std::string& name) const override;
+
 		virtual void UpdateForRendering() const override;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) const override;
 		virtual void SetBool(const std::string& name, bool value) const override;

@@ -161,6 +161,13 @@ namespace Radiant
 		SetImage2D(name, texture2D->GetImage2D(), sampler);
 	}
 
+	const Radiant::SamplerUniform& OpenGLMaterial::GetSamplerInformation(const std::string& name) const
+	{
+		const auto& buffer = m_Shader.As<OpenGLShader>()->m_Resources[name];
+
+		return buffer;
+	}
+
 	void OpenGLMaterial::SetMat4(const std::string& name, const glm::mat4& value) const
 	{
 		if (m_Shader.As<OpenGLShader>()->m_Uniforms.find(name) == m_Shader.As<OpenGLShader>()->m_Uniforms.end())
