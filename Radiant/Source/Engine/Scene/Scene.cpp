@@ -8,18 +8,15 @@
 
 namespace Radiant
 {
-	static SceneRendering* s_SceneRendering = nullptr;
 
 	Scene::Scene(const std::string& sceneName)
 		: m_SceneName(sceneName)
 	{
-		if (s_SceneRendering == nullptr)
-			s_SceneRendering = SceneRendering::Create(this);
+	
 	}
 
 	Scene::~Scene()
 	{
-		delete s_SceneRendering;
 	}
 
 	Radiant::Entity Scene::CreateEntity(const std::string& name /*= ""*/)
@@ -46,7 +43,7 @@ namespace Radiant
 		return {};
 	}
 
-	void Scene::OnUpdate(Timestep ts, Camera& camera)
+	void Scene::OnUpdate(const SceneUpdateInformation& information)
 	{
 	/*	Entity& cameraEntity = GetMainCameraEntity();
 		if (!cameraEntity)
@@ -67,39 +64,44 @@ namespace Radiant
 			};
 		}
 
+		auto envMap = m_Registry.group<EnvironmentMap>(entt::get<TransformComponent>);
+		for (auto entity : envMap)
+		{
+			auto [transformComponent, envMapComponent] = envMap.get<TransformComponent, EnvironmentMap>(entity);
+			EnvironmentAttributes attrs;
+			attrs.EnvironmentMapLod = envMapComponent.EnvironmentMapLod;
+			attrs.Intensity = envMapComponent.Intensity;
+			SceneRendering::SetEnvironmentAttributes(attrs);
+		}
 
 		for (auto entity : group)
 		{
 			auto [transformComponent, meshComponent] = group.get<TransformComponent, MeshComponent>(entity);
 			if (meshComponent.Mesh)
 			{
-				s_SceneRendering->SubmitMesh(meshComponent, transformComponent.GetTransform());
+				SceneRendering::SubmitMesh(meshComponent, transformComponent.GetTransform());
 			}
 		}
 
-		s_SceneRendering->BeginScene(camera);
-		s_SceneRendering->OnUpdate(ts);
+		SceneRendering::BeginScene(this, information.Camera);
+		SceneRendering::OnUpdate(information.TimeStep);
+		SceneRendering::SetSceneVeiwPortSize({ information.Width, information.Height });
+		SceneRendering::EndScene();
 
 	}
 
 	void Scene::SetEnvironment(const Environment& env)
 	{
-		s_SceneRendering->SetEnvironment(env);
+		SceneRendering::SetEnvironment(env);
 	}
 
 	Environment Scene::CreateEnvironmentScene(const std::filesystem::path& filepath) const
 	{
-		return s_SceneRendering->CreateEnvironmentScene(filepath);
+		return SceneRendering::CreateEnvironmentMap(filepath);
 	}
 
 	void Scene::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
 	{
-		s_SceneRendering->SubmitMesh(mesh, transform);
+		SceneRendering::SubmitMesh(mesh, transform);
 	}
-
-	SceneRendering* Scene::GetSceneRendering()
-	{
-		return s_SceneRendering;
-	}
-
 }

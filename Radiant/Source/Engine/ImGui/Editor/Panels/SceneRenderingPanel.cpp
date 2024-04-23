@@ -1,5 +1,5 @@
 #include <Radiant/ImGui/Editor/Panels/SceneRenderingPanel.hpp>
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 #include <Radiant/Scene/Scene.hpp>
 #include <Radiant/Scene/SceneRendering.hpp>
 
@@ -18,10 +18,10 @@ namespace Radiant
 	{
 		ImGui::Begin("Scene Rendering");
 		{
-			auto width = m_Context->m_ViewportWidth;
-			auto height = m_Context->m_ViewportHeight;
+			auto width = m_Context->GetSceneUpdateInfo().Width;
+			auto height = m_Context->GetSceneUpdateInfo().Height;
 
-			const auto info = RenderingAPI::GetGraphicsInfo();
+			const auto info = RendererAPI::GetGraphicsInfo();
 
 			std::string viewport = "Viewport: " + std::to_string(width) + " : " + std::to_string(height);
 			std::string graphicInfo = "GPU: " + info.Renderer + "\nVersion: " + info.Version;
@@ -34,17 +34,12 @@ namespace Radiant
 			static float valueIBLContribution = 1.0;
 			static float rotation = 0.0f;
 			ImGui::SliderFloat("Radiance Prefiltering", &valueIBLContribution, 0.0, 1.0);
-			Scene::GetSceneRendering()->SetIBLContribution(valueIBLContribution);
+			SceneRendering::SetIBLContribution(valueIBLContribution);
 
 			int samples = (int)m_Context->m_SamplesCount;
 			ImGui::SliderFloat("Env Map Rotation", &rotation, -360.0f, 360.0f);
 			ImGui::SliderInt("Samples Scene", &samples, 1, 16);
-			ImGui::SliderFloat("Exposure", &m_Context->m_Exposure, 0.1f, 100.0f);
-
-			float lod = m_Context->GetSceneRendering()->GetTexureLod();
-			ImGui::SliderFloat("SkyBox LOD", &lod, 0.0f, 100.0f);
-			m_Context->GetSceneRendering()->SetTexureLod(lod);
-			Scene::GetSceneRendering()->SetEnvMapRotation(rotation);
+			SceneRendering::SetEnvMapRotation(rotation);
 
 			ImGui::Separator();
 

@@ -5,7 +5,9 @@
 #include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 #include <Radiant/Rendering/Shader.hpp>
-#include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderingAPI.hpp>
+#include <Radiant/Rendering/Texture.hpp>
+#include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderer.hpp>
+#include <Radiant/Scene/SceneRendering.hpp>
 
 namespace Radiant
 {
@@ -14,12 +16,12 @@ namespace Radiant
 
 	static RenderingAPIType s_RenderingAPI = RenderingAPIType::None;
 
-	const RenderingAPIType RenderingAPI::GetAPI()
+	const RenderingAPIType RendererAPI::GetAPI()
 	{
 		return s_RenderingAPI;
 	}
 
-	void RenderingAPI::SetAPI(RenderingAPIType api)
+	void RendererAPI::SetAPI(RenderingAPIType api)
 	{
 		s_RenderingAPI = api;
 	}
@@ -37,6 +39,7 @@ namespace Radiant
 	{
 		QuadData QuadInfo;
 		Memory::Shared<RenderPass> ActiveRenderPass;
+		Memory::Shared<Texture2D> TextureWhite;// = Texture2D::Create(information);
 
 		ShaderLibrary* s_ShaderLibrary = nullptr;
 	};
@@ -44,7 +47,7 @@ namespace Radiant
 	static RenderingData* s_RenderingData = nullptr;
 
 	static Memory::Shared<RenderingContext> s_RenderingContext = nullptr;
-	static Memory::Shared<RenderingAPI> s_RenderingAPIPlatform = nullptr;
+	static Memory::Shared<RendererAPI> s_RenderingAPIPlatform = nullptr;
 	static Memory::CommandBuffer s_CommandBuffer;
 
 	Rendering::~Rendering()
@@ -140,13 +143,23 @@ namespace Radiant
 
 	}
 
+	Radiant::Environment Rendering::CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		return s_RenderingAPIPlatform->CreateEnvironmentMap(filepath);
+	}
+
+	const Memory::Shared<Texture2D>& Rendering::GetWhiteTexure()
+	{
+		return s_RenderingData->TextureWhite;
+	}
+
 	Memory::Shared<RenderingContext> Rendering::Initialize(GLFWwindow* window)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::OpenGL:
 			{
-				s_RenderingAPIPlatform = Memory::Shared<OpenGLRenderingAPI>::Create();
+				s_RenderingAPIPlatform = Memory::Shared<OpenGLRenderer>::Create();
 			}
 		}
 		RADIANT_VERIFY(s_RenderingAPIPlatform);
@@ -198,6 +211,17 @@ namespace Radiant
 			s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/ShadowMap.glsl");
 		}
 
+		SceneRendering::Init();
+
+		uint32_t whiteTextureData = 0xffffffff;
+		Texture2DCreateInformation information;
+		information.Width = 1;
+		information.Height = 1;
+		information.Format = ImageFormat::RGBA;
+		information.Buffer.Data = &whiteTextureData;
+
+		s_RenderingData->TextureWhite = Texture2D::Create(information);
+
 		return s_RenderingContext;
 	}
 
@@ -227,10 +251,10 @@ namespace Radiant
 		pipeline->Use();
 		s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer->Use();
 
-		Rendering::SubmitCommand([material, depthTest]()
+		Rendering::SubmitCommand([material, depthTest]() //TODO: move gl code to the OGLRenderer
 			{
 				if (depthTest)
-					glEnable(GL_DEPTH_TEST);
+					glEnable(GL_DEPTH_TEST); 
 				else
 					glDisable(GL_DEPTH_TEST);
 

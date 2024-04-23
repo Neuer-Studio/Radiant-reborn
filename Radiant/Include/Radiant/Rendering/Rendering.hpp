@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 #include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
@@ -28,7 +28,10 @@ namespace Radiant
 
 		static void BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear = true);
 		static void EndRenderPass();
+		
+		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
 
+		[[nodiscard]] static const Memory::Shared<Texture2D>& GetWhiteTexure();
 	public:
 		static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
 		static Memory::Shared<RenderingContext> GetRenderingContext();

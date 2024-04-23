@@ -17,6 +17,8 @@ namespace Radiant
 		void OnUpdate(Timestep ts);
 		void OnEvent(Event& e);
 
+		float GetExposure() { return m_Exposure; } //TODO: make a float ref
+
 		inline float GetDistance() const { return m_Distance; }
 		inline void SetDistance(float distance) { m_Distance = distance; }
 

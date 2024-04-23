@@ -40,6 +40,25 @@ namespace Radiant
 			});
 	}
 
+	OpenGLTexture2D::OpenGLTexture2D(const Texture2DCreateInformation& info)
+		: m_Name(info.Name)
+	{
+		ImageSpecification imageSpec = {};
+		imageSpec.Data = (std::byte*)info.Buffer.Data;
+		imageSpec.Format = info.Format;
+		imageSpec.Type = TextureRendererType::Texture2D;
+		imageSpec.Width = info.Width;
+		imageSpec.Height = info.Height;
+
+		m_Image2D = Image2D::Create(imageSpec);
+
+		Memory::Shared<Image2D>& image = m_Image2D;
+		Rendering::SubmitCommand([image, &imageSpec]() mutable
+			{
+				image.As<OpenGLImage2D>()->Invalidate();
+			});
+	}
+
 	OpenGLTexture2D::~OpenGLTexture2D()
 	{
 		Memory::Shared<Image2D>& image = m_Image2D;

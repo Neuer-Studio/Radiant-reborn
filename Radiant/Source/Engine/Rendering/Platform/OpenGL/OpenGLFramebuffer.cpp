@@ -130,8 +130,8 @@ namespace Radiant
 		if (forceRecreate)
 			return;
 
-		m_Specification.Width = width;
-		m_Specification.Height = height;
+		m_Specification.Width = std::clamp(width, 1u, width + 1);
+		m_Specification.Height = std::clamp(height, 1u, height + 1);
 
 		Memory::Shared<OpenGLFramebuffer> instance = this;
 		Rendering::SubmitCommand([instance]() mutable

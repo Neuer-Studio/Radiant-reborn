@@ -39,7 +39,7 @@ namespace Radiant
 	Radiant::Memory::Shared<Radiant::Shader> Shader::Create(const std::filesystem::path& path)
 	{
 		Memory::Shared<Radiant::Shader> shader = nullptr;
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::OpenGL:
 			{

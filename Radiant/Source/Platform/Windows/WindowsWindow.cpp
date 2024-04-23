@@ -5,7 +5,7 @@
 #include <Radiant/Core/Events/WindowEvents.hpp>
 #include <Radiant/Core/Events/MouseEvents.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 
 namespace Radiant
 {
@@ -30,7 +30,7 @@ namespace Radiant
 			s_GLFWInitialized = true;
 		}
 
-		if(RenderingAPI::GetAPI() == RenderingAPIType::Vulkan)
+		if(RendererAPI::GetAPI() == RenderingAPIType::Vulkan)
 		{ 
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		}

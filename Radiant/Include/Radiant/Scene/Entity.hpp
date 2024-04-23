@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Radiant/Scene/Component.hpp>
+#include <Radiant/Scene/Components.hpp>
 
 #include <entt/entt.hpp>
 

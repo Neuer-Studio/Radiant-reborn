@@ -22,8 +22,8 @@ namespace Radiant
 		{
 			m_Scene = Memory::Shared<Scene>::Create("Test Scene");
 
-			auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
-			m_Scene->SetEnvironment(env);
+			/*auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
+			m_Scene->SetEnvironment(env);*/
 			m_Outliner = new PanelOutliner(m_Scene);
 			m_SceneRenderingPanel = new SceneRenderingPanel(m_Scene);
 			
@@ -35,7 +35,14 @@ namespace Radiant
 		virtual void OnUpdate(Timestep ts) override
 		{
 			m_EditorCamera.OnUpdate(ts);
-			m_Scene->OnUpdate(ts, m_EditorCamera);
+
+			SceneUpdateInformation info;
+			info.Camera = m_EditorCamera;
+			info.TimeStep = ts;
+			info.Width = m_ViewportSize.x;
+			info.Height = m_ViewportSize.y;
+
+			m_Scene->OnUpdate(info);
 		}
 
 		virtual void OnEvent(Radiant::Event& e) override
@@ -100,13 +107,11 @@ namespace Radiant
 				auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
 				m_ViewportSize = ImGui::GetContentRegionAvail();
 
-				Scene::GetSceneRendering()->SetSceneVeiwPortSize({ m_ViewportSize.x, m_ViewportSize.y });
-
 				m_EditorCamera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), m_ViewportSize.x, m_ViewportSize.y, 0.1f, 1000.0f));
 				m_EditorCamera.SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 
-				if(Scene::GetSceneRendering()->GetFinalPassImage())
-					ImGui::Image((void*)Scene::GetSceneRendering()->GetFinalPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
+				if(SceneRendering::GetFinalPassImage()) //TODO: move to scene
+					ImGui::Image((void*)SceneRendering::GetFinalPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
 
 
 				static int counter = 0;
@@ -117,7 +122,7 @@ namespace Radiant
 
 			}
 
-			Scene::GetSceneRendering()->OnImGuiRender();
+			SceneRendering::OnImGuiRender();
 
 			ImGui::End();
 			ImGui::PopStyleVar();
