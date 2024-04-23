@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <functional>
+#include <optional>
 
 #include <cmath>
 
@@ -21,3 +22,4 @@
 #include <limits>
 
 #include <Core/Core.hpp>
+#include <Utilities/FileSystem.hpp>

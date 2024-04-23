@@ -2,12 +2,13 @@
 
 #include <string>
 #include <Radiant/Core/Events/WindowEvents.hpp>
-
-#include <Radiant/Core/Memory/CommandBuffer.hpp>
+#include <Radiant/Core/Timestep.hpp>
 
 #include "Window.hpp"
 
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
+#include "LayerStack.hpp"
+#include <Radiant/ImGui/ImGuiLayer.hpp>
 
 namespace Radiant
 { 
@@ -15,7 +16,8 @@ namespace Radiant
 	{
 		std::string Name = "TheRock";
 		uint32_t WindowWidth = 1600, WindowHeight = 900;
-		RenderingAPIType APIType = RenderingAPIType::Vulkan;
+		bool Fullscreen = false;
+		RenderingAPIType APIType = RenderingAPIType::OpenGL;
 	};
 
 	class Application
@@ -24,28 +26,32 @@ namespace Radiant
 		Application(const ApplicationSpecification& specification);
 		void Run();
 
-		template <typename FuncT>
-		static void Submit(FuncT&& func)
-		{
-			auto renderCMD = [](void* ptr)
-			{
-				auto pFunc = (FuncT*)ptr;
+		virtual ~Application();
 
-				(*pFunc)();
+		virtual void OnInit() = 0;
+		virtual void OnShutdown() = 0;
+		virtual void OnUpdate(Timestep ts) = 0;
 
-				pFunc->~FuncT();
-			};
+		void PushLayer(Layer* layer);
+		void PopLayer(Layer* layer);
 
-			auto storageBuffer = GetCommandBuffer().AddCommand(renderCMD, sizeof(func));
-			new (storageBuffer) FuncT(std::forward<FuncT>(func));
-		}
+		const Memory::Shared<Window>& GetWindow() const { return m_Window;}
+
+	public:
+		static Application& GetInstance() { return *s_Instance; }
 	private:
-		static Memory::CommandBuffer& GetCommandBuffer();
 	private:
 		bool OnClose(EventWindowClose& e){}
 		void ProcessEvents(Event& e);
 	private:
 		Memory::Shared<Window> m_Window;
+		LayerStack m_LayerStack;
+		ImGuiLayer* m_ImGuiLayer;
+	private:
+		static Application* s_Instance;
+		Timestep m_Timestep;
+		float m_LastFrameTime = 0.0f;
+		uint32_t m_FrameCount = 0;
 
 		bool m_Run;
 	};

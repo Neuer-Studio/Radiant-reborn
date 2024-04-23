@@ -29,6 +29,10 @@ namespace Radiant
 		virtual uint32_t GetHeight() const = 0;
 		virtual const void* GetNativeWindow() const = 0;
 
+		virtual bool IsWindowMaximized() const = 0;
+		virtual bool IsWindowMinimized() const = 0;
+		virtual void Maximize() const = 0;
+
 		virtual void SetEventCallback(const EventCallbackFn& e) = 0;
 
 		static Memory::Shared<Window> Create(const WindowSpecification& specification);

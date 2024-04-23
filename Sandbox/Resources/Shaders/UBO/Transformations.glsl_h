@@ -1,0 +1,8 @@
+#pragma once
+
+layout (std140, binding = 0) uniform Transformations
+{
+	mat4 u_ViewProjectionMatrix;
+	mat4 u_InversedViewProjectionMatrix;
+	mat4 u_ViewMatrix;
+};

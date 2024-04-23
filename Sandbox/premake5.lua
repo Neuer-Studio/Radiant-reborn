@@ -1,3 +1,5 @@
+include "../Dependencies.lua"
+
 project "Sandbox"
     kind "ConsoleApp"
 
@@ -12,7 +14,10 @@ project "Sandbox"
 
         "../ThirdParty/spdlog/include/",
         "../ThirdParty/GLFW/include/",
+        "../ThirdParty/Glad/include/",
+        "../ThirdParty/glm/",
         "../ThirdParty/",
+        "%{IncludeDir.entt}",
     }
 
     defines { "INCLUDE_HEADERS=#include <Radiant/Radiant.hpp>" }
@@ -20,6 +25,7 @@ project "Sandbox"
     links{
         "Radiant",
         "GLFW",
+        "Glad",
     }
     filter "configurations:Debug"
         defines { "RADIANT_CONFIG_DEBUG" }
