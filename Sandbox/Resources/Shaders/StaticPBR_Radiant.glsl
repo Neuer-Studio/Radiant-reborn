@@ -553,9 +553,9 @@ void main()
     shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture[CascadeIndex], shadowMapCoords);
 
 
-	vec3 lightContribution = Lighting(F0)  * ( shadowAmount);
+	vec3 lightContribution = u_EnvironmentLight[0].Multiplier > 0.0 ?  (Lighting(F0)  * shadowAmount) : vec3(0.0);
 	vec3 iblContribution = IBL(F0, Lr);
 
-	o_Color = vec4(lightContribution, 1.0);
+	o_Color = vec4(iblContribution + lightContribution, 1.0);
    
 }

@@ -594,22 +594,6 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetVec4("u_CascadeSplits", s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits);
 			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightView", s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix);
 
-			/*s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture1", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[0]->
-				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
-				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
-
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture2", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[1]->
-				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
-				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
-
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture3", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[2]->
-				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
-				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
-
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture4", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[3]->
-				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
-				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);*/
-
 			Rendering::SubmitMeshWithMaterial( { mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.material }, s_SceneInfo->RenderPassList.GeoData.pipeline);
 		}
 
