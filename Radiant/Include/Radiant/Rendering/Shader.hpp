@@ -44,6 +44,7 @@ namespace Radiant
 		RadiantShaderType ShaderType = RadiantShaderType::None;
 		RadiantShaderDataType DataType = RadiantShaderDataType::None;
 		BindingPoint Binding;
+		std::optional<uint32_t> ArraySize; 
 	};
 
 	struct Uniform

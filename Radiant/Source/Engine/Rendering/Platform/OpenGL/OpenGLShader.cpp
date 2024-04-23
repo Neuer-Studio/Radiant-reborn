@@ -1,9 +1,12 @@
 #include <glad/glad.h>
 #include <shaderc/shaderc.hpp>
+#include <shaderc/shaderc_util/file_finder.h>
 
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLShader.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <Radiant/Rendering/ShaderPreprocessing/GLSLIncluder.hpp>
 
 namespace fs = std::filesystem;
 
@@ -11,6 +14,22 @@ namespace Radiant
 {
 	namespace Utils
 	{
+		static bool IsArray(const spirv_cross::SPIRType& type)
+		{
+			return type.array.size() > 0;
+		}
+
+		static uint32_t GetArraySize(const spirv_cross::SPIRType& type)
+		{
+			if (!IsArray(type))
+				return 1;
+			size_t arraySize = 1;
+			for (auto size : type.array) {
+				arraySize *= size;
+			}
+			return arraySize;
+		}
+
 		static RadiantShaderDataType GetDimensionSampler(spv::Dim type)
 		{
 			switch (type)
@@ -184,7 +203,7 @@ namespace Radiant
 
 		for (const spirv_cross::Resource& resource : res.gl_plain_uniforms)
 		{	
-			const spirv_cross::SPIRType& type = compiler.get_type(resource.base_type_id);
+			const spirv_cross::SPIRType& type = compiler.get_type(resource.type_id);
 			if (type.basetype == spirv_cross::SPIRType::Struct)
 			{
 				uint32_t offset = 0;
@@ -193,7 +212,7 @@ namespace Radiant
 					uint32_t member_type_id = type.member_types[index]; 
 					const spirv_cross::SPIRType& member_type = compiler.get_type(member_type_id);
 				
-					const std::string& member_name = compiler.get_member_name(resource.base_type_id, index);
+					const std::string& member_name = compiler.get_member_name(resource.type_id, index);
 					const auto dataType = Utils::SPIRTypeToShaderDataType(member_type);
 					const auto size = Shader::GetDataTypeSize(dataType);
 
@@ -208,13 +227,19 @@ namespace Radiant
 
 			else
 			{
-				const spirv_cross::SPIRType& type = compiler.get_type(resource.base_type_id);
+				const spirv_cross::SPIRType& type = compiler.get_type(resource.type_id);
+				std::optional<uint32_t> arraySize;
+				if (Utils::IsArray(type))
+				{
+					arraySize = Utils::GetArraySize(type);
+				}
 				const auto dataType = Utils::SPIRTypeToShaderDataType(type);
 				const auto size = Shader::GetDataTypeSize(dataType);
 
 				auto& buffer = m_Uniforms[resource.name];
 
-				buffer = { resource.name, shadertype, dataType, OGLGetUniformPosition(resource.name), size, 0, m_UniformTotalOffset };
+				buffer = { { resource.name, shadertype, dataType, OGLGetUniformPosition(resource.name), arraySize }, size, 0, m_UniformTotalOffset };
+				
 				m_UniformTotalOffset += size;
 			}
 		}
@@ -284,15 +309,21 @@ namespace Radiant
 		int32_t sampler = 0;
 		for (const spirv_cross::Resource& resource : res.sampled_images)
 		{
-			auto& type = compiler.get_type(resource.base_type_id);
+
+			const auto& type = compiler.get_type(resource.type_id);
 			auto binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			const auto& name = resource.name;
 			GLint location = OGLGetUniformPosition(name.c_str());
 			//RADIANT_VERIFY(location != -1);
+			std::optional<uint32_t> arraySize;
+			if (Utils::IsArray(type))
+			{
+				arraySize = Utils::GetArraySize(type);
+			}
 
 			glUniform1i(location, binding);
 
-			m_Resources[name] = { name, shadertype, Utils::GetDimensionSampler(type.image.dim), binding };
+			m_Resources[name] = { name, shadertype, Utils::GetDimensionSampler(type.image.dim), binding, arraySize };
 		}
 	}
 
@@ -306,6 +337,8 @@ namespace Radiant
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 		options.SetTargetEnvironment(shaderc_target_env_opengl, shaderc_env_version_opengl_4_5);
+		shaderc_util::FileFinder fileFinder;
+		options.SetIncluder(std::make_unique<Preprocessing::GLSLIncluder>(&fileFinder));
 
 		for (const auto source : m_ShaderSource)
 		{

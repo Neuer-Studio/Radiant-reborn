@@ -8,26 +8,19 @@
 
 #type vertex
 #version 450 core
+
+#include "UBO/Transformations.glsl_h"
+
 layout (location = 0) in vec3 a_Position;
 layout (location = 1) in vec3 a_Normals;
 layout (location = 2) in vec2 a_TexCoord;
 layout (location = 3) in vec3 a_Tangent;
 layout (location = 4) in vec3 a_Bitangent;
 
-layout (std140, binding = 0) uniform TransformUniforms
-{
-   mat4 u_ViewProjectionMatrix;
-   mat4 u_InversedViewProjectionMatrix; 
-   mat4 u_ViewMatrix;
-};
-
 layout (location = 0) uniform mat4 u_Transform;
 
 // Shadows
-layout (location = 11) uniform mat4 u_LightMatrixCascade0;
-layout (location = 12) uniform mat4 u_LightMatrixCascade1;
-layout (location = 13) uniform mat4 u_LightMatrixCascade2;
-layout (location = 14) uniform mat4 u_LightMatrixCascade3;
+layout (location = 11) uniform mat4 u_LightMatrixCascade[4];
 
 layout(location=0) out VertexOutput
 {
@@ -52,10 +45,10 @@ void main()
 	vs_Output.WorldTransform = mat3(u_Transform);
 	vs_Output.Binormal = a_Bitangent;
 
-    vs_Output.ShadowMapCoords[0] = u_LightMatrixCascade0 * vec4(vs_Output.WorldPosition, 1.0);
-	vs_Output.ShadowMapCoords[1] = u_LightMatrixCascade1 * vec4(vs_Output.WorldPosition, 1.0);
-	vs_Output.ShadowMapCoords[2] = u_LightMatrixCascade2 * vec4(vs_Output.WorldPosition, 1.0);
-	vs_Output.ShadowMapCoords[3] = u_LightMatrixCascade3 * vec4(vs_Output.WorldPosition, 1.0);
+    vs_Output.ShadowMapCoords[0] = u_LightMatrixCascade[0] * vec4(vs_Output.WorldPosition, 1.0);
+	vs_Output.ShadowMapCoords[1] = u_LightMatrixCascade[1] * vec4(vs_Output.WorldPosition, 1.0);
+	vs_Output.ShadowMapCoords[2] = u_LightMatrixCascade[2] * vec4(vs_Output.WorldPosition, 1.0);
+	vs_Output.ShadowMapCoords[3] = u_LightMatrixCascade[3] * vec4(vs_Output.WorldPosition, 1.0);
 
     gl_Position = u_ViewProjectionMatrix * u_Transform * vec4(a_Position, 1.0);
 }
@@ -93,10 +86,7 @@ layout(binding= 4) uniform samplerCube u_EnvRadianceTex;
 layout(binding= 5) uniform samplerCube u_EnvIrradianceTex;
 
 // Shadows
-layout(binding = 20) uniform sampler2D u_ShadowMapTexture1;
-layout(binding = 21) uniform sampler2D u_ShadowMapTexture2;
-layout(binding = 22) uniform sampler2D u_ShadowMapTexture3;
-layout(binding = 23) uniform sampler2D u_ShadowMapTexture4;
+layout(binding = 20) uniform sampler2D u_ShadowMapTexture[4];
 
 layout (location = 16) uniform vec4 u_CascadeSplits;
 
@@ -514,33 +504,6 @@ float PCSS_DirectionalLight(sampler2D shadowMap, vec3 shadowCoords, float uvLigh
 	return PCF_DirectionalLight(shadowMap, shadowCoords, uvRadius) * ShadowFade;
 }
 
-float ShadowMap(vec4 ShadowMapCoords)
-{
-    vec3 projCoords = ShadowMapCoords.xyz / ShadowMapCoords.w;
-    projCoords = projCoords * 0.5 + 0.5;
-
-    if(projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0) return 0.0;
-
-    float closestDepth = texture(u_ShadowMapTexture3, projCoords.xy).r;
-    float currentDepth = projCoords.z;
-
-    vec3 normal = m_Params.Normal;
-    vec3 lightDir = u_EnvironmentLight[0].Direction;
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(u_ShadowMapTexture1, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(u_ShadowMapTexture4, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
-        }    
-    }
-    shadow /= 9.0;
-
-    return shadow;
-}
 /////////////////////////////////////////////
 
 void main()
@@ -587,36 +550,12 @@ void main()
 
     vec3 shadowMapCoords = (vs_Input.ShadowMapCoords[CascadeIndex].xyz / vs_Input.ShadowMapCoords[CascadeIndex].w);
 
-    switch(CascadeIndex)
-    {
-        case 0:
-        {
-            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture1, shadowMapCoords);
-            break;
-        }
-        case 1:
-        {
-            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture2, shadowMapCoords);
-            break;
-        }
-        case 2:
-        {
-            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture3, shadowMapCoords);
-            break;
-        }
-        case 3:
-        {
-            shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture4, shadowMapCoords);
-            break;
-        }
-    }
-
-    //shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture1, shadowMapCoords);
+    shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture[CascadeIndex], shadowMapCoords);
 
 
 	vec3 lightContribution = Lighting(F0)  * ( shadowAmount);
 	vec3 iblContribution = IBL(F0, Lr);
 
-	o_Color = vec4( lightContribution, 1.0);
+	o_Color = vec4(lightContribution, 1.0);
    
 }

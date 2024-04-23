@@ -428,7 +428,10 @@ namespace Radiant
 	void OpenGLSceneRendering::SetEnvironment(const Environment& env)
 	{
 		m_Environment = env;
-		s_SceneInfo->SkyboxMaterial->SetImage2D("u_EnvTexture", m_Environment.Radiance);
+		TextureDescriptor descriptor;
+
+		descriptor.Name = "u_EnvTexture";
+		s_SceneInfo->SkyboxMaterial->SetImage2D(descriptor, m_Environment.Radiance);
 	}
 
 	Environment OpenGLSceneRendering::CreateEnvironmentScene(const std::filesystem::path& filepath) const
@@ -536,17 +539,15 @@ namespace Radiant
 			const auto& roughness = mesh.Mesh->GetMaterialRoughnessData();
 			const auto& metalness = mesh.Mesh->GetMaterialMetalnessData();
 
-			if (diffuse.Enabled)
+			/*if (diffuse.Enabled)
 			{
-				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_AlbedoTexture", diffuse.Texture->GetImage2D());
+				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_AlbedoTexture", diffuse.Texture);
 				if (normal.Enabled)
-					s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_NormalTexture", normal.Texture->GetImage2D());
+					s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_NormalTexture", normal.Texture);
 			}
 
-			if (roughness.Enabled)
-				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_RoughnessTexture", roughness.Texture->GetImage2D());
-			if (metalness.Enabled)
-				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_MetalnessTexture", metalness.Texture->GetImage2D());
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_RoughnessTexture", roughness.Texture);
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_MetalnessTexture", metalness.Texture);*/
 
 			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Roughness", roughness.Roughness);
 			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Metalness", metalness.Metalness); 
@@ -564,19 +565,36 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseRoughnessTexture", roughness.Enabled);
 
 			// Env. map
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvRadianceTex", m_Environment.Radiance);
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_EnvIrradianceTex", m_Environment.Irradiance);
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_BRDFLUTTexture", s_SceneInfo->BRDF_LUT->GetImage2D());
+			TextureDescriptor descriptor;
+
+			descriptor.Name = "u_EnvRadianceTex";
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D(descriptor, m_Environment.Radiance);
+
+			descriptor.Name = "u_EnvIrradianceTex";
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D(descriptor, m_Environment.Irradiance);
+
+			descriptor.Name = "u_BRDFLUTTexture";
+			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D(descriptor, s_SceneInfo->BRDF_LUT->GetImage2D());
 
 			//Shadow
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade0", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[0]);
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade1", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[1]);
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade2", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[2]);
-			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade3", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[3]);
+
+			TextureDescriptor shadowDescriptor;
+			shadowDescriptor.Name = "u_ShadowMapTexture";
+			shadowDescriptor.Sampler = s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler;
+
+			for (int i = 0; i < 4; i++)
+			{
+				shadowDescriptor.ArrayIndex = i;
+
+				s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightMatrixCascade", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[i], i);
+				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D(shadowDescriptor, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]->
+					GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage());
+			}
+
 			s_SceneInfo->RenderPassList.GeoData.material->SetVec4("u_CascadeSplits", s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits);
 			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightView", s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix);
 
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture1", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[0]->
+			/*s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture1", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[0]->
 				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
 				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
 
@@ -590,7 +608,7 @@ namespace Radiant
 
 			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_ShadowMapTexture4", s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[3]->
 				GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthAttachmentImage(),
-				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);
+				s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler);*/
 
 			Rendering::SubmitMeshWithMaterial( { mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.material }, s_SceneInfo->RenderPassList.GeoData.pipeline);
 		}
@@ -656,7 +674,10 @@ namespace Radiant
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
 		s_SceneInfo->RenderPassList.CompData.material->SetFloat("u_Exposure", m_Scene->GetSceneExposure());
 		s_SceneInfo->RenderPassList.CompData.material->SetUint("u_SamplesCount", m_Scene->GetSceneSamplesCount());
-		s_SceneInfo->RenderPassList.CompData.material->SetImage2D("u_Texture", s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorAttachmentImage());
+
+		TextureDescriptor descriptor;
+		descriptor.Name = "u_Texture";
+		s_SceneInfo->RenderPassList.CompData.material->SetImage2D(descriptor, s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetColorAttachmentImage());
 		s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->RenderPassList.CompData.pipeline, nullptr);
 		Rendering::EndRenderPass();

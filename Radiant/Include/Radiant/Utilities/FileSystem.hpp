@@ -40,5 +40,7 @@ namespace Radiant::Utils
 		static bool HasEnvironmentVariable(const std::string& key);
 		static bool SetEnvironmentVariable(const std::string& key, const std::string& value);
 		static std::string GetEnvironmentVariable(const std::string& key);
+	public:
+		std::string ReadFileAndSkipBOM(const std::filesystem::path& filepath);
 	};
 }
