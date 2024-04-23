@@ -6,7 +6,7 @@
 
 #include "Window.hpp"
 
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 #include "LayerStack.hpp"
 #include <Radiant/ImGui/ImGuiLayer.hpp>
 

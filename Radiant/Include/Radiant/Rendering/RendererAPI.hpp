@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
+#include <Radiant/Rendering/Environment.hpp>
 #include <GLFW/glfw3.h>
 
 namespace Radiant
@@ -28,7 +29,7 @@ namespace Radiant
 		int MaxTextureUnits = 0;
 	};
 
-	class RenderingAPI : public Memory::RefCounted
+	class RendererAPI : public Memory::RefCounted
 	{
 	public:
 		static GraphicsInfo& GetGraphicsInfo()
@@ -39,6 +40,8 @@ namespace Radiant
 
 		virtual void Clear(float rgba[4]) const = 0;
 		virtual void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true) const = 0;
+	public:
+		virtual const Environment CreateEnvironmentMap(const std::filesystem::path& filepath) const = 0;
 	public:
 		static const RenderingAPIType GetAPI();
 		static void SetAPI(RenderingAPIType api);

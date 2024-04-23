@@ -14,14 +14,22 @@ namespace Radiant
 	struct DirectionalLight
 	{
 		glm::vec3 Direction = { 0.0f, 0.0f, 0.0f };
-		alignas(16) glm::vec3 Radiance = { 0.0f, 0.0f, 0.0f }; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
+		alignas(16) glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f }; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
 		
-		float Multiplier = 1.0f;
+		float Multiplier = 0.0f;
 	};
 
 	struct LightEnvironment
 	{
 		DirectionalLight DirectionalLights;// [4] ;
+	};
+
+	struct SceneUpdateInformation
+	{
+		Timestep TimeStep;
+		Camera Camera;
+		uint32_t Width;
+		uint32_t Height;
 	};
 
 	class Scene : public Memory::RefCounted
@@ -33,33 +41,25 @@ namespace Radiant
 		Entity CreateEntity(const std::string& name = "");
 		Entity GetMainCameraEntity();
 
-		void OnUpdate(Timestep ts, Camera& camera);
+		void OnUpdate(const SceneUpdateInformation& information);
 		void SetEnvironment(const Environment& env);
 		Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const;
 		LightEnvironment GetLightEnvironment() const { return m_LightEnvironment; }
 
-		inline const float GetSceneExposure() const { return m_Exposure; }
-		inline const uint32_t GetSceneSamplesCount() const { return m_SamplesCount; }
+		const auto& GetSceneUpdateInfo() const { return m_Information; }
 
-		inline void SetViewportSize(uint32_t width, uint32_t height)
-		{
-			m_ViewportWidth = width;
-			m_ViewportHeight = height;
-		}
+		inline const uint32_t GetSceneSamplesCount() const { return m_SamplesCount; }
 
 		void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const;
 
-		static SceneRendering* GetSceneRendering();
 	private:
-		float m_Exposure = 1.0f;
 		uint32_t m_SamplesCount = 2;
 
 		std::string m_SceneName;
 		entt::registry m_Registry;
 
-		uint32_t m_ViewportWidth = 0;
-		uint32_t m_ViewportHeight = 0;
 		LightEnvironment m_LightEnvironment;
+		SceneUpdateInformation m_Information;
 
 		friend class Entity;
 		friend class PanelOutliner;

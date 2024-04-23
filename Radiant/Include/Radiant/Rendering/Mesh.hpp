@@ -6,6 +6,11 @@
 
 #include <glm/glm.hpp>
 
+struct aiNode;
+struct aiAnimation;
+struct aiNodeAnim;
+struct aiScene;
+
 namespace Assimp
 {
 	class Importer;
@@ -34,10 +39,23 @@ namespace Radiant
 		Normal,
 	};
 
+	struct Submesh
+	{
+		uint32_t BaseVertex;
+		uint32_t BaseIndex;
+		uint32_t MaterialIndex;
+		uint32_t IndexCount;
+
+		glm::mat4 Transform;
+	};
+
 	class Mesh : public Memory::RefCounted
 	{
 	public:
 		Mesh(const std::filesystem::path& filepath);
+
+		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
+		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
 
 		const std::string& GetName() const { return m_Name; }
 
@@ -57,16 +75,19 @@ namespace Radiant
 		auto& GetMaterialRoughnessData()const	{ return  MaterialRoughnessData; }
 		auto& GetMaterialMetalnessData()const 	{ return  MaterialMetalnessData; }
 	private:
+		void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);
+	private:
+		std::vector<Submesh> m_Submeshes;
+
 		Memory::Shared<VertexBuffer> m_VertexBuffer;
 		Memory::Shared<IndexBuffer> m_IndexBuffer;
 		Memory::Shared<Material> m_Material;
 
-		std::vector<Vertex> m_Vertices;
+		std::vector<Vertex> m_StaticVertices;
 		std::vector<Index> m_Indices;
 
 		std::string m_Name;
 		std::filesystem::path m_AssetPath;
-
 
 		//Note: Enabled - flag: is texture has been loaded
 		struct

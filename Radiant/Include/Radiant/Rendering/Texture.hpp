@@ -1,9 +1,19 @@
 #pragma once
 
 #include <Radiant/Rendering/Image.hpp>
+#include <Radiant/Core/Memory/Buffer.hpp>
 
 namespace Radiant
 {
+	struct Texture2DCreateInformation
+	{
+		Memory::Buffer Buffer;
+		std::string Name;
+		uint32_t Width;
+		uint32_t Height;
+		ImageFormat Format;
+	};
+
 	class Texture : public Memory::RefCounted
 	{
 	public:
@@ -22,5 +32,6 @@ namespace Radiant
 		virtual const Memory::Shared<Image2D>& GetImage2D() const = 0;
 
 		static Memory::Shared<Texture2D> Create(const std::filesystem::path& path, bool srgb = false);
+		static Memory::Shared<Texture2D> Create(const Texture2DCreateInformation& info);
 	};
 }

@@ -1,5 +1,5 @@
 #include <Radiant/Rendering/RenderPass.hpp>
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderPass.hpp>
 
@@ -7,7 +7,7 @@ namespace Radiant
 {
 	Memory::Shared<RenderPass> RenderPass::Create(const RenderPassSpecification& spec)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::None:    return nullptr;
 		case RenderingAPIType::OpenGL:  return Memory::Shared<OpenGLRenderPass>::Create(spec);

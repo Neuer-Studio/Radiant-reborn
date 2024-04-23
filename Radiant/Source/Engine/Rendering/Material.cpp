@@ -6,7 +6,7 @@ namespace Radiant
 {
 	void Material::SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
@@ -19,7 +19,7 @@ namespace Radiant
 
 	void Material::SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
@@ -32,7 +32,7 @@ namespace Radiant
 
 	void Material::SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
@@ -45,7 +45,7 @@ namespace Radiant
 
 	void Material::SetUBO(BindingPoint binding, const std::string& name, float value)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
@@ -58,7 +58,7 @@ namespace Radiant
 
 	void Material::SetUBO(BindingPoint binding, const std::string& name, bool value)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
@@ -71,7 +71,7 @@ namespace Radiant
 
 	void Material::SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
@@ -84,7 +84,7 @@ namespace Radiant
 
 	Memory::Shared<Material> Material::Create(const Memory::Shared<Shader>& shader)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::None:    return nullptr;
 			case RenderingAPIType::OpenGL:  return Memory::Shared<OpenGLMaterial >::Create(shader);

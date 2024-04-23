@@ -53,7 +53,7 @@ namespace Radiant::Memory
 		template <typename T>
 		T& Read(std::size_t offset = 0)
 		{
-			return *(T*)(Data + offset);
+			return *(T*)((const char*)Data + offset);
 		}
 
 		inline void Write(void* data, std::size_t size, std::size_t offset = 0)

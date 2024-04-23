@@ -17,6 +17,20 @@
 	return this->fn(std::forward<decltype(args)>(args)...); \
 }
 
+#define RA_HAS_VALUE(var) var.has_value()
+
+template<typename T>
+decltype(auto) initializeDefaultValue() {
+	if constexpr (std::is_pointer_v<T>) {
+		return nullptr;
+	}
+	else {
+		return T{};
+	}
+}
+
+#define RA_GET_VALUE(var) var.value_or(initializeDefaultValue<decltype(var)::value_type>())
+
 #if defined(RADIANT_PLATFORM_WINDOWS)
 #define RADIANT_DEBUG_BREAK __debugbreak()
 #elif defined(RADIANT_PLATFORM_LINUX)

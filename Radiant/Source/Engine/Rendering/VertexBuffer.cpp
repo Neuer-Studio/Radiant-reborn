@@ -6,7 +6,7 @@ namespace Radiant {
 
 	Memory::Shared<VertexBuffer> VertexBuffer::Create(void* data, uint32_t size, OpenGLBufferUsage usage)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::OpenGL:
 			{
@@ -20,7 +20,7 @@ namespace Radiant {
 
 	Memory::Shared<VertexBuffer> VertexBuffer::Create(uint32_t size, OpenGLBufferUsage usage)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{

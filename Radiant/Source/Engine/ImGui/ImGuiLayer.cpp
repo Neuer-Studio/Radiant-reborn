@@ -1,5 +1,5 @@
 #include <Radiant/ImGui/ImGuiLayer.hpp>
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 
 #include <Radiant/Rendering/Platform/OpenGL/ImGui/OpenGLImGuiLayer.hpp>
 
@@ -9,7 +9,7 @@ namespace Radiant
 {
 	ImGuiLayer* ImGuiLayer::Create()
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::None:    return nullptr;
 		case RenderingAPIType::OpenGL:  return new OpenGLImGuiLayer();
@@ -20,7 +20,7 @@ namespace Radiant
 
 	ImGuiLayer* ImGuiLayer::Create(const std::string& name)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::None:    return nullptr;
 		case RenderingAPIType::OpenGL:  return new OpenGLImGuiLayer(name);

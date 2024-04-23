@@ -3,15 +3,10 @@
 #type vertex
 #version 450 core
 
+#include "UBO/Transformations.glsl_h"
+
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec2 a_TexCoord;
-
-layout (std140, binding = 0) uniform TransformUniforms
-{
-	mat4 u_ViewProjectionMatrix;
-	mat4 u_InversedViewProjectionMatrix;
-	mat4 u_ViewMatrix;
-};
 
 layout(location = 0) uniform mat4 u_Transform;
 
@@ -40,6 +35,6 @@ float grid(vec2 st, float res)
 
 void main()
 {
-	float x = grid(v_TexCoord * 16.025, 0.07);
-	color = vec4(vec3(1.0, 1.0, 1.0), 0.5) * (1.0 - x);
+	float x = grid(v_TexCoord * 16.025, 0.02);
+	color = vec4(vec3(0.2), 0.5) * (1.0 - x);
 }

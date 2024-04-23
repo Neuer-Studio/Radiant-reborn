@@ -9,9 +9,11 @@ namespace Radiant
 	{
 	public:
 		OpenGLTexture2D(const std::filesystem::path& path, bool srgb);
+		explicit OpenGLTexture2D(const Texture2DCreateInformation& info);
+
 		virtual ~OpenGLTexture2D() override;
 
-		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const override;
+		virtual void Use(uint32_t slot, BindUsage use) const override;
 
 		virtual const std::filesystem::path& GetPath() const override { return m_FilePath; }
 		virtual const std::string& GetName() const override { return m_Name; }
@@ -22,7 +24,7 @@ namespace Radiant
 		std::filesystem::path m_FilePath;
 		RenderingID m_RenderingID = 0;
 		std::string m_Name;
-		bool m_sRGB;
+		bool m_sRGB = false;
 		Memory::Shared<Image2D> m_Image2D;
 		bool m_Loaded = false;
 	};

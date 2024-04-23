@@ -5,37 +5,32 @@
 
 namespace Radiant
 {
-	struct Environment
-	{
-		Memory::Shared<Image2D> Radiance;
-		Memory::Shared<Image2D> Irradiance;
-	};
-
 	class Scene;
 
 	class SceneRendering
 	{
 	public:
-		virtual ~SceneRendering() = default;
+		~SceneRendering();
 
-		virtual void BeginScene(const Camera& camera) = 0;
-		virtual void OnUpdate(Timestep ts) = 0;
-		virtual void Init() = 0;
+		static void BeginScene(Memory::Shared<Scene> m_Scene, const Camera& camera);
+		static void EndScene();
+		static void OnUpdate(Timestep ts);
+		static void Init();
 
-		virtual void SetSceneVeiwPortSize(const glm::vec2& size) = 0;
-		virtual void SetEnvironment(const Environment& env) = 0;
+		static void SetSceneVeiwPortSize(const glm::vec2& size);
+		static void SetEnvironment(const Environment& env);
 
-		virtual void SetEnvMapRotation(float rotation) = 0;
-		virtual void SetRadiancePrefilter(bool enable = true) = 0;
+		static void SetEnvironmentAttributes(const EnvironmentAttributes& attributes);
 
-		virtual void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const = 0;
+		static void SetEnvMapRotation(float rotation);
+		static void SetIBLContribution(float value);
+		static void OnImGuiRender();
 
-		virtual Memory::Shared<Image2D> GetFinalPassImage() const = 0;
-		virtual Memory::Shared<Image2D> GetShadowMapPassImage() const = 0;
+		static void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
 
-		virtual Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const = 0;
+		static Memory::Shared<Image2D> GetFinalPassImage();
+		static Memory::Shared<Image2D> GetShadowMapPassImage();
 
-		static SceneRendering* Create(const Memory::Shared<Scene>& scene);
-				
+		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
 	};
 }

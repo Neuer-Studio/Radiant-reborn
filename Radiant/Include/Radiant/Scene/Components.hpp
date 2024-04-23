@@ -8,6 +8,8 @@
 #include <Radiant/Rendering/Mesh.hpp>
 #include <Radiant/Core/Camera.hpp>
 
+#include <Radiant/Rendering/Environment.hpp>
+
 namespace Radiant
 {
 	struct IDComponent 
@@ -56,6 +58,13 @@ namespace Radiant
 			: Mesh(mesh) {}
 
 		operator Memory::Shared<Radiant::Mesh>() { return Mesh; }
+	};
+
+	struct EnvironmentMap
+	{
+		Environment SceneEnvironment;
+		float Intensity = 1.0f;
+		float EnvironmentMapLod = 0.0f;
 	};
 
 	struct CameraComponent

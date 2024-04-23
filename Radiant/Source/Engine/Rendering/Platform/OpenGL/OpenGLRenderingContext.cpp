@@ -48,7 +48,7 @@ namespace Radiant
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-		auto& info = RenderingAPI::GetGraphicsInfo();
+		auto& info = RendererAPI::GetGraphicsInfo();
 
 		info.Vendor = (const char*)glGetString(GL_VENDOR);
 		info.Renderer = (const char*)glGetString(GL_RENDERER);

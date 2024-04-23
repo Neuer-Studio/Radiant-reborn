@@ -44,6 +44,7 @@ namespace Radiant
 		RadiantShaderType ShaderType = RadiantShaderType::None;
 		RadiantShaderDataType DataType = RadiantShaderDataType::None;
 		BindingPoint Binding;
+		std::optional<uint32_t> ArraySize; 
 	};
 
 	struct Uniform
@@ -85,6 +86,9 @@ namespace Radiant
 		static const uint32_t GetDataTypeSize(RadiantShaderDataType dataType);
 
 		static Memory::Shared<Shader> Create(const std::filesystem::path& path);
+
+		// Temporary, before we have an asset manager
+		static inline std::vector<Memory::Shared<Shader>> s_AllShaders;
 	};
 
 	class ShaderLibrary : public Memory::RefCounted

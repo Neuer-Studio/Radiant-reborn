@@ -24,23 +24,24 @@ namespace Radiant
 		void Load(const std::string& shader—ontent);
 		void ParseBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
 		void ParseConstantBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
-		void CompileToSPIR_V();
-		void UploadFromBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath);
-		void Upload();
-		void UpdateBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary);
-		void PreProcess(const std::string& content);
+		[[nodiscard]] const std::unordered_map<RadiantShaderType, std::vector<uint32_t>> CompileToSPIR_V(const std::unordered_map<RadiantShaderType, std::string>& shaderSource);
+		[[nodiscard]] std::unordered_map<RadiantShaderType, std::vector<uint32_t>> UploadFromBinaryFile(const std::filesystem::path& path);
+		void Upload(const std::unordered_map<RadiantShaderType, std::vector<uint32_t>>& shaderBinary);
+		void FillBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary);
+		[[nodiscard]] const std::unordered_map<RadiantShaderType, std::string> PreProcess(const std::string& content);
 
 		void UploadUniformMat4(int32_t location, const glm::mat4& values);
 	private:
 		GLuint OGLGetUniformPosition(const std::string& name);
+		void CreateDirectoriesIfNotFound();
+		std::vector<uint32_t> TryToLoadCachedData(const std::filesystem::path& path, RadiantShaderType type);
+		[[nodiscard]] const std::vector<RadiantShaderType> ListShaderTypesByFileName(const std::string& fileName) const;
 	private:
 		uint32_t m_UniformTotalOffset = 0;
 		std::string m_Name;
 		std::filesystem::path m_FilePath;
 		RenderingID m_RenderingID = 0;
 
-		std::unordered_map<RadiantShaderType, std::string> m_ShaderSource;
-		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> m_ShaderBinary;
 		std::unordered_map<std::string, SamplerUniform> m_Resources;
 
 		inline static std::unordered_map<BindingPoint, ShaderUniformBufferObject> s_UniformBuffers; // UBOs

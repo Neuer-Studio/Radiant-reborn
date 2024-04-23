@@ -48,7 +48,15 @@ namespace Radiant
 		{
 			Memory::Shared<Image2D> image;
 
-			image = Image2D::Create({ width, height, format, samples > 1 ? TextureRendererType::Texture2D_MS : TextureRendererType::Texture2D, {} });
+			ImageSpecification spec;
+			spec.Width = width;
+			spec.Height = height;
+			spec.Format = format;
+			spec.TextureSamples = samples;
+			spec.Data = std::nullopt;
+			spec.Type = TextureRendererType::Texture2D;
+
+			image = Image2D::Create(spec);
 			image.As<OpenGLImage2D>()->Invalidate();
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, Utils::TextureTarget(samples > 1), image->GetTextureID(), 0);
@@ -70,7 +78,15 @@ namespace Radiant
 		{
 			Memory::Shared<Image2D> image;
 
-			image = Image2D::Create({ width, height, format, samples > 1 ? TextureRendererType::Texture2D_MS : TextureRendererType::Texture2D, {} });
+			ImageSpecification spec;
+			spec.Width = width;
+			spec.Height = height;
+			spec.Format = format;
+			spec.TextureSamples = samples;
+			spec.Data = std::nullopt;
+			spec.Type = TextureRendererType::Texture2D;
+
+			image = Image2D::Create(spec);
 			image.As<OpenGLImage2D>()->Invalidate();
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, Utils::DepthAttachmentType(format), Utils::TextureTarget(samples > 1), image->GetTextureID(), 0);
@@ -114,8 +130,8 @@ namespace Radiant
 		if (forceRecreate)
 			return;
 
-		m_Specification.Width = width;
-		m_Specification.Height = height;
+		m_Specification.Width = std::clamp(width, 1u, width + 1);
+		m_Specification.Height = std::clamp(height, 1u, height + 1);
 
 		Memory::Shared<OpenGLFramebuffer> instance = this;
 		Rendering::SubmitCommand([instance]() mutable

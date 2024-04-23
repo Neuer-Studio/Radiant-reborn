@@ -6,6 +6,8 @@
 
 #include <filesystem>
 
+#pragma warning(error : 4834)
+
 namespace fs = std::filesystem;
 
 namespace Radiant::Utils
@@ -52,12 +54,12 @@ namespace Radiant::Utils
 		return fs::exists(fs::path(filepath));
 	}
 
-	std::string FileSystem::GetFileName(const std::filesystem::path& filepath)
+	const std::string FileSystem::GetFileName(const std::filesystem::path& filepath)
 	{
 		return filepath.filename().string();
 	}
 
-	std::string FileSystem::GetFileName(const std::string& filepath)
+	const std::string FileSystem::GetFileName(const std::string& filepath)
 	{
 		return std::filesystem::path(filepath).filename().string();
 	}
@@ -77,10 +79,10 @@ namespace Radiant::Utils
 		return filepath.parent_path().string();
 	}
 
-	std::string FileSystem::ReadFileContent(const std::filesystem::path& filepath)
+	const std::string FileSystem::ReadFileContent(const std::filesystem::path& filepath)
 	{
 		std::ifstream in(filepath, std::ios::in | std::ios::binary);
-		RADIANT_VERIFY(in, "Could not load shader! {}", filepath.string().c_str());
+		RADIANT_VERIFY(in, "Could not read file! {}", filepath.string().c_str());
 
 		std::string fileContent;
 	
@@ -91,6 +93,79 @@ namespace Radiant::Utils
 		in.close();
 
 		return fileContent;
+	}
+	
+	int SkipBOM(std::istream& in)
+	{
+		char test[4] = { 0 };
+		in.seekg(0, std::ios::beg);
+		in.read(test, 3);
+		if (strcmp(test, "\xEF\xBB\xBF") == 0)
+		{
+			in.seekg(3, std::ios::beg);
+			return 3;
+		}
+		in.seekg(0, std::ios::beg);
+		return 0;
+	}
+
+	// Returns an empty string when failing.
+	std::string FileSystem::ReadFileAndSkipBOM(const std::filesystem::path& filepath)
+	{
+		std::string result;
+		std::ifstream in(filepath, std::ios::in | std::ios::binary);
+		if (in)
+		{
+			in.seekg(0, std::ios::end);
+			auto fileSize = in.tellg();
+			const int skippedChars = SkipBOM(in);
+
+			fileSize -= skippedChars - 1;
+			result.resize(fileSize);
+			in.read(result.data() + 1, fileSize);
+			// Add a dummy tab to beginning of file.
+			result[0] = '\t';
+		}
+		in.close();
+		return result;
+	}
+
+	const std::vector<uint32_t> FileSystem::ReadByteFileContent(const std::filesystem::path& filepath)
+	{
+		std::ifstream file(filepath, std::ios::in | std::ios::binary);
+		RADIANT_VERIFY(file, "Could not open file! {}", filepath.string().c_str());
+
+		file.seekg(0, std::ios::end);
+		std::streamsize fileSize = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		std::vector<uint32_t> binaryData(fileSize / sizeof(uint32_t));
+		if (!file.read(reinterpret_cast<char*>(binaryData.data()), fileSize))
+		{
+			RADIANT_VERIFY(file, "Could not read file! {}", filepath.string().c_str());
+			return {};
+		}
+		return binaryData;
+	}
+
+	const std::filesystem::path FileSystem::GetParentPath(const std::filesystem::path& filepath)
+	{
+		return filepath.parent_path();
+	}
+
+	const std::string FileSystem::GetFileNameWithoutExtension(const std::filesystem::path& filepath)
+	{
+		return filepath.stem().string();
+	}
+
+	const std::string FileSystem::GetFileExtension(const std::filesystem::path& filepath)
+	{
+		return filepath.extension().string();
+	}
+
+	const uint32_t FileSystem::GetFileSize(const std::filesystem::path& filepath)
+	{
+		return fs::file_size(filepath);
 	}
 
 }

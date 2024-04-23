@@ -6,7 +6,7 @@ namespace Radiant
 {
 	Memory::Shared<Pipeline> Pipeline::Create(const PipelineSpecification& spec)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::None:    return nullptr;
 			case RenderingAPIType::OpenGL:  return Memory::Shared<OpenGLPipeline>::Create(spec);

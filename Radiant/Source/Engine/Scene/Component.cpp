@@ -1,4 +1,4 @@
-#include <Radiant/Scene/Component.hpp>
+#include <Radiant/Scene/Components.hpp>
 
 namespace Radiant
 {

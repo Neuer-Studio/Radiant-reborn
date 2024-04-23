@@ -31,6 +31,7 @@ namespace Radiant
 
 		virtual bool IsWindowMaximized() const = 0;
 		virtual bool IsWindowMinimized() const = 0;
+		virtual void Maximize() const = 0;
 
 		virtual void SetEventCallback(const EventCallbackFn& e) = 0;
 

@@ -13,20 +13,18 @@ namespace Radiant::Utils
 {
 	std::filesystem::path WindowsFileSystem::OpenFileDialog(const char* filter)
 	{
+		OPENFILENAMEA ofn;
+		CHAR szFile[260] = { 0 }; 
 
-		OPENFILENAMEA ofn;       // common dialog box structure
-		CHAR szFile[260] = { 0 };       // if using TCHAR macros
-
-		// Initialize OPENFILENAME
 		ZeroMemory(&ofn, sizeof(OPENFILENAME));
 		ofn.lStructSize = sizeof(OPENFILENAME);
-		ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::GetInstance().GetWindow()->GetNativeWindow());
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
-		ofn.lpstrFilter = filter;
+		ofn.lpstrFilter = filter; 
 		ofn.nFilterIndex = 1;
 		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
+		// Отображение диалогового окна и обработка результата
 		if (GetOpenFileNameA(&ofn) == TRUE)
 		{
 			std::string fp = ofn.lpstrFile;
@@ -34,6 +32,6 @@ namespace Radiant::Utils
 			return std::filesystem::path(fp);
 		}
 
-		return std::filesystem::path();
+		return std::filesystem::path(); 
 	}
 }

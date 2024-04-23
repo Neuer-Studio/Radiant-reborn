@@ -2,6 +2,8 @@
 
 #include <Radiant/Rendering/RenderingTypes.hpp>
 
+#include <optional>
+
 namespace Radiant
 {
 	enum class ImageFormat
@@ -20,7 +22,6 @@ namespace Radiant
 	enum class TextureRendererType
 	{
 		Texture2D = 0,
-		Texture2D_MS = 1,
 		TextureCube,
 	};
 
@@ -30,7 +31,8 @@ namespace Radiant
 		uint32_t Height;
 		ImageFormat Format;
 		TextureRendererType Type;
-		std::byte* Data;
+		uint32_t TextureSamples = 1; 
+		std::optional<std::byte*> Data; // TODO: std::optional
 	};
 
 	class Image : public Memory::RefCounted

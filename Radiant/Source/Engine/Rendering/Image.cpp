@@ -7,7 +7,7 @@ namespace Radiant
 
 	Radiant::Memory::Shared<Radiant::Image2D> Image2D::Create(const ImageSpecification& spec)
 	{
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::None:    return nullptr;
 			case RenderingAPIType::OpenGL:  return Memory::Shared<OpenGLImage2D>::Create(spec);

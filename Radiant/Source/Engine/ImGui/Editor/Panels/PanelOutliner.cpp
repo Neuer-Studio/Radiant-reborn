@@ -1,6 +1,6 @@
 #include <Radiant/ImGui/Editor/Panels/PanelOutliner.hpp>
 #include <Radiant/Scene/Entity.hpp>
-#include <Radiant/Scene/Component.hpp>
+#include <Radiant/Scene/Components.hpp>
 #include <Radiant/ImGui/Utilities/UI.hpp>
 #include <Radiant/Scene/SceneRendering.hpp>
 #include <Radiant/Scene/Entity.hpp>
@@ -251,6 +251,14 @@ namespace Radiant
 					{
 					}
 
+					ImGui::Spacing();
+
+					if (ImGui::MenuItem("Environment map"))
+					{
+						auto entity = m_Context->CreateEntity("Environment map");
+						entity.AddComponent<EnvironmentMap>();
+					}
+
 					ImGui::EndMenu();
 				}
 
@@ -318,14 +326,13 @@ namespace Radiant
 
 		DrawComponentUI<DirectionalLightComponent>("Directional Light", entity, [&](DirectionalLightComponent& dl)
 			{
-				DrawVec3UI("Direction", dl.Radiance);
-				ImGui::SliderFloat("Multiplier", &dl.Multiplier, 1.0, 10.0);
+				ImGui::ColorEdit3("Radiance", &dl.Radiance[0]);
+				ImGui::SliderFloat("Multiplier", &dl.Multiplier, 0.0, 10.0);
 			});
 
 		DrawComponentUI<MeshComponent>("Mesh", entity, [&](MeshComponent& mc)
 			{
-
-				auto& mesh = entity.GetComponent<MeshComponent>().Mesh;
+				auto& mesh = mc.Mesh;
 				UI::BeginPropertyGrid();
 
 				ImGui::Text(entity.GetComponent<TagComponent>().Tag.c_str());
@@ -370,6 +377,49 @@ namespace Radiant
 					ImGui::SliderFloat("Roughness", &mesh->GetMaterialRoughnessData().Roughness, 0.0, 1.0);
 					ImGui::Checkbox("Use Normal Map", &mesh->GetMaterialNormalData().Enabled);
 				}*/
+			});
+
+		DrawComponentUI<EnvironmentMap>("Environment Map", entity, [&](EnvironmentMap& em)
+			{
+				auto& envScene = em.SceneEnvironment;
+				UI::BeginPropertyGrid();
+
+				ImGui::Text(entity.GetComponent<TagComponent>().Tag.c_str());
+				ImGui::NextColumn();
+				ImGui::PushItemWidth(-1);
+
+				ImVec2 originalButtonTextAlign = ImGui::GetStyle().ButtonTextAlign;
+				ImGui::GetStyle().ButtonTextAlign = { 0.0f, 0.5f };
+				float width = ImGui::GetContentRegionAvail().x - 0.0f;
+				UI::PushID();
+
+				float itemHeight = 28.0f;
+
+				std::string buttonName;
+				if (envScene.Radiance)
+					buttonName = Utils::FileSystem::GetFileName(envScene.FilePath);
+				else
+					buttonName = "Null";
+
+				if (ImGui::Button(buttonName.c_str(), { width, itemHeight }))
+				{
+					std::string file = Utils::FileSystem::OpenFileDialog("*.hdr").string();
+					if (!file.empty())
+					{
+						em.SceneEnvironment = Environment::Create(file);
+					}
+				}
+
+				UI::PopID();
+				ImGui::GetStyle().ButtonTextAlign = originalButtonTextAlign;
+				ImGui::PopItemWidth();
+
+				UI::EndPropertyGrid();
+
+				UI::BeginPropertyGrid();
+				UI::Property("Intensity", em.Intensity, 0.01f, 0.0f, 5.0f);
+				UI::Property("Environment Map LOD", em.EnvironmentMapLod, 0.01f, 0.0f, 5.0f);
+				UI::EndPropertyGrid();
 			});
 	}
 }

@@ -1,5 +1,5 @@
 #include <Radiant/Rendering/RenderingContext.hpp>
-#include <Radiant/Rendering/RenderingAPI.hpp>
+#include <Radiant/Rendering/RendererAPI.hpp>
 #include <Radiant/Rendering/Platform/Vulkan/VulkanRenderingContext.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderingContext.hpp>
 
@@ -7,7 +7,7 @@ namespace Radiant
 {
 	Memory::Shared<RenderingContext> RenderingContext::Create(GLFWwindow* window)
 	{
-		switch(RenderingAPI::GetAPI())
+		switch(RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::Vulkan:
 			{

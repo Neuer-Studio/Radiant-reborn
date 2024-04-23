@@ -12,7 +12,8 @@ namespace Radiant
 	{
 		RADIANT_VERIFY(!s_Instance, "it is not possible to create more than one instance");
 
-		RenderingAPI::SetAPI(specification.APIType);
+		RendererAPI::SetAPI(specification.APIType);
+		s_Instance = this;
 
 		WindowSpecification wspec;
 		wspec.Width = specification.WindowWidth;
@@ -28,7 +29,6 @@ namespace Radiant
 
 		s_RenderingContext = Rendering::GetRenderingContext();
 
-		s_Instance = this;
 
 		s_RenderingContext->OnResize(m_Window->GetWidth(), m_Window->GetHeight());
 
@@ -36,6 +36,8 @@ namespace Radiant
 		Rendering::GetRenderingCommandBuffer().Execute();
 
 		PushLayer(m_ImGuiLayer);
+
+		m_Window->Maximize();
 	}
 
 	Application::~Application()

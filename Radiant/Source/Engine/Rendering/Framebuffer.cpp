@@ -10,7 +10,7 @@ namespace Radiant
 	{
 		Memory::Shared<Framebuffer> result = nullptr;
 
-		switch (RenderingAPI::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
 			case RenderingAPIType::None:	return nullptr;
 			case RenderingAPIType::OpenGL:	result = Memory::Shared<OpenGLFramebuffer>::Create(spec);
