@@ -21,9 +21,14 @@ namespace Radiant::Utils
 	class FileSystem
 	{
 	public:
-		static std::string GetFileName(const std::filesystem::path& filepath);
-		static std::string GetFileName(const std::string& filepath);
-		static std::string ReadFileContent(const std::filesystem::path& filepath);
+		static const std::string GetFileName(const std::filesystem::path& filepath);
+		static const std::string GetFileName(const std::string& filepath);
+		static const std::string ReadFileContent(const std::filesystem::path& filepath);
+		[[nodiscard]] static const std::vector<uint32_t> ReadByteFileContent(const std::filesystem::path& filepath);
+		[[nodiscard]] static const std::filesystem::path GetParentPath(const std::filesystem::path& filepath);
+		[[nodiscard]] static const std::string GetFileNameWithoutExtension(const std::filesystem::path& filepath);
+		[[nodiscard]] static const std::string GetFileExtension(const std::filesystem::path& filepath);
+		[[nodiscard]] static const uint32_t GetFileSize(const std::filesystem::path& filepath);
 		static bool CreateDirectory(const std::filesystem::path& directory);
 		static bool CreateDirectory(const std::string& directory);
 		static void CreateFile(const std::string& path);

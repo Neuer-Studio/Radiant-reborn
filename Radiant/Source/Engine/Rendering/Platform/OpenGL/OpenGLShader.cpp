@@ -10,6 +10,8 @@
 
 namespace fs = std::filesystem;
 
+#pragma warning(error : 4834)
+
 namespace Radiant
 {
 	namespace Utils
@@ -58,6 +60,24 @@ namespace Radiant
 			}
 
 			return {};
+		}
+	
+		static RadiantShaderType GetRadiantShaderTypeByBinaryExtension(const std::string& extension)
+		{
+			if (extension == Constants::Extensions::SPIRV_BINARY_EXTENSION_VERT)
+				return RadiantShaderType::Vertex;
+			else if (extension == Constants::Extensions::SPIRV_BINARY_EXTENSION_FRAG)
+				return RadiantShaderType::Fragment;
+			else if (extension == Constants::Extensions::SPIRV_BINARY_EXTENSION_COMP)
+				return RadiantShaderType::Compute;
+
+			RADIANT_VERIFY(false);
+			return RadiantShaderType::None;
+		}
+
+		static fs::path GetBinaryPath()
+		{
+			return Constants::Path::RESOURCE_SPIRV_BINARY;
 		}
 
 		static RadiantShaderDataType SPIRTypeToShaderDataType(spirv_cross::SPIRType type)
@@ -155,14 +175,27 @@ namespace Radiant
 
 	void OpenGLShader::Reload()
 	{
-		std::string content = Utils::FileSystem::ReadFileContent(m_FilePath);
-		Load(content);
+		CreateDirectoriesIfNotFound();
+
+		std::unordered_map<RadiantShaderType, std::vector<uint32_t>>& binarySPIRV = UploadFromBinaryFile(m_FilePath);
+		bool statusCached = !binarySPIRV.empty();
+
+		if (statusCached)
+		{
+			Rendering::SubmitCommand([this, binarySPIRV]()
+				{
+					Upload(binarySPIRV);
+				});
+		}
+		else
+		{
+			std::string content = Utils::FileSystem::ReadFileContent(m_FilePath);
+			Load(content);
+		}
 	}
 
-	void OpenGLShader::Load(const std::string& shader—ontent)
+	void OpenGLShader::CreateDirectoriesIfNotFound()
 	{
-		PreProcess(shader—ontent);
-
 		if (!Utils::FileSystem::Exists(Constants::Path::RESOURCE_SPIRV_BINARY))
 		{
 			if (!fs::exists(Constants::Path::RESOURCE_SPIRV_BINARY.parent_path())) {
@@ -170,17 +203,58 @@ namespace Radiant
 			}
 			Utils::FileSystem::CreateDirectory(Constants::Path::RESOURCE_SPIRV_BINARY);
 		}
+	}
 
-		CompileToSPIR_V();
-
-		for (const auto& sh : m_ShaderBinary)
+	std::vector<uint32_t> OpenGLShader::TryToLoadCachedData(const std::filesystem::path& path, RadiantShaderType type)
+	{
+		const auto& binaryPath = Utils::GetBinaryPathByType(type, m_FilePath);
+		if (!Utils::FileSystem::Exists(binaryPath))
 		{
-			UpdateBinaryFile(m_FilePath, Utils::GetBinaryPathByType(sh.first, m_FilePath), sh.second);
+			return {};
+		}
+		auto fileSize = fs::file_size(binaryPath);
+		auto binaryFileTime = fs::last_write_time(binaryPath);
+		auto fileTime = fs::last_write_time(path);
+		if (fileSize && binaryFileTime > fileTime)
+		{
+			return Utils::FileSystem::ReadByteFileContent(binaryPath);
 		}
 
-		Rendering::SubmitCommand([this]()
+		return {};
+	}
+
+	const std::vector<RadiantShaderType> OpenGLShader::ListShaderTypesByFileName(const std::string& fileName) const
+	{
+		std::vector<RadiantShaderType> shaderTypes;
+		const auto& directory = Utils::GetBinaryPath();
+
+		for (const auto& file : fs::directory_iterator(directory))
+		{
+			if (Utils::FileSystem::GetFileNameWithoutExtension(file) == fileName)
+			{ 
+				const auto& extension = Utils::FileSystem::GetFileExtension(file);
+				shaderTypes.push_back(Utils::GetRadiantShaderTypeByBinaryExtension(extension));
+			}
+		}
+
+		return shaderTypes;
+	}
+
+	void OpenGLShader::Load(const std::string& shader—ontent)
+	{
+
+		const auto& shaderPreProccess = PreProcess(shader—ontent);
+		const auto& binarySPIRV = CompileToSPIR_V(shaderPreProccess);
+
+		for (const auto& sh : binarySPIRV)
+		{
+			const auto& binaryPath = Utils::GetBinaryPathByType(sh.first, m_FilePath);
+			FillBinaryFile(m_FilePath, binaryPath, sh.second);
+		}
+
+		Rendering::SubmitCommand([this, binarySPIRV]()
 			{
-				Upload();
+				Upload(binarySPIRV);
 			});
 	
 	}
@@ -332,15 +406,17 @@ namespace Radiant
 		
 	}
 
-	void OpenGLShader::CompileToSPIR_V()
+	const std::unordered_map<RadiantShaderType, std::vector<uint32_t>> OpenGLShader::CompileToSPIR_V(const std::unordered_map<RadiantShaderType, std::string>& shaderSource)
 	{
+		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> output;
+
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 		options.SetTargetEnvironment(shaderc_target_env_opengl, shaderc_env_version_opengl_4_5);
 		shaderc_util::FileFinder fileFinder;
 		options.SetIncluder(std::make_unique<Preprocessing::GLSLIncluder>(&fileFinder));
 
-		for (const auto source : m_ShaderSource)
+		for (const auto source : shaderSource)
 		{
 			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source.second, Utils::ShaderTypeToShader_C(source.first), m_FilePath.string().c_str(), options);
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success) 
@@ -348,63 +424,45 @@ namespace Radiant
 				RA_ERROR("{}: {}", Utils::RadiantShaderToString(source.first), module.GetErrorMessage());
 				RADIANT_VERIFY(false);
 			}
-			m_ShaderBinary[source.first] = { module.cbegin(), module.cend() };
+			output[source.first] = { module.cbegin(), module.cend() };
 		}
 
+		return output;
 	}
 
-	void OpenGLShader::UploadFromBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath)
+	std::unordered_map<RadiantShaderType, std::vector<uint32_t>> OpenGLShader::UploadFromBinaryFile(const std::filesystem::path& path)
 	{
-		/*if (Utils::FileSystem::Exists(binaryPath))
+		std::unordered_map<RadiantShaderType, std::vector<uint32_t>> outputBinary;
+		std::string filename = Utils::FileSystem::GetFileNameWithoutExtension(path);
+		const auto& types = ListShaderTypesByFileName(filename);
+		for (const auto& shader : types)
 		{
-			auto binaryFileTime = fs::last_write_time(binaryPath);
-			auto fileTime = fs::last_write_time(path);
-			if (binaryFileTime >= fileTime)
+			outputBinary[shader] = std::move(TryToLoadCachedData(m_FilePath, shader));
+			if (outputBinary[shader].empty())
 			{
-				std::ifstream file(binaryPath);
-
-				if (file.is_open())
-				{
-					std::vector<uint32_t> binray
-					auto fileSize = fs::file_size(binaryPath);
-					file.read((const char*)binary.data(), binary.size());
-					file.close();
-				}
-				else
-				{
-					RADIANT_VERIFY(false);
-				}
+				return {};
 			}
-		}*/
+		}
+
+		return outputBinary;
 	}
 
-	void OpenGLShader::UpdateBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary)
+	void OpenGLShader::FillBinaryFile(const std::filesystem::path& path, const std::filesystem::path& binaryPath, const std::vector<uint32_t>& binary)
 	{
-		if (!Utils::FileSystem::Exists(binaryPath))
+		std::ofstream file(binaryPath, std::ios::trunc | std::ios::binary);
+
+		if (file.is_open())
 		{
-			Utils::FileSystem::CreateFile(binaryPath);
+			file.write(reinterpret_cast<const char*>(binary.data()), binary.size() * sizeof(uint32_t));
+			file.close();
 		}
-
-		auto fileSize = fs::file_size(binaryPath);
-		auto binaryFileTime = fs::last_write_time(binaryPath);
-		auto fileTime = fs::last_write_time(path);
-		if (!fileSize || binaryFileTime < fileTime)
+		else
 		{
-			std::ofstream file(binaryPath);
-
-			if (file.is_open())
-			{
-				file.write((const char*)binary.data(), binary.size());
-				file.close();
-			}
-			else
-			{
-				RADIANT_VERIFY(false);
-			}
+			RADIANT_VERIFY(false);
 		}
 	}
 
-	void OpenGLShader::Upload()
+	void OpenGLShader::Upload(const std::unordered_map<RadiantShaderType, std::vector<uint32_t>>& shaderBinary)
 	{
 		if (m_RenderingID)
 			glDeleteProgram(m_RenderingID);
@@ -412,10 +470,10 @@ namespace Radiant
 		std::vector<GLuint> shaderRendererIDs;
 		m_RenderingID = glCreateProgram();
 
-		for (auto& kv : m_ShaderBinary)
+		for (const auto& kv : shaderBinary)
 		{
 			GLenum type = Utils::OGLShaderTypeFromRadiant(kv.first);
-			std::vector<uint32_t>& binary = kv.second;
+			const std::vector<uint32_t>& binary = kv.second;
 
 			GLuint shaderRendererID = glCreateShader(type);
 			glShaderBinary(1, &shaderRendererID, GL_SHADER_BINARY_FORMAT_SPIR_V, binary.data(), binary.size() * sizeof(uint32_t));
@@ -451,14 +509,16 @@ namespace Radiant
 		for (auto id : shaderRendererIDs)
 			glDetachShader(m_RenderingID, id);
 
-		for (auto& shaderData : m_ShaderBinary)
+		for (auto& shaderData : shaderBinary)
 		{
 			ParseBuffers(shaderData.first, shaderData.second);
 		}
 	}
 
-	void OpenGLShader::PreProcess(const std::string& content)
+	const std::unordered_map<RadiantShaderType, std::string> OpenGLShader::PreProcess(const std::string& content)
 	{
+		std::unordered_map<RadiantShaderType, std::string> output;
+
 		const char* tokenType = "#type";
 		const std::size_t sizeTokenType = strlen(tokenType);
 		std::size_t pos = content.find(tokenType, 0);
@@ -475,8 +535,10 @@ namespace Radiant
 			pos = content.find(tokenType, nextLinePos);
 			auto shaderType = Utils::ShaderTypeFromString(type);
 
-			m_ShaderSource[shaderType] = content.substr(nextLinePos, pos - (nextLinePos == std::string::npos ? content.size() - 1 : nextLinePos));
+			output[shaderType] = content.substr(nextLinePos, pos - (nextLinePos == std::string::npos ? content.size() - 1 : nextLinePos));
 		}
+
+		return output;
 	}
 
 	void OpenGLShader::UploadUniformMat4(int32_t location, const glm::mat4& values)

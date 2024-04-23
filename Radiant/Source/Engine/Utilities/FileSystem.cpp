@@ -6,6 +6,8 @@
 
 #include <filesystem>
 
+#pragma warning(error : 4834)
+
 namespace fs = std::filesystem;
 
 namespace Radiant::Utils
@@ -52,12 +54,12 @@ namespace Radiant::Utils
 		return fs::exists(fs::path(filepath));
 	}
 
-	std::string FileSystem::GetFileName(const std::filesystem::path& filepath)
+	const std::string FileSystem::GetFileName(const std::filesystem::path& filepath)
 	{
 		return filepath.filename().string();
 	}
 
-	std::string FileSystem::GetFileName(const std::string& filepath)
+	const std::string FileSystem::GetFileName(const std::string& filepath)
 	{
 		return std::filesystem::path(filepath).filename().string();
 	}
@@ -77,7 +79,7 @@ namespace Radiant::Utils
 		return filepath.parent_path().string();
 	}
 
-	std::string FileSystem::ReadFileContent(const std::filesystem::path& filepath)
+	const std::string FileSystem::ReadFileContent(const std::filesystem::path& filepath)
 	{
 		std::ifstream in(filepath, std::ios::in | std::ios::binary);
 		RADIANT_VERIFY(in, "Could not read file! {}", filepath.string().c_str());
@@ -127,4 +129,43 @@ namespace Radiant::Utils
 		in.close();
 		return result;
 	}
+
+	const std::vector<uint32_t> FileSystem::ReadByteFileContent(const std::filesystem::path& filepath)
+	{
+		std::ifstream file(filepath, std::ios::in | std::ios::binary);
+		RADIANT_VERIFY(file, "Could not open file! {}", filepath.string().c_str());
+
+		file.seekg(0, std::ios::end);
+		std::streamsize fileSize = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		std::vector<uint32_t> binaryData(fileSize / sizeof(uint32_t));
+		if (!file.read(reinterpret_cast<char*>(binaryData.data()), fileSize))
+		{
+			RADIANT_VERIFY(file, "Could not read file! {}", filepath.string().c_str());
+			return {};
+		}
+		return binaryData;
+	}
+
+	const std::filesystem::path FileSystem::GetParentPath(const std::filesystem::path& filepath)
+	{
+		return filepath.parent_path();
+	}
+
+	const std::string FileSystem::GetFileNameWithoutExtension(const std::filesystem::path& filepath)
+	{
+		return filepath.stem().string();
+	}
+
+	const std::string FileSystem::GetFileExtension(const std::filesystem::path& filepath)
+	{
+		return filepath.extension().string();
+	}
+
+	const uint32_t FileSystem::GetFileSize(const std::filesystem::path& filepath)
+	{
+		return fs::file_size(filepath);
+	}
+
 }
