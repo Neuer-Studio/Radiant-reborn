@@ -7,67 +7,56 @@
 
 namespace Radiant
 {
-	class Camera 
+	class Camera
 	{
 	public:
-		Camera() = default;
-		Camera(const glm::mat4& projectionMatrix);
+		Camera(uint32_t width, uint32_t height);
+		Camera();
 
-		void Focus(const glm::vec3& focusPoint);
-		void OnUpdate(Timestep ts);
-		void OnEvent(Event& e);
-
-		float GetExposure() { return m_Exposure; } //TODO: make a float ref
-
-		inline float GetDistance() const { return m_Distance; }
-		inline void SetDistance(float distance) { m_Distance = distance; }
-
+		void SetViewportSize(uint32_t width, uint32_t height);
 		void SetProjectionMatrix(const glm::mat4& projectionMatrix) { m_ProjectionMatrix = projectionMatrix; }
 		const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
-		inline void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; }
+		glm::mat4 GetViewProjection() const { return m_ProjectionMatrix * m_ViewMatrix; }
+		const glm::vec3 GetPosition() const { return m_FocalPoint - GetForwardDirection() * m_Distance; }
+
+		void OnUpdate(Timestep ts);
+		void SetActive(bool Active) { m_IsActive = Active; }
 
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
-		glm::mat4 GetViewProjection() const { return m_ProjectionMatrix * m_ViewMatrix; }
 
-		glm::vec3 GetUpDirection();
-		glm::vec3 GetRightDirection();
-		glm::vec3 GetForwardDirection();
-		const glm::vec3& GetPosition() const { return m_Position; }
-		glm::quat GetOrientation() const;
-
-		float GetPitch() const { return m_Pitch; }
-		float GetYaw() const { return m_Yaw; }
+		void OnEvent(Event& e);
 	private:
+		glm::quat GetOrientation() const;
+		glm::vec3 GetUpDirection() const;
+		glm::vec3 GetRightDirection() const;
+		glm::vec3 GetForwardDirection() const;
+
 		void UpdateCameraView();
 
-		bool OnMouseScroll(const MouseScrolledEvent& e);
 
-		void MousePan(const glm::vec2& delta);
-		void MouseRotate(const glm::vec2& delta);
-		void MouseZoom(float delta);
-
-		glm::vec3 CalculatePosition();
-
-		std::pair<float, float> PanSpeed() const;
-		float RotationSpeed() const;
-		float ZoomSpeed() const;
 	private:
-		glm::mat4 m_ViewMatrix;
-		glm::vec3 m_Position, m_Rotation, m_FocalPoint;
-
-		bool m_Panning, m_Rotating;
-		glm::vec2 m_InitialMousePosition;
-		glm::vec3 m_InitialFocalPoint, m_InitialRotation;
-
-		float m_Distance;
-		float m_Pitch, m_Yaw;
-
-		float m_MinFocusDistance = 100.0f;
-
-		uint32_t m_ViewportWidth = 1280, m_ViewportHeight = 720;
-
 		glm::mat4 m_ProjectionMatrix = glm::mat4(1.0f);
-		float m_Exposure = 0.8f;
+		glm::mat4 m_ViewMatrix = glm::mat4(1.0f);
+		glm::vec3 m_Location = glm::vec3(0.0f);
+		glm::vec3 m_LocationDelta = glm::vec3(0.0f);
+		glm::vec3 m_Direction;
+		glm::vec3 m_FocalPoint = glm::vec3(0.0f);
+
+		glm::vec3 m_RightDirection;
+
+		float m_Distance = 0.0f;
+		glm::vec2 m_InitialMousePosition = glm::vec2(0.0f);
+
+		float m_Pitch = 0.0f, m_PitchDelta = 0.0f;
+		float m_Yaw = 0.0f, m_YawDelta = 0.0f;
+
+		glm::vec3 m_Rotation = glm::vec3(0.0f);
+
+		float m_VerticalFOV = 45.0f;
+		float m_NearPlane = 0.1f;
+		float m_FarPlane = 1000.0f;
+
+		bool m_IsActive = false;
 	};
 
 }

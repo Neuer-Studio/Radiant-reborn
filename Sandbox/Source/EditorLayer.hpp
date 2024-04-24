@@ -15,7 +15,7 @@ namespace Radiant
 	{
 	public:
 		EditorLayer()
-			: Layer("EditorLayer"), m_EditorCamera(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 1000.0f))
+			: Layer("EditorLayer"), m_EditorCamera(1920, 1080)
 		{}
 
 		virtual void OnAttach()
@@ -107,7 +107,6 @@ namespace Radiant
 				auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
 				m_ViewportSize = ImGui::GetContentRegionAvail();
 
-				m_EditorCamera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), m_ViewportSize.x, m_ViewportSize.y, 0.1f, 1000.0f));
 				m_EditorCamera.SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 
 				if(SceneRendering::GetFinalPassImage()) //TODO: move to scene
