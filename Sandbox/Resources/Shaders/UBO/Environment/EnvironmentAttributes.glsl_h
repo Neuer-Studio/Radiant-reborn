@@ -1,0 +1,7 @@
+#pragma once
+
+layout(std140, binding=10) uniform SkyAttributes
+{
+	float TextureLod;
+	float SkyIntensity;
+};

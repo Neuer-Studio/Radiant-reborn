@@ -93,7 +93,7 @@ namespace Radiant
 			float Exposure;
 		} SceneCamera;
 
-		bool ShowGrid = true;
+		bool ShowGrid = true; //TODO: move to options
 
 		uint32_t ViewportWidth;
 		uint32_t ViewportHeight;
@@ -297,13 +297,14 @@ namespace Radiant
 	void SceneRendering::SetEnvMapRotation(float rotation)
 	{
 		RADIANT_VERIFY(s_SceneInfo, "Did you call Init() ?");
+		Material::SetUBO(2, "u_EnvMapRotation", rotation);
 
 	}
 
 	void SceneRendering::SetIBLContribution(float value)
 	{
 		RADIANT_VERIFY(s_SceneInfo, "Did you call Init() ?");
-
+		Material::SetUBO(2, "u_IBLContribution", value);
 	}
 
 	void SceneRendering::OnImGuiRender()
@@ -483,8 +484,6 @@ namespace Radiant
 
 			//UBO
 			Material::SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
-			Material::SetUBO(2, "u_EnvMapRotation", 0.0f);//todo
-			Material::SetUBO(2, "u_IBLContribution", 1.0f);//todo
 
 			//Update toggles
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseNormalTexture", normal.Enabled);
@@ -587,8 +586,8 @@ namespace Radiant
 		s_SceneInfo->RenderPassList.CompData.material->SetFloat("u_Exposure", s_SceneInfo->SceneCamera.Exposure); //TODO: move to the UBO
 		s_SceneInfo->RenderPassList.CompData.material->SetUint("u_SamplesCount", s_SceneInfo->ActiveScene->GetSceneSamplesCount());
 
-		Material::SetUBO(10, "u_TextureLod", s_SceneInfo->Attributes.EnvironmentMapLod);
-		Material::SetUBO(10, "u_SkyIntensity", s_SceneInfo->Attributes.Intensity);
+		Material::SetUBO(10, "TextureLod", s_SceneInfo->Attributes.EnvironmentMapLod);
+		Material::SetUBO(10, "SkyIntensity", s_SceneInfo->Attributes.Intensity);
 
 		TextureDescriptor descriptor;
 		descriptor.Name = "u_Texture";
@@ -618,7 +617,7 @@ namespace Radiant
 		Material::SetUBO(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection);
 		Material::SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
 		Material::SetUBO(0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View);
-		Material::SetUBO(2, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
+		Material::SetUBO(0, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
 
 		s_SceneInfo->GridMaterial->SetMat4("u_Transform", transform); //TODO: UBO
 

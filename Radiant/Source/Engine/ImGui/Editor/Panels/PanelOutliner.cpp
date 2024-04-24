@@ -407,6 +407,7 @@ namespace Radiant
 					if (!file.empty())
 					{
 						em.SceneEnvironment = Environment::Create(file);
+						m_Context->SetEnvironment(em.SceneEnvironment);
 					}
 				}
 

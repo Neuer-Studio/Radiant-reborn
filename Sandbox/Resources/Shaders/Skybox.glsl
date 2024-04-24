@@ -19,6 +19,9 @@ void main()
 
 #type fragment
 #version 450 core
+
+#include "UBO/Environment/EnvironmentAttributes.glsl_h"
+
 // Physically Based Rendering
 // Copyright (c) 2017-2018 Michał Siejak
 
@@ -28,14 +31,9 @@ layout(location=0) in vec3 v_Position;
 layout(location=0) out vec4 finalColor;
 
 layout(binding=0) uniform samplerCube u_EnvTexture;
-layout(std140, binding=10) uniform SkyAttributes
-{
-	float u_TextureLod;
-	float u_SkyIntensity;
-};
 
 void main()
 {
-	vec3 color = textureLod(u_EnvTexture, v_Position, u_TextureLod).rgb * u_SkyIntensity;
+	vec3 color = textureLod(u_EnvTexture, v_Position, TextureLod).rgb * SkyIntensity;
 	finalColor = vec4(color, 1.0);
 }

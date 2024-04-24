@@ -33,7 +33,7 @@ namespace Radiant
 			ImGui::Text("Shader Parameters");
 			static float valueIBLContribution = 1.0;
 			static float rotation = 0.0f;
-			ImGui::SliderFloat("Radiance Prefiltering", &valueIBLContribution, 0.0, 1.0);
+			ImGui::SliderFloat("IBL Contribution", &valueIBLContribution, 0.0, 1.0);
 			SceneRendering::SetIBLContribution(valueIBLContribution);
 
 			int samples = (int)m_Context->m_SamplesCount;

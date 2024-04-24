@@ -32,6 +32,7 @@ layout(location=0) out VertexOutput
 	vec3 Binormal;
 	vec4 ShadowMapCoords[4];
 	vec3 ViewPosition;
+    vec3 CameraPosition;
 } vs_Output;
 
 void main()
@@ -44,6 +45,7 @@ void main()
   	vs_Output.ViewPosition = vec3(u_ViewMatrix * vec4(vs_Output.WorldPosition, 1.0));
 	vs_Output.WorldTransform = mat3(u_Transform);
 	vs_Output.Binormal = a_Bitangent;
+	vs_Output.CameraPosition = u_CameraPosition;
 
     vs_Output.ShadowMapCoords[0] = u_LightMatrixCascade[0] * vec4(vs_Output.WorldPosition, 1.0);
 	vs_Output.ShadowMapCoords[1] = u_LightMatrixCascade[1] * vec4(vs_Output.WorldPosition, 1.0);
@@ -74,6 +76,7 @@ layout(location=0) in VertexOutput
 	vec3 Binormal;
 	vec4 ShadowMapCoords[4];
 	vec3 ViewPosition;
+    vec3 CameraPosition;
 } vs_Input;
 
 // PBR texture inputs
@@ -114,9 +117,8 @@ struct EnvironmentLight
 layout(std140, binding=2) uniform ShadingUniforms
 {
     EnvironmentLight u_EnvironmentLight[LightCount]; 
-    vec3 u_CameraPosition;
     float u_EnvMapRotation;
-    bool u_IBLContribution;
+    float u_IBLContribution;
 };
 
 struct PBRParams
@@ -333,7 +335,7 @@ float HardShadows_DirectionalLight(sampler2D shadowMap, vec3 shadowCoords)
 float SearchWidth(float uvLightSize, float receiverDistance)
 {
 	const float NEAR = 0.1;
-	return uvLightSize * (receiverDistance - NEAR) / u_CameraPosition.z;
+	return uvLightSize * (receiverDistance - NEAR) / vs_Input.CameraPosition.z;
 }
 
 float u_light_zNear = 0.0; // 0.01 gives artifacts? maybe because of ortho proj?
@@ -521,7 +523,7 @@ void main()
 	// Normals (either from vertex or map)
 	m_Params.Normal = normalize(vs_Input.Normal);
 
-	m_Params.View = normalize(u_CameraPosition - vs_Input.WorldPosition);
+	m_Params.View = normalize(vs_Input.CameraPosition - vs_Input.WorldPosition);
 	m_Params.NdotV = max(dot(m_Params.Normal, m_Params.View), 0.0);
 		
 	// Specular reflection vector
@@ -554,7 +556,7 @@ void main()
 
 
 	vec3 lightContribution = u_EnvironmentLight[0].Multiplier > 0.0 ?  (Lighting(F0)  * shadowAmount) : vec3(0.0);
-	vec3 iblContribution = IBL(F0, Lr);
+	vec3 iblContribution = IBL(F0, Lr) * u_IBLContribution;
 
 	o_Color = vec4(iblContribution + lightContribution, 1.0);
    

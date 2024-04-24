@@ -71,6 +71,7 @@ namespace Radiant
 			EnvironmentAttributes attrs;
 			attrs.EnvironmentMapLod = envMapComponent.EnvironmentMapLod;
 			attrs.Intensity = envMapComponent.Intensity;
+
 			SceneRendering::SetEnvironmentAttributes(attrs);
 		}
 
