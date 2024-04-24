@@ -109,8 +109,8 @@ namespace Radiant
 
 				m_EditorCamera.SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 
-				if(SceneRendering::GetFinalPassImage()) //TODO: move to scene
-					ImGui::Image((void*)SceneRendering::GetFinalPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
+				if(m_Scene->GetFinalPassImage()) //TODO: move to scene
+					ImGui::Image((void*)m_Scene->GetFinalPassImage()->GetTextureID(), m_ViewportSize, { 0, 1 }, { 1, 0 });
 
 
 				static int counter = 0;
@@ -121,7 +121,7 @@ namespace Radiant
 
 			}
 
-			SceneRendering::OnImGuiRender();
+			// SceneRendering::OnImGuiRender();
 
 			ImGui::End();
 			ImGui::PopStyleVar();

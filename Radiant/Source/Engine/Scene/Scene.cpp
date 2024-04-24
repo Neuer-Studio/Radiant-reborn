@@ -105,4 +105,20 @@ namespace Radiant
 	{
 		SceneRendering::SubmitMesh(mesh, transform);
 	}
+
+	const Radiant::Memory::Shared<Radiant::Image2D>& Scene::GetFinalPassImage() const
+	{
+		return SceneRendering::GetFinalPassImage();
+	}
+
+	void Scene::SetEnvMapRotation(float rotation)
+	{
+		SceneRendering::SetEnvMapRotation(rotation);
+	}
+
+	void Scene::SetIBLContribution(float value)
+	{
+		SceneRendering::SetIBLContribution(value);
+	}
+
 }

@@ -34,12 +34,12 @@ namespace Radiant
 			static float valueIBLContribution = 1.0;
 			static float rotation = 0.0f;
 			ImGui::SliderFloat("IBL Contribution", &valueIBLContribution, 0.0, 1.0);
-			SceneRendering::SetIBLContribution(valueIBLContribution);
+			m_Context->SetIBLContribution(valueIBLContribution);
 
 			int samples = (int)m_Context->m_SamplesCount;
 			ImGui::SliderFloat("Env Map Rotation", &rotation, -360.0f, 360.0f);
 			ImGui::SliderInt("Samples Scene", &samples, 1, 16);
-			SceneRendering::SetEnvMapRotation(rotation);
+			m_Context->SetEnvMapRotation(rotation);
 
 			ImGui::Separator();
 

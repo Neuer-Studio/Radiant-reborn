@@ -11,11 +11,11 @@ namespace Radiant
 	{
 	public:
 		~SceneRendering();
-
+	private:
 		static void BeginScene(Memory::Shared<Scene> m_Scene, const Camera& camera);
+		static void Init();
 		static void EndScene();
 		static void OnUpdate(Timestep ts);
-		static void Init();
 
 		static void SetSceneVeiwPortSize(const glm::vec2& size);
 		static void SetEnvironment(const Environment& env);
@@ -28,9 +28,14 @@ namespace Radiant
 
 		static void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
 
-		static Memory::Shared<Image2D> GetFinalPassImage();
+		[[nodiscard]] static Memory::Shared<Image2D> GetFinalPassImage();
 		static Memory::Shared<Image2D> GetShadowMapPassImage();
 
 		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
+
+		friend class Scene;
+		friend class Rendering;
+		friend class PanelOutliner;
+		friend class Environment;
 	};
 }

@@ -51,6 +51,9 @@ namespace Radiant
 		inline const uint32_t GetSceneSamplesCount() const { return m_SamplesCount; }
 
 		void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const;
+		const Memory::Shared<Image2D>& GetFinalPassImage() const;
+		void SetEnvMapRotation(float rotation);
+		void SetIBLContribution(float value);
 
 	private:
 		uint32_t m_SamplesCount = 2;
