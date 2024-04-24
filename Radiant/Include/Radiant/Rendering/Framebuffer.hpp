@@ -19,8 +19,9 @@ namespace Radiant
 		uint32_t Width;
 		uint32_t Height;
 		uint32_t Samples = 2; // Multisampling
-
 		FramebufferAttachmentSpecification Attachments;
+
+		bool NoResizeble = false;
 	};
 
 	class Framebuffer : public Memory::RefCounted

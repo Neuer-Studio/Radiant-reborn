@@ -218,7 +218,7 @@ namespace Radiant
 				if (ImGui::MenuItem("Camera"))
 				{
 					auto entity = m_Context->CreateEntity("Camera");
-					entity.AddComponent<CameraComponent>().Camera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 1000.0f));
+					entity.AddComponent<CameraComponent>();
 				}
 
 				ImGui::Spacing();

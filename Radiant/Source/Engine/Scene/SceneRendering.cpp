@@ -239,8 +239,9 @@ namespace Radiant
 			for (int i = 0; i < 4; i++)
 			{
 				RenderPassSpecification shadowMapRenderPassSpec;
-				shadowMapRenderPassSpec.TargetFramebuffer = Framebuffer::Create({ kShadowMapSize, kShadowMapSize, 1, { ImageFormat::DEPTH32F } });
+				shadowMapRenderPassSpec.TargetFramebuffer = Framebuffer::Create({ kShadowMapSize, kShadowMapSize, 1, { ImageFormat::DEPTH32F }, true });
 				shadowMapRenderPassSpec.DebugName = "Geometry Render Pass";
+				
 				ps.RenderPass = RenderPass::Create(shadowMapRenderPassSpec);
 
 				s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i] = Pipeline::Create(ps);

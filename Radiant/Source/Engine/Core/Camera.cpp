@@ -11,7 +11,7 @@ namespace Radiant
 {
 	Camera::Camera()
 	{
-		SetViewportSize(1920, 1080);
+		SetViewportSize(1, 1);
 
 		constexpr glm::vec3 InitialPosition = { 5, 5, 5 };
 		m_Distance = glm::distance(InitialPosition, m_FocalPoint);
@@ -51,8 +51,6 @@ namespace Radiant
 
 	void Camera::OnUpdate(Timestep ts)
 	{
-		
-
 		const glm::vec2& MousePosition{ Input::GetMouseX(), Input::GetMouseY() };
 		const glm::vec2 MouseDelta = (MousePosition - m_InitialMousePosition) * 0.002f;
 
@@ -62,7 +60,7 @@ namespace Radiant
 
 			const float YawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 			const float CameraSpeed = 0.01f * ts.GetMilliseconds();
-			const float RotationSpeed = 0.7f * ts.GetMilliseconds();
+			const float RotationSpeed = 0.3f * ts.GetMilliseconds();
 
 			if (Input::IsKeyPressed(KeyCode::Q))
 				m_LocationDelta -= CameraSpeed * glm::vec3{ 0.f, YawSign, 0.f };

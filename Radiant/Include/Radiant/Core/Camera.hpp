@@ -14,7 +14,6 @@ namespace Radiant
 		Camera();
 
 		void SetViewportSize(uint32_t width, uint32_t height);
-		void SetProjectionMatrix(const glm::mat4& projectionMatrix) { m_ProjectionMatrix = projectionMatrix; }
 		const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 		glm::mat4 GetViewProjection() const { return m_ProjectionMatrix * m_ViewMatrix; }
 		const glm::vec3 GetPosition() const { return m_FocalPoint - GetForwardDirection() * m_Distance; }
@@ -26,6 +25,7 @@ namespace Radiant
 
 		void OnEvent(Event& e);
 	private:
+		void SetProjectionMatrix(const glm::mat4& projectionMatrix) { m_ProjectionMatrix = projectionMatrix; }
 		glm::quat GetOrientation() const;
 		glm::vec3 GetUpDirection() const;
 		glm::vec3 GetRightDirection() const;

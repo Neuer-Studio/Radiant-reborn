@@ -114,8 +114,10 @@ namespace Radiant
 				auto& fbs = FramebufferPool::GetAll();
 
 				for (auto& fb : fbs)
-					fb->Resize(e.width, e.height);
-				
+				{
+					if(!fb->GetFBSpecification().NoResizeble)
+						fb->Resize(e.width, e.height);
+				}
 
 				return false;
 			});
