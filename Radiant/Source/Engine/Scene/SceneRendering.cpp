@@ -618,6 +618,7 @@ namespace Radiant
 		Material::SetUBO(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection);
 		Material::SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
 		Material::SetUBO(0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View);
+		Material::SetUBO(0, "u_ProjectionMatrix", s_SceneInfo->SceneCamera.Projection);
 		Material::SetUBO(0, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
 
 		s_SceneInfo->GridMaterial->SetMat4("u_Transform", transform); //TODO: UBO

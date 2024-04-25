@@ -11,10 +11,15 @@ layout(location = 1) in vec2 a_TexCoord; // we are using the same pipeline with 
 layout(location=0) out vec3 v_Position;
 void main()
 {
-	vec4 position = vec4(a_Position.xy, 1.0, 1.0);
+    vec4 position = vec4(a_Position.xy, 1.0, 1.0);
 	gl_Position = position;
 
-	v_Position = (u_InversedViewProjectionMatrix * position).xyz;
+	mat4 view = u_ViewMatrix;
+	view[3][0] = 0;
+	view[3][1] = 0;
+	view[3][2] = 0; //TODO: move to cpp code
+
+    v_Position = (inverse(u_ProjectionMatrix * view) * position).xyz;
 }
 
 #type fragment
