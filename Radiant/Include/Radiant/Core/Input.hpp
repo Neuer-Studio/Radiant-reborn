@@ -1,30 +1,35 @@
 #pragma once
 
 #include "KeyCodes.hpp"
+#include "MouseButton.hpp"
 
-namespace Radiant
+namespace Radiant::Input
 {
-	typedef enum class MouseButton : uint16_t
+	enum class MouseState
 	{
-		Button0 = 0,
-		Button1 = 1,
-		Button2 = 2,
-		Button3 = 3,
-		Button4 = 4,
-		Button5 = 5,
-		Left = Button0,
-		Right = Button1,
-		Middle = Button2
-	} Button;
+		Visible, Hidden, Locked
+	};
 
-	class Input
+	class Mouse
+	{
+	public:
+		static Mouse& Get();
+
+		bool IsMouseButtonPressed(MouseButton button);
+		float GetMouseX();
+		float GetMouseY();
+		std::pair<float, float> GetMousePosition();
+
+		void SetVisibility(MouseState state) { m_MouseState = state; }
+
+		const MouseState GetVisibility() const { return m_MouseState; }
+	private:
+		MouseState m_MouseState = MouseState::Visible;
+	};
+
+	class Keyboard
 	{
 	public:
 		static bool IsKeyPressed(KeyCode keycode);
-
-		static bool IsMouseButtonPressed(MouseButton button);
-		static float GetMouseX();
-		static float GetMouseY();
-		static std::pair<float, float> GetMousePosition();
 	};
 }

@@ -3,9 +3,9 @@
 
 #include <GLFW/glfw3.h>
 
-namespace Radiant
+namespace Radiant::Input
 {
-	bool Input::IsKeyPressed(KeyCode key)
+	bool Keyboard::IsKeyPressed(KeyCode key)
 	{
 		const GLFWwindow* window = static_cast <const GLFWwindow*>(Application::GetInstance().GetWindow()->GetNativeWindow());
 		auto state = glfwGetKey((GLFWwindow*)window, static_cast<int32_t>(key));
@@ -13,7 +13,7 @@ namespace Radiant
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
 
-	bool Input::IsMouseButtonPressed(MouseButton button)
+	bool Mouse::IsMouseButtonPressed(MouseButton button)
 	{
 		auto window = static_cast<const GLFWwindow*>(Application::GetInstance().GetWindow()->GetNativeWindow());
 		auto state = glfwGetMouseButton((GLFWwindow*)window, static_cast<int32_t>(button));
@@ -21,23 +21,30 @@ namespace Radiant
 		return state == GLFW_PRESS;
 	}
 
-	float Input::GetMouseX()
+	float Mouse::GetMouseX()
 	{
 		auto [x, y] = GetMousePosition();
 		return (float)x;
 	}
 
-	float Input::GetMouseY()
+	float Mouse::GetMouseY()
 	{
 		auto [x, y] = GetMousePosition();
 		return (float)y;
 	}
 
-	std::pair<float, float> Input::GetMousePosition()
+	std::pair<float, float> Mouse::GetMousePosition()
 	{
 		auto window = static_cast<const GLFWwindow*>(Application::GetInstance().GetWindow()->GetNativeWindow());
 		double x, y;
 		glfwGetCursorPos((GLFWwindow*)window, &x, &y);
 		return { (float)x, (float)y };
 	}
+
+	Mouse& Mouse::Get()
+	{
+		static Mouse s_Instance;
+		return s_Instance;
+	}
+
 }

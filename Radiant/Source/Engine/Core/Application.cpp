@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <Radiant/Rendering/Rendering.hpp>
 #include <Radiant/Rendering/Framebuffer.hpp>
+#include <Radiant/Core/Input.hpp>
 
 namespace Radiant
 {
@@ -102,6 +103,15 @@ namespace Radiant
 			{
 				m_Run = false;
 				return true;
+			});
+
+		eventManager.Notify<MouseButtonPressedEvent>([this](const MouseButtonPressedEvent& e) -> bool
+			{
+				const auto currentVisibility = static_cast<Input::MouseState>(glfwGetInputMode((GLFWwindow*)m_Window->GetNativeWindow(), GLFW_CURSOR) - GLFW_CURSOR_NORMAL);
+				if (currentVisibility != Input::Mouse::Get().GetVisibility())
+					glfwSetInputMode((GLFWwindow*)m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
+				return false;
 			});
 
 		eventManager.Notify<EventWindowResize>([this](const EventWindowResize& e) -> bool

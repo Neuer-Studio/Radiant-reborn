@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Radiant/Core/Events/Event.hpp>
+#include <Radiant/Core/MouseButton.hpp>
 
 #include <sstream>
 
@@ -37,24 +38,27 @@ namespace Radiant {
 		float m_XOffset, m_YOffset;
 	};
 
-	//class MouseButtonEvent : public Event
-	//{
-	//public:
-	//	inline int GetMouseButton() const { return m_Button; }
-	//protected:
-	//	MouseButtonEvent(int button)
-	//		: m_Button(button) {}
+	class MouseButtonEvent : public Event
+	{
+	public:
+		inline MouseButton GetMouseButton() const { return m_Button; }
+	protected:
+		MouseButtonEvent(MouseButton button)
+			: m_Button(button) {}
 
-	//	int m_Button;
-	//};
+		MouseButton m_Button;
+	};
 
-	//class MouseButtonPressedEvent : public MouseButtonEvent
-	//{
-	//public:
-	//	MouseButtonPressedEvent(int button)
-	//		: MouseButtonEvent(button) {}
+	class MouseButtonPressedEvent : public MouseButtonEvent
+	{
+	public:
+		MouseButtonPressedEvent(MouseButton button)
+			: MouseButtonEvent(button) {}
 
-	//};
+		virtual const EventType GetEventType() const { return GetStaticType(); }
+		static EventType GetStaticType() { return EventType::MousePressed; }
+
+	};
 
 	//class MouseButtonReleasedEvent : public MouseButtonEvent
 	//{

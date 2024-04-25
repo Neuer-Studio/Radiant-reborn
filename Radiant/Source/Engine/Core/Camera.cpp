@@ -51,28 +51,28 @@ namespace Radiant
 
 	void Camera::OnUpdate(Timestep ts)
 	{
-		const glm::vec2& MousePosition{ Input::GetMouseX(), Input::GetMouseY() };
+		const glm::vec2& MousePosition{ Input::Mouse::Get().GetMouseX(), Input::Mouse::Get().GetMouseY() };
 		const glm::vec2 MouseDelta = (MousePosition - m_InitialMousePosition) * 0.002f;
 
-		if (Input::IsMouseButtonPressed(MouseButton::Right))
+		if (Input::Mouse::Get().IsMouseButtonPressed(MouseButton::Right))
 		{
-			//Mouse::Get().SetVisibility(EMouseVisibility::Locked);
+			Input::Mouse::Get().SetVisibility(Input::MouseState::Locked);
 
 			const float YawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 			const float CameraSpeed = 0.01f * ts.GetMilliseconds();
 			const float RotationSpeed = 0.3f * ts.GetMilliseconds();
 
-			if (Input::IsKeyPressed(KeyCode::Q))
+			if (Input::Keyboard::IsKeyPressed(KeyCode::Q))
 				m_LocationDelta -= CameraSpeed * glm::vec3{ 0.f, YawSign, 0.f };
-			if (Input::IsKeyPressed(KeyCode::E))
+			if (Input::Keyboard::IsKeyPressed(KeyCode::E))
 				m_LocationDelta += CameraSpeed * glm::vec3{ 0.f, YawSign, 0.f };
-			if (Input::IsKeyPressed(KeyCode::S))
+			if (Input::Keyboard::IsKeyPressed(KeyCode::S))
 				m_LocationDelta -= CameraSpeed * m_Direction;
-			if (Input::IsKeyPressed(KeyCode::W))
+			if (Input::Keyboard::IsKeyPressed(KeyCode::W))
 				m_LocationDelta += CameraSpeed * m_Direction;
-			if (Input::IsKeyPressed(KeyCode::A))
+			if (Input::Keyboard::IsKeyPressed(KeyCode::A))
 				m_LocationDelta -= CameraSpeed * m_RightDirection;
-			if (Input::IsKeyPressed(KeyCode::D))
+			if (Input::Keyboard::IsKeyPressed(KeyCode::D))
 				m_LocationDelta += CameraSpeed * m_RightDirection;
 
 			constexpr float MaxRate = 0.12f;
@@ -90,7 +90,7 @@ namespace Radiant
 		}
 		else
 		{
-			//Mouse::Get().SetVisibility(EMouseVisibility::Visible);
+			Input::Mouse::Get().SetVisibility(Input::MouseState::Visible);
 		}
 
 		m_InitialMousePosition = MousePosition;

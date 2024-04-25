@@ -7,7 +7,7 @@ namespace Radiant
 		None = 0, 
 		WindowClose, WindowResize, // Window
 		KeyPressed, // Keys
-		MouseMoved, MouseScroll, // Mouse
+		MouseMoved, MouseScroll, MousePressed// Mouse
 	};
 
 	class Event 

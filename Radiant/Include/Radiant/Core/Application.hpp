@@ -2,6 +2,7 @@
 
 #include <string>
 #include <Radiant/Core/Events/WindowEvents.hpp>
+#include <Radiant/Core/Events/MouseEvents.hpp>
 #include <Radiant/Core/Timestep.hpp>
 
 #include "Window.hpp"

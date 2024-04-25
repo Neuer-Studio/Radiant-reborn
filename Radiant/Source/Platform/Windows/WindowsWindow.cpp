@@ -3,6 +3,7 @@
 #include <Radiant/Core/Application.hpp>
 #include <Radiant/Core/Events/Event.hpp>
 #include <Radiant/Core/Events/WindowEvents.hpp>
+#include <Radiant/Core/Events/KeyEvents.hpp>
 #include <Radiant/Core/Events/MouseEvents.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
 #include <Radiant/Rendering/RendererAPI.hpp>
@@ -95,6 +96,50 @@ namespace Radiant
 				MouseScrolledEvent event((float)xOffset, (float)yOffset);
 				data.EventCallback(event);
 			});
+
+		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+			{
+				auto& data = *((WindowData*)glfwGetWindowUserPointer(window));
+
+				switch (action)
+				{
+				case GLFW_PRESS:
+				{
+					KeyPressedEvent event((KeyCode)key, 0);
+					data.EventCallback(event);
+					break;
+				}
+				/*case GLFW_RELEASE:
+				{
+					KeyReleasedEvent event((KeyCode)key);
+					data.EventCallback(event);
+					break;
+				}
+				case GLFW_REPEAT:
+				{
+					KeyPressedEvent event((KeyCode)key, 1);
+					data.EventCallback(event);
+					break;
+				}*/
+				}
+			});
+
+		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
+			{
+				auto& data = *((WindowData*)glfwGetWindowUserPointer(window));
+
+				switch (action)
+				{
+				case GLFW_PRESS:
+				{
+					MouseButtonPressedEvent event((MouseButton)button);
+					data.EventCallback(event);
+					break;
+				}
+				}
+			});
+
+
 		auto context = Rendering::Initialize(m_Window);
 
 	}
