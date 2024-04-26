@@ -83,6 +83,7 @@ namespace Radiant
 	{
 		glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f };
 		float Multiplier = 1.0f;
+		bool CastShadows = true;
 	};
 
 }

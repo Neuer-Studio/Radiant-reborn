@@ -60,7 +60,8 @@ namespace Radiant
 			{
 				direction,
 				lightComponent.Radiance,
-				lightComponent.Multiplier
+				lightComponent.Multiplier,
+				lightComponent.CastShadows
 			};
 		}
 

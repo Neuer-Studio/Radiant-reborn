@@ -536,7 +536,7 @@ namespace Radiant
 	void ShadowMapPass()
 	{
 		auto& directionalLights = s_SceneInfo->LightEnvironment.DirectionalLights;
-		if (directionalLights.Multiplier == 0.0f)
+		if (directionalLights.Multiplier == 0.0f || !directionalLights.CastShadows)
 		{
 			for (int i = 0; i < 4; i++)
 			{

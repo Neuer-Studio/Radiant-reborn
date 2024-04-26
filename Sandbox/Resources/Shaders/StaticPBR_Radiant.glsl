@@ -110,8 +110,9 @@ struct EnvironmentLight
 {
 	vec3 Direction;
 	vec3 Radiance;
-
     float Multiplier;
+
+	bool CastShadow;
 };
 
 layout(std140, binding=2) uniform ShadingUniforms
@@ -553,7 +554,6 @@ void main()
     vec3 shadowMapCoords = (vs_Input.ShadowMapCoords[CascadeIndex].xyz / vs_Input.ShadowMapCoords[CascadeIndex].w);
 
     shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture[CascadeIndex], shadowMapCoords);
-
 
 	vec3 lightContribution = u_EnvironmentLight[0].Multiplier > 0.0 ?  (Lighting(F0)  * shadowAmount) : vec3(0.0);
 	vec3 iblContribution = IBL(F0, Lr) * u_IBLContribution;
