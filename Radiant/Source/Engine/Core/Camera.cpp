@@ -98,6 +98,10 @@ namespace Radiant
 		m_Yaw += m_YawDelta;
 		m_Pitch += m_PitchDelta;
 
+		static constexpr float MaxPitch = glm::radians(89.0f);
+		static constexpr float MinPitch = -MaxPitch;
+		m_Pitch = glm::clamp(m_Pitch, MinPitch, MaxPitch);
+
 		UpdateCameraView();
 	}
 

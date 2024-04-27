@@ -4,78 +4,78 @@
 
 namespace Radiant
 {
-	void Material::SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value)
+	void Material::SetUBOMember(BindingPoint binding, const std::string& name, const glm::vec3& value)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
-			OpenGLMaterial::SetUBO(binding, name, value);
+			OpenGLMaterial::SetUBOMember(binding, name, value);
 			return;
 		}
 		default: RADIANT_VERIFY(false, "Unknown Rendering API");
 		}
 	}
 
-	void Material::SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value)
+	void Material::SetUBOMember(BindingPoint binding, const std::string& name, const glm::vec2& value)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
-			OpenGLMaterial::SetUBO(binding, name, value);
+			OpenGLMaterial::SetUBOMember(binding, name, value);
 			return;
 		}
 		default: RADIANT_VERIFY(false, "Unknown Rendering API");
 		}
 	}
 
-	void Material::SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value)
+	void Material::SetUBOMember(BindingPoint binding, const std::string& name, const glm::mat4& value)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
-			OpenGLMaterial::SetUBO(binding, name, value);
+			OpenGLMaterial::SetUBOMember(binding, name, value);
 			return;
 		}
 		default: RADIANT_VERIFY(false, "Unknown Rendering API");
 		}
 	}
 
-	void Material::SetUBO(BindingPoint binding, const std::string& name, float value)
+	void Material::SetUBOMember(BindingPoint binding, const std::string& name, float value)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
-			OpenGLMaterial::SetUBO(binding, name, value);
+			OpenGLMaterial::SetUBOMember(binding, name, value);
 			return;
 		}
 		default: RADIANT_VERIFY(false, "Unknown Rendering API");
 		}
 	}
 
-	void Material::SetUBO(BindingPoint binding, const std::string& name, bool value)
+	void Material::SetUBOMember(BindingPoint binding, const std::string& name, bool value)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
-			OpenGLMaterial::SetUBO(binding, name, value);
+			OpenGLMaterial::SetUBOMember(binding, name, value);
 			return;
 		}
 		default: RADIANT_VERIFY(false, "Unknown Rendering API");
 		}
 	}
 
-	void Material::SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size)
+	void Material::SetUBO(BindingPoint binding, const void* data, std::size_t size, std::size_t offset)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 		case RenderingAPIType::OpenGL:
 		{
-			OpenGLMaterial::SetUBO(binding, name, data, size);
+			OpenGLMaterial::SetUBO(binding, data, size, offset);
 			return;
 		}
 		default: RADIANT_VERIFY(false, "Unknown Rendering API");

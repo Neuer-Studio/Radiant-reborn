@@ -249,6 +249,8 @@ namespace Radiant
 
 					if (ImGui::MenuItem("Point Light"))
 					{
+						auto entity = m_Context->CreateEntity("Point Light");
+						entity.AddComponent<PointLightComponent>();
 					}
 
 					ImGui::Spacing();
@@ -328,8 +330,19 @@ namespace Radiant
 			{
 				UI::BeginPropertyGrid();
 				UI::PropertyColor("Radiance", dl.Radiance);
-				UI::Property("Intensity", dl.Multiplier);
+				UI::Property("Intensity", dl.Intensity);
 				UI::Property("Cast Shadows", dl.CastShadows);
+				UI::EndPropertyGrid();
+			});
+
+		DrawComponentUI<PointLightComponent>("Point Light", entity, [&](PointLightComponent& plc)
+			{
+				UI::BeginPropertyGrid();
+				UI::PropertyColor("Radiance", plc.Radiance);
+				UI::Property("Intensity", plc.Intensity);
+				UI::Property("Radius", plc.Radius);
+				UI::Property("Falloff", plc.Falloff);
+				UI::Property("LightSize", plc.LightSize);
 				UI::EndPropertyGrid();
 			});
 

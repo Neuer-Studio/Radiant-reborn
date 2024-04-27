@@ -21,13 +21,14 @@ namespace Radiant
 
 		using EventCallbackFn = std::function<void(Event&)>;
 
-		virtual const std::string& GetTitle() const = 0;
+		[[nodiscard]] virtual const std::string& GetTitle() const = 0;
 		virtual void SetTitle(const std::string& title) = 0;
 
 		virtual void SetSize(uint32_t width, uint32_t height) = 0;
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual const void* GetNativeWindow() const = 0;
+		[[nodiscard]] virtual uint32_t GetWidth() const = 0;
+		[[nodiscard]] virtual uint32_t GetHeight() const = 0;
+		virtual void SetVSync(bool enabled) const = 0;
+		[[nodiscard]] virtual const void* GetNativeWindow() const = 0;
 
 		virtual bool IsWindowMaximized() const = 0;
 		virtual bool IsWindowMinimized() const = 0;

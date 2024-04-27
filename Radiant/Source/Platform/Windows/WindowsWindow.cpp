@@ -167,11 +167,15 @@ namespace Radiant
 		glfwSetWindowSize(m_Window, width, height);
 	}
 
+	void WindowsWindow::SetVSync(bool enabled) const
+	{
+		glfwSwapInterval(enabled);
+	}
+
 	bool WindowsWindow::IsWindowMaximized() const
 	{
 		return (bool)glfwGetWindowAttrib(m_Window, GLFW_MAXIMIZED);
 	}
-
 
 	void WindowsWindow::Maximize() const
 	{

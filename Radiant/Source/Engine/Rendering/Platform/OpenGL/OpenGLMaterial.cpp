@@ -156,12 +156,12 @@ namespace Radiant
 		SetUniform(name, RadiantShaderDataType::Float4, &value, arrayIndex);
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value)
+	void OpenGLMaterial::SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::vec3& value)
 	{
-		Rendering::SubmitCommand([binding, name, value]() mutable
+		Rendering::SubmitCommand([binding, memberName, value]() mutable
 			{
 				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
-				MemberUniformBufferObject uniform = buffer.Uniforms[name];
+				MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
 				RADIANT_VERIFY(uniform.Name != "");
 
 				if (buffer.Name.empty())
@@ -173,12 +173,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value)
+	void OpenGLMaterial::SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::vec2& value)
 	{
-		Rendering::SubmitCommand([binding, name, value]() mutable
+		Rendering::SubmitCommand([binding, memberName, value]() mutable
 			{
 				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
-				MemberUniformBufferObject uniform = buffer.Uniforms[name];
+				MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
 				RADIANT_VERIFY(uniform.Name != "");
 
 				if (buffer.Name.empty())
@@ -190,12 +190,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value)
+	void OpenGLMaterial::SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::mat4& value)
 	{
-		Rendering::SubmitCommand([binding, name, value]() mutable
+		Rendering::SubmitCommand([binding, memberName, value]() mutable
 			{
 				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
-				MemberUniformBufferObject uniform = buffer.Uniforms[name];
+				MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
 				RADIANT_VERIFY(uniform.Name != "");
 
 				if (buffer.Name.empty())
@@ -207,12 +207,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, float value)
+	void OpenGLMaterial::SetUBOMember(BindingPoint binding, const std::string& memberName, float value)
 	{
-		Rendering::SubmitCommand([binding, name, value]() mutable
+		Rendering::SubmitCommand([binding, memberName, value]() mutable
 			{
 				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
-				MemberUniformBufferObject uniform = buffer.Uniforms[name];
+				MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
 				RADIANT_VERIFY(uniform.Name != "");
 
 				if (buffer.Name.empty())
@@ -224,12 +224,12 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, bool value)
+	void OpenGLMaterial::SetUBOMember(BindingPoint binding, const std::string& memberName, bool value)
 	{
-		Rendering::SubmitCommand([binding, name, value]() mutable
+		Rendering::SubmitCommand([binding, memberName, value]() mutable
 			{
 				ShaderUniformBufferObject buffer = OpenGLShader::s_UniformBuffers[binding];
-				MemberUniformBufferObject uniform = buffer.Uniforms[name];
+				MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
 				RADIANT_VERIFY(uniform.Name != "");
 
 				if (buffer.Name.empty())
@@ -243,24 +243,23 @@ namespace Radiant
 			});
 	}
 
-	void OpenGLMaterial::SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size)
+	void OpenGLMaterial::SetUBO(BindingPoint binding, const void* data, std::size_t size, std::size_t offset)
 	{
-		Memory::Buffer uboBuffer = Memory::Buffer::Copy(data, size);
-		Rendering::SubmitCommand([binding, name, uboBuffer]() mutable
+		Memory::Buffer storageBuffer = Memory::Buffer::Copy(data, size);
+		Rendering::SubmitCommand([binding, offset, storageBuffer]() mutable
 			{
 				ShaderUniformBufferObject ubuffer = OpenGLShader::s_UniformBuffers[binding];
-				MemberUniformBufferObject uniform = ubuffer.Uniforms[name];
-				RADIANT_VERIFY(uniform.Name != "");
-				RADIANT_VERIFY(uniform.Size == uboBuffer.Size);
+				RADIANT_VERIFY(ubuffer.Name != "");
+				RADIANT_VERIFY(ubuffer.Size == storageBuffer.Size);
 
 				if (ubuffer.Name.empty())
 					RA_WARN("[ OpenGLMaterial::SetUniform ] bufferName is empty");
 
 				glBindBuffer(GL_UNIFORM_BUFFER, ubuffer.RenderingID);
-				glBufferSubData(GL_UNIFORM_BUFFER, uniform.Offset, uboBuffer.Size, uboBuffer.Data);
+				glBufferSubData(GL_UNIFORM_BUFFER, offset, storageBuffer.Size, storageBuffer.Data);
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-				uboBuffer.Release();
+				storageBuffer.Release();
 				// glNamedBufferSubData
 			});
 	}

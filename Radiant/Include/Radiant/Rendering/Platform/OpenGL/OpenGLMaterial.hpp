@@ -13,12 +13,13 @@ namespace Radiant
 
 		virtual void Use() const override;
 
-		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec3& value);
-		static void SetUBO(BindingPoint binding, const std::string& name, const glm::vec2& value);
-		static void SetUBO(BindingPoint binding, const std::string& name, const glm::mat4& value);
-		static void SetUBO(BindingPoint binding, const std::string& name, float value);
-		static void SetUBO(BindingPoint binding, const std::string& name, bool value);
-		static void SetUBO(BindingPoint binding, const std::string& name, const void* data, std::size_t size);
+		static void SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::vec3& value);
+		static void SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::vec2& value);
+		static void SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::mat4& value);
+		static void SetUBOMember(BindingPoint binding, const std::string& memberName, float value);
+		static void SetUBOMember(BindingPoint binding, const std::string& memberName, bool value);
+
+		static void SetUBO(BindingPoint binding, const void* data, std::size_t size, std::size_t offset);
 
 		virtual void SetImage2D(const TextureDescriptor& descriptor, const Memory::Shared<Texture2D>& texture2D) const override;
 		virtual void SetImage2D(const TextureDescriptor& descriptor, const Memory::Shared<Image2D>& image2D) const override;

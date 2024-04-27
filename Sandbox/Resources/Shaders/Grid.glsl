@@ -35,6 +35,6 @@ float grid(vec2 st, float res)
 
 void main()
 {
-	float x = grid(v_TexCoord * 16.025, 0.02);
+	float x = grid(v_TexCoord * 16.025, 0.08);
 	color = vec4(vec3(0.2), 0.5) * (1.0 - x);
 }

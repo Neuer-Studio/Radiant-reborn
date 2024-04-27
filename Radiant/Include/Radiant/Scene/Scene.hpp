@@ -13,16 +13,30 @@ namespace Radiant
 
 	struct DirectionalLight
 	{
-		glm::vec3 Direction = { 0.0f, 0.0f, 0.0f };
-		alignas(16) glm::vec3 Radiance = { 1.0f, 1.0f, 1.0f }; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
+		glm::vec3 Direction;
+		alignas(16) glm::vec3 Radiance; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
 		
-		float Multiplier = 0.0f;
+		float Intensity;
 		bool CastShadows;
+	};
+
+	struct PointLight
+	{
+		glm::vec3 Direction;
+		alignas(16) glm::vec3 Radiance; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
+
+		float Intensity;
+		float Radius;
+		float Falloff;
+		float LightSize;
 	};
 
 	struct LightEnvironment
 	{
-		DirectionalLight DirectionalLights;// [4] ;
+		DirectionalLight DirectionalLights;
+		std::vector<PointLight> PointLights;
+
+		[[nodiscard]] uint32_t GetPointLightsSize() const { return (uint32_t)(PointLights.size() * sizeof(PointLight)); }
 	};
 
 	struct SceneUpdateInformation

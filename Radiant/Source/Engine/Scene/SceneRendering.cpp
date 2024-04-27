@@ -20,9 +20,21 @@
 
 namespace Radiant
 {
+	struct PointLightsDeclaration
+	{
+		uint32_t Count{ 0 };
+		PointLight PointLights[1024]{};
+	};
+
+	struct UBLights
+	{
+		DirectionalLight directionalLight;
+		PointLightsDeclaration pointLights;
+	};
+
 	static constexpr int kShadowMapSize = 4096;
 	static constexpr int kBRDF_LUT_Size = 256;
-	static constexpr int kLightEnvironmentSize = sizeof(LightEnvironment);
+	static constexpr int kLightEnvironmentSize = sizeof(UBLights);
 
 	struct GeometryData
 	{
@@ -82,6 +94,7 @@ namespace Radiant
 		Memory::Shared<Material> SkyboxMaterial;
 		struct LightEnvironment LightEnvironment;
 		Memory::Shared<Texture2D> BRDF_LUT;
+		UBLights LightUB;
 
 		struct
 		{
@@ -125,6 +138,13 @@ namespace Radiant
 
 		s_SceneInfo->LightEnvironment = s_SceneInfo->ActiveScene->GetLightEnvironment();
 
+		UBLights& lightsUB = s_SceneInfo->LightUB;
+		lightsUB.directionalLight = s_SceneInfo->LightEnvironment.DirectionalLights;
+		lightsUB.pointLights.Count = s_SceneInfo->LightEnvironment.PointLights.size();
+		std::memcpy(lightsUB.pointLights.PointLights, s_SceneInfo->LightEnvironment.PointLights.data(), s_SceneInfo->LightEnvironment.GetPointLightsSize());
+
+		//UBO
+		Material::SetUBO(2, &lightsUB, kLightEnvironmentSize);
 	}
 
 	void SceneRendering::EndScene()
@@ -298,14 +318,14 @@ namespace Radiant
 	void SceneRendering::SetEnvMapRotation(float rotation)
 	{
 		RADIANT_VERIFY(s_SceneInfo, "Did you call Init() ?");
-		Material::SetUBO(2, "u_EnvMapRotation", rotation);
+		Material::SetUBOMember(10, "u_EnvMapRotation", rotation);
 
 	}
 
 	void SceneRendering::SetIBLContribution(float value)
 	{
 		RADIANT_VERIFY(s_SceneInfo, "Did you call Init() ?");
-		Material::SetUBO(2, "u_IBLContribution", value);
+		Material::SetUBOMember(10, "u_IBLContribution", value);
 	}
 
 	void SceneRendering::OnImGuiRender()
@@ -483,9 +503,6 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Metalness", metalness.Metalness);
 			s_SceneInfo->RenderPassList.GeoData.material->SetVec3("u_AlbedoColor", diffuse.AlbedoColor);
 
-			//UBO
-			Material::SetUBO(2, "u_EnvironmentLight", &s_SceneInfo->LightEnvironment.DirectionalLights, kLightEnvironmentSize);
-
 			//Update toggles
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseNormalTexture", normal.Enabled);
 			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseAlbedoTexture", diffuse.Enabled);
@@ -536,7 +553,7 @@ namespace Radiant
 	void ShadowMapPass()
 	{
 		auto& directionalLights = s_SceneInfo->LightEnvironment.DirectionalLights;
-		if (directionalLights.Multiplier == 0.0f || !directionalLights.CastShadows)
+		if (directionalLights.Intensity == 0.0f || !directionalLights.CastShadows)
 		{
 			for (int i = 0; i < 4; i++)
 			{
@@ -587,8 +604,8 @@ namespace Radiant
 		s_SceneInfo->RenderPassList.CompData.material->SetFloat("u_Exposure", s_SceneInfo->SceneCamera.Exposure); //TODO: move to the UBO
 		s_SceneInfo->RenderPassList.CompData.material->SetUint("u_SamplesCount", s_SceneInfo->ActiveScene->GetSceneSamplesCount());
 
-		Material::SetUBO(10, "TextureLod", s_SceneInfo->Attributes.EnvironmentMapLod);
-		Material::SetUBO(10, "SkyIntensity", s_SceneInfo->Attributes.Intensity);
+		Material::SetUBOMember(10, "u_TextureLod", s_SceneInfo->Attributes.EnvironmentMapLod);
+		Material::SetUBOMember(10, "u_SkyIntensity", s_SceneInfo->Attributes.Intensity);
 
 		TextureDescriptor descriptor;
 		descriptor.Name = "u_Texture";
@@ -615,11 +632,11 @@ namespace Radiant
 
 		FlushDrawList();
 
-		Material::SetUBO(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection);
-		Material::SetUBO(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
-		Material::SetUBO(0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View);
-		Material::SetUBO(0, "u_ProjectionMatrix", s_SceneInfo->SceneCamera.Projection);
-		Material::SetUBO(0, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
+		Material::SetUBOMember(0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection);
+		Material::SetUBOMember(0, "u_InversedViewProjectionMatrix", s_SceneInfo->SceneCamera.InversedViewProjection);
+		Material::SetUBOMember(0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View);
+		Material::SetUBOMember(0, "u_ProjectionMatrix", s_SceneInfo->SceneCamera.Projection);
+		Material::SetUBOMember(0, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos);
 
 		s_SceneInfo->GridMaterial->SetMat4("u_Transform", transform); //TODO: UBO
 

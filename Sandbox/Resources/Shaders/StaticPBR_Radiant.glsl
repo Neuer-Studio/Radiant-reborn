@@ -59,6 +59,8 @@ void main()
 #version 450 core
 layout(location = 0) out vec4 o_Color;
 
+#include "UBO/Environment/EnvironmentAttributes.glsl_h"
+
 const float PI = 3.141592;
 const float Epsilon = 0.00001;
 const int LightCount = 1;
@@ -110,17 +112,32 @@ struct EnvironmentLight
 {
 	vec3 Direction;
 	vec3 Radiance;
-    float Multiplier;
+    float Intensity;
 
 	bool CastShadow;
 };
 
-layout(std140, binding=2) uniform ShadingUniforms
+struct PointLight 
 {
-    EnvironmentLight u_EnvironmentLight[LightCount]; 
-    float u_EnvMapRotation;
-    float u_IBLContribution;
+	vec3 Position;
+	vec3 Radiance;
+    float Intensity;
+	float Radius;
+	float Falloff;
+	float LightSize;
 };
+
+struct PointLightDeclaration 
+{
+	uint size;
+	PointLight pointLights[1024];
+};
+
+layout(std140, binding=2) uniform Lights
+{
+    EnvironmentLight environmentLight[LightCount];
+	PointLightDeclaration pointLight;
+} u_Light;
 
 struct PBRParams
 {
@@ -267,8 +284,8 @@ vec3 Lighting(vec3 F0)
 	vec3 result = vec3(0.0);
 	for(int i = 0; i < LightCount; i++)
 	{
-		vec3 Li = u_EnvironmentLight[i].Direction;
-		vec3 Lradiance = u_EnvironmentLight[i].Radiance * u_EnvironmentLight[i].Multiplier;
+		vec3 Li = u_Light.environmentLight[i].Direction;
+		vec3 Lradiance = u_Light.environmentLight[i].Radiance * u_Light.environmentLight[i].Intensity;
 		vec3 Lh = normalize(Li + m_Params.View);
 
 		// Calculate angles between surface normal and various light vectors.
@@ -288,6 +305,22 @@ vec3 Lighting(vec3 F0)
 		result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
 	}
 	return result;
+}
+
+vec3 CalculatePointLight(const PointLight light, vec3 worldPos)
+{
+	vec3 lightDirection = light.Position - worldPos;
+
+	// attenuation
+	float distance = length(lightDirection);
+	float attenuation = clamp(1.0 - (distance - 1.0) / (light.Radius - 1.0), 0.0, 1.0);
+	float falloff = pow(attenuation, light.Falloff); 
+
+	float lightSizeAttenuation = 1.0 - smoothstep(0.0, light.LightSize, distance);
+	float intensity = light.Intensity * falloff * lightSizeAttenuation;
+
+	return light.Radiance * intensity;
+
 }
 
 vec3 IBL(vec3 F0, vec3 Lr)
@@ -319,7 +352,7 @@ float ShadowFade = 1.0;
 float GetShadowBias()
 {
 	const float MINIMUM_SHADOW_BIAS = 0.002;
-	float bias = max(MINIMUM_SHADOW_BIAS * (1.0 - dot(m_Params.Normal, u_EnvironmentLight[0].Direction)), MINIMUM_SHADOW_BIAS);
+	float bias = max(MINIMUM_SHADOW_BIAS * (1.0 - dot(m_Params.Normal, u_Light.environmentLight[0].Direction)), MINIMUM_SHADOW_BIAS);
 	return bias;
 }
 
@@ -555,9 +588,14 @@ void main()
 
     shadowAmount = HardShadows_DirectionalLight(u_ShadowMapTexture[CascadeIndex], shadowMapCoords);
 
-	vec3 lightContribution = u_EnvironmentLight[0].Multiplier > 0.0 ?  (Lighting(F0)  * shadowAmount) : vec3(0.0);
+	vec3 lightContribution = u_Light.environmentLight[0].Intensity > 0.0 ?  (Lighting(F0)  * shadowAmount) : vec3(0.0);
 	vec3 iblContribution = IBL(F0, Lr) * u_IBLContribution;
 
-	o_Color = vec4(iblContribution + lightContribution, 1.0);
+
+	vec3 pl = vec3(0.0);
+	if(u_Light.pointLight.size > 0)
+		pl = CalculatePointLight(u_Light.pointLight.pointLights[0], vs_Input.WorldPosition);
+
+	o_Color = vec4( pl, 1.0);
    
 }

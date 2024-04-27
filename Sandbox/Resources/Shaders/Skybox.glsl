@@ -39,6 +39,6 @@ layout(binding=0) uniform samplerCube u_EnvTexture;
 
 void main()
 {
-	vec3 color = textureLod(u_EnvTexture, v_Position, TextureLod).rgb * SkyIntensity;
+	vec3 color = textureLod(u_EnvTexture, v_Position, u_TextureLod).rgb * u_SkyIntensity;
 	finalColor = vec4(color, 1.0);
 }

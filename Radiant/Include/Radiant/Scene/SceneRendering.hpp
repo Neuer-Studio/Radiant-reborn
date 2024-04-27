@@ -32,7 +32,7 @@ namespace Radiant
 		static Memory::Shared<Image2D> GetShadowMapPassImage();
 
 		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
-
+	private:
 		friend class Scene;
 		friend class Rendering;
 		friend class PanelOutliner;

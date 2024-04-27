@@ -1,7 +1,9 @@
 #pragma once
 
-layout(std140, binding=10) uniform SkyAttributes
+layout(std140, binding=10) uniform EnvMapAttributes
 {
-	float TextureLod;
-	float SkyIntensity;
+	float u_TextureLod;
+	float u_SkyIntensity;
+	float u_EnvMapRotation;
+    float u_IBLContribution;
 };

@@ -45,6 +45,12 @@ decltype(auto) initializeDefaultValue() {
 		__debugbreak();                     \
 	}
 
+#define RADIANT_VERIFY_WARN(cond, ...) \
+	if (!(cond))                                   \
+	{                     \
+		Radiant::LogWarn("Verify failed: {} at {}:{}", #cond, __FILE__, __LINE__); \
+	}
+
 
 namespace Radiant
 {

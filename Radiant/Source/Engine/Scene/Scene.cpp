@@ -48,21 +48,40 @@ namespace Radiant
 	/*	Entity& cameraEntity = GetMainCameraEntity();
 		if (!cameraEntity)
 			return;*/
-		auto group = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
 
-		auto lights = m_Registry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
-		uint32_t directionalLightIndex = 0;
-		for (auto entity : lights)
+		auto dirLight = m_Registry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+		for (auto entity : dirLight)
 		{
-			auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
+			auto [transformComponent, lightComponent] = dirLight.get<TransformComponent, DirectionalLightComponent>(entity);
 			glm::vec3 direction = -glm::normalize(glm::mat3(transformComponent.GetTransform()) * glm::vec3(1.0f));
 			m_LightEnvironment.DirectionalLights =
 			{
 				direction,
 				lightComponent.Radiance,
-				lightComponent.Multiplier,
+				lightComponent.Intensity,
 				lightComponent.CastShadows
 			};
+		}
+
+		// Point lights
+		{
+			auto pointLights = m_Registry.group<PointLightComponent>(entt::get<TransformComponent>);
+			uint32_t pointLightIndex = 0;
+			for (auto entity : pointLights)
+			{
+				auto [transformComponent, lightComponent] = pointLights.get<TransformComponent, PointLightComponent>(entity);
+				glm::vec3 direction = -glm::normalize(glm::mat3(transformComponent.GetTransform()) * glm::vec3(1.0f));
+				m_LightEnvironment.PointLights.resize(pointLights.size());
+				m_LightEnvironment.PointLights[pointLightIndex] =
+				{
+					direction,
+					lightComponent.Radiance,
+					lightComponent.Intensity,
+					lightComponent.Radius,
+					lightComponent.Falloff,
+					lightComponent.LightSize,
+				};
+			}
 		}
 
 		auto envMap = m_Registry.group<EnvironmentMap>(entt::get<TransformComponent>);
@@ -76,9 +95,10 @@ namespace Radiant
 			SceneRendering::SetEnvironmentAttributes(attrs);
 		}
 
-		for (auto entity : group)
+		auto mesh = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
+		for (auto entity : mesh)
 		{
-			auto [transformComponent, meshComponent] = group.get<TransformComponent, MeshComponent>(entity);
+			auto [transformComponent, meshComponent] = mesh.get<TransformComponent, MeshComponent>(entity);
 			if (meshComponent.Mesh)
 			{
 				SceneRendering::SubmitMesh(meshComponent, transformComponent.GetTransform());

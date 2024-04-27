@@ -23,6 +23,7 @@ namespace Radiant
 		wspec.Fullscreen = specification.Fullscreen;
 
 		m_Window = Window::Create(wspec);
+		m_Window->SetVSync(true);
 		m_Window->SetEventCallback([this](Event& e)
 			{
 				this->ProcessEvents(e);
