@@ -592,10 +592,13 @@ void main()
 	vec3 iblContribution = IBL(F0, Lr) * u_IBLContribution;
 
 
-	vec3 pl = vec3(0.0);
-	if(u_Light.pointLight.size > 0)
-		pl = CalculatePointLight(u_Light.pointLight.pointLights[0], vs_Input.WorldPosition);
+	vec3 pointLights = vec3(0.0);
+	for(uint i = 0; i < u_Light.pointLight.size; i++)
+	{
+		pointLights += CalculatePointLight(u_Light.pointLight.pointLights[i], vs_Input.WorldPosition);
+	}
 
-	o_Color = vec4( pl, 1.0);
+	vec3 finalLightning = lightContribution + iblContribution + pointLights;
+	o_Color = vec4(finalLightning, 1.0);
    
 }

@@ -70,9 +70,9 @@ namespace Radiant
 			for (auto entity : pointLights)
 			{
 				auto [transformComponent, lightComponent] = pointLights.get<TransformComponent, PointLightComponent>(entity);
-				glm::vec3 direction = -glm::normalize(glm::mat3(transformComponent.GetTransform()) * glm::vec3(1.0f));
+				glm::vec3 direction = transformComponent.Translation; //TODO: flag paneloutliner only translation
 				m_LightEnvironment.PointLights.resize(pointLights.size());
-				m_LightEnvironment.PointLights[pointLightIndex] =
+				m_LightEnvironment.PointLights[pointLightIndex++] =
 				{
 					direction,
 					lightComponent.Radiance,

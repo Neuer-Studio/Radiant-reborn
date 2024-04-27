@@ -89,10 +89,11 @@ namespace Radiant
 	struct PointLightComponent
 	{
 		glm::vec3 Radiance = glm::vec3(1.0f);
+
 		float Intensity = 1.0f;
 		float Radius = 10.0f;
 		float Falloff = 1.0f;
-		float LightSize = 0.5f;
+		float LightSize = 2.5f;
 	};
 
 }
