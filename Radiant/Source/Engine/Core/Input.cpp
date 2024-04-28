@@ -47,4 +47,12 @@ namespace Radiant::Input
 		return s_Instance;
 	}
 
+	void Mouse::SetCursorMode(MouseState mode)
+	{
+		m_MouseMode = mode;
+
+		auto& window = Application::GetInstance().GetWindow();
+		glfwSetInputMode((GLFWwindow*)(window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL + (int)mode);
+	}
+
 }

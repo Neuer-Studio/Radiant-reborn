@@ -67,23 +67,35 @@ namespace Radiant
 			});
 	}
 
-	void Rendering::SubmitMeshWithMaterial(const DrawSpecificationCommand& specification, const Memory::Shared<Pipeline>& pipeline)
+	void Rendering::SubmitMeshWithMaterial(const DrawSpecificationCommandWithMaterial& specification, const Memory::Shared<Pipeline>& pipeline)
 	{
 		RADIANT_VERIFY(pipeline);
 
-		RADIANT_VERIFY(specification.Mesh);
+		RADIANT_VERIFY(specification.Declration.Mesh);
 		RADIANT_VERIFY(specification.Material);
 
-		specification.Mesh->GetVertexBuffer()->Use();
+		const auto& mesh = specification.Declration.Mesh;
+		mesh->GetVertexBuffer()->Use();
 		pipeline->Use();
-		specification.Mesh->GetIndexBuffer()->Use();
+		mesh->GetIndexBuffer()->Use();
 
 		const auto& shader = pipeline->GetSpecification().Shader;
 		RADIANT_VERIFY(shader);
 
-		for (const Submesh& submesh : specification.Mesh->GetSubmeshes())
+		for (const Submesh& submesh : mesh->GetSubmeshes())
 		{
-			specification.Material->SetMat4("u_Transform", specification.Transform );
+			specification.Material->SetFloat("u_Roughness", mesh->MaterialRoughnessData.Roughness);
+			specification.Material->SetFloat("u_Metalness", mesh->MaterialMetalnessData.Metalness);
+			specification.Material->SetVec3("u_AlbedoColor", mesh->MaterialDiffuseData.AlbedoColor);
+
+			//Update toggles
+			specification.Material->SetBool("u_UseNormalTexture", mesh->MaterialNormalData.Material.Enabled);
+			specification.Material->SetBool("u_UseAlbedoTexture", mesh->MaterialDiffuseData.Material.Enabled);
+			specification.Material->SetBool("u_UseMetalnessTexture", mesh->MaterialMetalnessData.Material.Enabled);
+			specification.Material->SetBool("u_UseRoughnessTexture", mesh->MaterialRoughnessData.Material.Enabled);
+
+			//Update transform
+			specification.Material->SetMat4("u_Transform", specification.Declration.Transform * submesh.Transform);
 			shader->Use();
 
 			Rendering::SubmitCommand([submesh]()
@@ -97,19 +109,35 @@ namespace Radiant
 		// Rendering::DrawPrimitive(Primitives::Triangle, specification.Mesh->GetIndexCount(), true);
 	}
 
-	/*void Rendering::SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline)
+	void Rendering::SubmitMesh(const DrawDeclarationCommand& specification, const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& material)
 	{
+		RADIANT_VERIFY(pipeline);
+
+		RADIANT_VERIFY(specification.Mesh);
+
+		const auto& mesh = specification.Mesh;
 		mesh->GetVertexBuffer()->Use();
 		pipeline->Use();
 		mesh->GetIndexBuffer()->Use();
 
+		RADIANT_VERIFY(material);
+
 		for (const Submesh& submesh : mesh->GetSubmeshes())
 		{
 
-		}
+			//Update transform
+			material->SetMat4("u_Transform", specification.Transform * submesh.Transform);
+			material->Use();
 
-		Rendering::DrawPrimitive(Primitives::Triangle, mesh->GetIndexCount(), true);
-	}*/
+			Rendering::SubmitCommand([submesh]()
+				{
+					glEnable(GL_DEPTH_TEST);
+					glDrawElementsBaseVertex(GL_TRIANGLES, submesh.IndexCount, GL_UNSIGNED_INT, (void*)(sizeof(uint32_t) * submesh.BaseIndex), submesh.BaseVertex);
+					glDisable(GL_DEPTH_TEST);
+				});
+
+		}
+	}
 
 	void Rendering::DrawPrimitive(Primitives primitive, uint32_t count, bool depthTest)
 	{

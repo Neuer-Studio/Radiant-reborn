@@ -108,10 +108,6 @@ namespace Radiant
 
 		eventManager.Notify<MouseButtonPressedEvent>([this](const MouseButtonPressedEvent& e) -> bool
 			{
-				const auto currentVisibility = static_cast<Input::MouseState>(glfwGetInputMode((GLFWwindow*)m_Window->GetNativeWindow(), GLFW_CURSOR) - GLFW_CURSOR_NORMAL);
-				if (currentVisibility != Input::Mouse::Get().GetVisibility())
-					glfwSetInputMode((GLFWwindow*)m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL + static_cast<int32_t>(Input::Mouse::Get().GetVisibility()));
-
 				return false;
 			});
 

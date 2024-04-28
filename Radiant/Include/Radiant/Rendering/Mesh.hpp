@@ -64,16 +64,6 @@ namespace Radiant
 
 		const auto& GetVertexBuffer() const { return m_VertexBuffer; }
 		const auto& GetIndexBuffer() const { return m_IndexBuffer; }
-
-		auto& GetMaterialDiffuseData()    { return	MaterialDiffuseData; }
-		auto& GetMaterialNormalData()     { return	MaterialNormalData; }
-		auto& GetMaterialRoughnessData()  {	return  MaterialRoughnessData; }
-		auto& GetMaterialMetalnessData()  {	return  MaterialMetalnessData; }
-
-		auto& GetMaterialDiffuseData()	const	{ return	MaterialDiffuseData; }
-		auto& GetMaterialNormalData()	const	{ return	MaterialNormalData; }
-		auto& GetMaterialRoughnessData()const	{ return  MaterialRoughnessData; }
-		auto& GetMaterialMetalnessData()const 	{ return  MaterialMetalnessData; }
 	private:
 		void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);
 	private:
@@ -90,32 +80,37 @@ namespace Radiant
 		std::filesystem::path m_AssetPath;
 
 		//Note: Enabled - flag: is texture has been loaded
-		struct
+
+		struct BaseMeshMaterial
 		{
 			bool Enabled = false;
 			Memory::Shared<Texture2D> Texture;
+		};
+
+		struct
+		{
+			BaseMeshMaterial Material;
 			glm::vec3 AlbedoColor;
 		} MaterialDiffuseData;
 
 		struct
 		{
-			bool Enabled = false;
-			Memory::Shared<Texture2D> Texture;
+			BaseMeshMaterial Material;
 		} MaterialNormalData;
 
 		struct
 		{
-			bool Enabled = false;
-			Memory::Shared<Texture2D> Texture;
+			BaseMeshMaterial Material;
 			float Roughness;
 		} MaterialRoughnessData;
 
 		struct
 		{
-			bool Enabled = false;
-			Memory::Shared<Texture2D> Texture;
+			BaseMeshMaterial Material;
 			float Metalness;
 		} MaterialMetalnessData;
+	private:
+		friend class Rendering;
 	};
 
 	class StaticMesh : public Mesh

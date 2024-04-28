@@ -20,11 +20,11 @@ namespace Radiant::Input
 		float GetMouseY();
 		std::pair<float, float> GetMousePosition();
 
-		void SetVisibility(MouseState state) { m_MouseState = state; }
+		void SetCursorMode(MouseState mode);
 
-		const MouseState GetVisibility() const { return m_MouseState; }
+		const MouseState GetVisibility() const { return m_MouseMode; }
 	private:
-		MouseState m_MouseState = MouseState::Visible;
+		MouseState m_MouseMode = MouseState::Visible;
 	};
 
 	class Keyboard

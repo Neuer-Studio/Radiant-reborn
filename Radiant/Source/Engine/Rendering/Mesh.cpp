@@ -147,8 +147,8 @@ namespace Radiant
 					{
 						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
 
-						MaterialDiffuseData.Enabled = true;
-						MaterialDiffuseData.Texture = Texture2D::Create(imagePath);
+						MaterialDiffuseData.Material.Enabled = true;
+						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
 
 						MESH_LOG("aiTextureType_DIFFUSE: {}", imagePath.string());
 					}
@@ -157,8 +157,8 @@ namespace Radiant
 					{
 						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
 
-						MaterialNormalData.Enabled = true;
-						MaterialNormalData.Texture = Texture2D::Create(imagePath);
+						MaterialDiffuseData.Material.Enabled = true;
+						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
 
 						MESH_LOG("aiTextureType_NORMALS: {}", imagePath.string());
 					}
@@ -168,8 +168,8 @@ namespace Radiant
 					{
 						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
 
-						MaterialRoughnessData.Enabled = true;
-						MaterialRoughnessData.Texture = Texture2D::Create(imagePath);
+						MaterialDiffuseData.Material.Enabled = true;
+						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
 
 						MESH_LOG("aiTextureType_SHININESS: {}", imagePath.string());
 					}
@@ -179,8 +179,8 @@ namespace Radiant
 					{
 						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
 
-						MaterialMetalnessData.Enabled = true;
-						MaterialMetalnessData.Texture = Texture2D::Create(imagePath);
+						MaterialDiffuseData.Material.Enabled = true;
+						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
 
 						MESH_LOG("aiTextureType_SHININESS: {}", imagePath.string());
 					}

@@ -484,31 +484,6 @@ namespace Radiant
 
 		for (const auto& mesh : s_SceneInfo->MeshDrawList)
 		{
-			const auto& diffuse = mesh.Mesh->GetMaterialDiffuseData();
-			const auto& normal = mesh.Mesh->GetMaterialNormalData();
-			const auto& roughness = mesh.Mesh->GetMaterialRoughnessData();
-			const auto& metalness = mesh.Mesh->GetMaterialMetalnessData();
-
-			/*if (diffuse.Enabled)
-			{
-				s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_AlbedoTexture", diffuse.Texture);
-				if (normal.Enabled)
-					s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_NormalTexture", normal.Texture);
-			}
-
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_RoughnessTexture", roughness.Texture);
-			s_SceneInfo->RenderPassList.GeoData.material->SetImage2D("u_MetalnessTexture", metalness.Texture);*/
-
-			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Roughness", roughness.Roughness);
-			s_SceneInfo->RenderPassList.GeoData.material->SetFloat("u_Metalness", metalness.Metalness);
-			s_SceneInfo->RenderPassList.GeoData.material->SetVec3("u_AlbedoColor", diffuse.AlbedoColor);
-
-			//Update toggles
-			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseNormalTexture", normal.Enabled);
-			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseAlbedoTexture", diffuse.Enabled);
-			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseMetalnessTexture", metalness.Enabled);
-			s_SceneInfo->RenderPassList.GeoData.material->SetBool("u_UseRoughnessTexture", roughness.Enabled);
-
 			// Env. map
 			TextureDescriptor descriptor;
 
@@ -539,7 +514,11 @@ namespace Radiant
 			s_SceneInfo->RenderPassList.GeoData.material->SetVec4("u_CascadeSplits", s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits);
 			s_SceneInfo->RenderPassList.GeoData.material->SetMat4("u_LightView", s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix);
 
-			Rendering::SubmitMeshWithMaterial({ mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.GeoData.material }, s_SceneInfo->RenderPassList.GeoData.pipeline);
+			DrawSpecificationCommandWithMaterial command;
+			command.Material = s_SceneInfo->RenderPassList.GeoData.material;
+			command.Declration = { mesh.Transform, mesh.Mesh };
+
+			Rendering::SubmitMeshWithMaterial(command, s_SceneInfo->RenderPassList.GeoData.pipeline);
 		}
 
 		if (s_SceneInfo->ShowGrid)
@@ -586,7 +565,7 @@ namespace Radiant
 
 			for (const auto& mesh : s_SceneInfo->MeshDrawList)
 			{
-				Rendering::SubmitMeshWithMaterial({ mesh.Transform, mesh.Mesh, s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial }, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]);
+				Rendering::SubmitMesh({ mesh.Transform, mesh.Mesh }, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i], s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial);
 			}
 
 			Rendering::EndRenderPass();

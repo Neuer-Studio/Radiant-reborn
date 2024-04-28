@@ -56,7 +56,7 @@ namespace Radiant
 
 		if (Input::Mouse::Get().IsMouseButtonPressed(MouseButton::Right))
 		{
-			Input::Mouse::Get().SetVisibility(Input::MouseState::Locked);
+			Input::Mouse::Get().SetCursorMode(Input::MouseState::Locked);
 
 			const float YawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 			const float CameraSpeed = 0.01f * ts.GetMilliseconds();
@@ -90,7 +90,7 @@ namespace Radiant
 		}
 		else
 		{
-			Input::Mouse::Get().SetVisibility(Input::MouseState::Visible);
+			Input::Mouse::Get().SetCursorMode(Input::MouseState::Visible);
 		}
 
 		m_InitialMousePosition = MousePosition;

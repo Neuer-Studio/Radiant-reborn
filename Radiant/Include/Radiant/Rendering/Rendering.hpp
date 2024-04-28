@@ -9,10 +9,17 @@
 
 namespace Radiant
 {
-	struct DrawSpecificationCommand
+	struct DrawDeclarationCommand
 	{
 		glm::mat4 Transform;
 		Memory::Shared<Mesh> Mesh;
+	};
+
+	struct DrawSpecificationCommandWithMaterial
+	{
+		explicit DrawSpecificationCommandWithMaterial() = default;
+
+		DrawDeclarationCommand Declration;
 		Memory::Shared<Material> Material;
 	};
 
@@ -22,8 +29,8 @@ namespace Radiant
 		virtual ~Rendering();
 
 		static void Clear(float rgba[4]);
-		//static void SubmitMesh(const Memory::Shared<Mesh>& mesh, const Memory::Shared<Pipeline>& pipeline) {}
-		static void SubmitMeshWithMaterial(const DrawSpecificationCommand& specification, const Memory::Shared<Pipeline>& pipeline);
+		static void SubmitMesh(const DrawDeclarationCommand& specification, const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& Material);
+		static void SubmitMeshWithMaterial(const DrawSpecificationCommandWithMaterial& specification, const Memory::Shared<Pipeline>& pipeline);
 		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true);
 
 		static void BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear = true);
@@ -33,10 +40,10 @@ namespace Radiant
 
 		[[nodiscard]] static const Memory::Shared<Texture2D>& GetWhiteTexure();
 	public:
-		static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
-		static Memory::Shared<RenderingContext> GetRenderingContext();
+		[[nodiscard]] static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
+		[[nodiscard]] static Memory::Shared<RenderingContext> GetRenderingContext();
 
-		static const ShaderLibrary* GetShaderLibrary();
+		[[nodiscard]] static const ShaderLibrary* GetShaderLibrary();
 
 	public:
 		static void SubmitFullscreenQuad(const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& material);
@@ -57,7 +64,7 @@ namespace Radiant
 			new (storageBuffer) FuncT(std::forward<FuncT>(func));
 		}
 
-		static Memory::CommandBuffer& GetRenderingCommandBuffer();
+		[[nodiscard]]  static Memory::CommandBuffer& GetRenderingCommandBuffer();
 	private:
 	};
 }
