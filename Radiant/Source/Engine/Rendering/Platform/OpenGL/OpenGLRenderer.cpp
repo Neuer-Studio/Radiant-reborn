@@ -35,9 +35,17 @@ namespace Radiant
 		case Primitives::Triangle:
 			gltype = GL_TRIANGLES;
 			break;
+		case Primitives::Line:
+			gltype = GL_LINES;
+			break;
 		}
 
 		glDrawElements(gltype, count, GL_UNSIGNED_INT, nullptr);
+	}
+
+	void OpenGLRenderer::SetLineWidth(float width) const
+	{
+		glLineWidth(width);
 	}
 
 	const Environment OpenGLRenderer::CreateEnvironmentMap(const std::filesystem::path& filepath) const

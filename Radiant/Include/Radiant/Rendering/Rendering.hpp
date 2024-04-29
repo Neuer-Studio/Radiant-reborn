@@ -6,6 +6,7 @@
 #include <Radiant/Rendering/Mesh.hpp>
 #include <Radiant/Rendering/RenderingContext.hpp>
 #include <Radiant/Core/Memory/CommandBuffer.hpp>
+#include <Radiant/Core/Math/AABB.hpp>
 
 namespace Radiant
 {
@@ -32,6 +33,8 @@ namespace Radiant
 		static void SubmitMesh(const DrawDeclarationCommand& specification, const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& Material);
 		static void SubmitMeshWithMaterial(const DrawSpecificationCommandWithMaterial& specification, const Memory::Shared<Pipeline>& pipeline);
 		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true);
+		static void SetLineWidth(float width = 1.0f);
+		static void DrawAABB(const Math::AABB& aabb, const glm::mat4& transform);
 
 		static void BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear = true);
 		static void EndRenderPass();

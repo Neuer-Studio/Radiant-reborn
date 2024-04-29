@@ -89,7 +89,7 @@ namespace Radiant
 	{
 	public:
 		virtual ~VertexBuffer() = default;
-		virtual void SetData() = 0;
+		virtual void SetData(void* data, uint32_t size, uint32_t offset = 0) = 0;
 		virtual void Use(BindUsage use = BindUsage::Bind) const = 0;
 
 		virtual unsigned int GetSize() const = 0;

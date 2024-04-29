@@ -92,7 +92,7 @@ namespace Radiant
 			attrs.EnvironmentMapLod = envMapComponent.EnvironmentMapLod;
 			attrs.Intensity = envMapComponent.Intensity;
 
-			SceneRendering::SetEnvironmentAttributes(attrs);
+			SceneRendering::Get().SetEnvironmentAttributes(attrs);
 		}
 
 		auto mesh = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
@@ -101,45 +101,45 @@ namespace Radiant
 			auto [transformComponent, meshComponent] = mesh.get<TransformComponent, MeshComponent>(entity);
 			if (meshComponent.Mesh)
 			{
-				SceneRendering::SubmitMesh(meshComponent, transformComponent.GetTransform());
+				SceneRendering::Get().SubmitMesh(meshComponent, transformComponent.GetTransform());
 			}
 		}
 
-		SceneRendering::BeginScene(this, information.Camera);
-		SceneRendering::OnUpdate(information.TimeStep);
-		SceneRendering::SetSceneVeiwPortSize({ information.Width, information.Height });
-		SceneRendering::EndScene();
+		SceneRendering::Get().BeginScene(this, information.Camera);
+		SceneRendering::Get().OnUpdate(information.TimeStep);
+		SceneRendering::Get().SetSceneVeiwPortSize({ information.Width, information.Height });
+		SceneRendering::Get().EndScene();
 
 	}
 
 	void Scene::SetEnvironment(const Environment& env)
 	{
-		SceneRendering::SetEnvironment(env);
+		SceneRendering::Get().SetEnvironment(env);
 	}
 
 	Environment Scene::CreateEnvironmentScene(const std::filesystem::path& filepath) const
 	{
-		return SceneRendering::CreateEnvironmentMap(filepath);
+		return SceneRendering::Get().CreateEnvironmentMap(filepath);
 	}
 
 	void Scene::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
 	{
-		SceneRendering::SubmitMesh(mesh, transform);
+		SceneRendering::Get().SubmitMesh(mesh, transform);
 	}
 
 	const Radiant::Memory::Shared<Radiant::Image2D>& Scene::GetFinalPassImage() const
 	{
-		return SceneRendering::GetFinalPassImage();
+		return SceneRendering::Get().GetFinalPassImage();
 	}
 
 	void Scene::SetEnvMapRotation(float rotation)
 	{
-		SceneRendering::SetEnvMapRotation(rotation);
+		SceneRendering::Get().SetEnvMapRotation(rotation);
 	}
 
 	void Scene::SetIBLContribution(float value)
 	{
-		SceneRendering::SetIBLContribution(value);
+		SceneRendering::Get().SetIBLContribution(value);
 	}
 
 }

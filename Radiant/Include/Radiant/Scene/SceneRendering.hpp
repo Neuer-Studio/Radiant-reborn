@@ -10,28 +10,35 @@ namespace Radiant
 	class SceneRendering
 	{
 	public:
+		static SceneRendering& Get();
+
 		~SceneRendering();
 	private:
-		static void BeginScene(Memory::Shared<Scene> m_Scene, const Camera& camera);
-		static void Init();
-		static void EndScene();
-		static void OnUpdate(Timestep ts);
+		void BeginScene(Memory::Shared<Scene> m_Scene, const Camera& camera);
+		void Init();
+		void EndScene();
+		void OnUpdate(Timestep ts);
 
-		static void SetSceneVeiwPortSize(const glm::vec2& size);
-		static void SetEnvironment(const Environment& env);
+		void SetSceneVeiwPortSize(const glm::vec2& size);
+		void SetEnvironment(const Environment& env);
 
-		static void SetEnvironmentAttributes(const EnvironmentAttributes& attributes);
+		void SetEnvironmentAttributes(const EnvironmentAttributes& attributes);
 
-		static void SetEnvMapRotation(float rotation);
-		static void SetIBLContribution(float value);
-		static void OnImGuiRender();
+		void SetEnvMapRotation(float rotation);
+		void SetIBLContribution(float value);
+		void OnImGuiRender();
 
-		static void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
+		void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
 
 		[[nodiscard]] static Memory::Shared<Image2D> GetFinalPassImage();
 		static Memory::Shared<Image2D> GetShadowMapPassImage();
 
 		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
+	private:
+		void FlushDrawList();
+		void ShadowMapPass();
+		void GeometryPass();
+		void CompositePass();
 	private:
 		friend class Scene;
 		friend class Rendering;

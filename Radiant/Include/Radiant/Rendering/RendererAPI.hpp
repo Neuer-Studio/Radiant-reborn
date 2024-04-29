@@ -40,6 +40,7 @@ namespace Radiant
 
 		virtual void Clear(float rgba[4]) const = 0;
 		virtual void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true) const = 0;
+		virtual void SetLineWidth(float width) const = 0;
 	public:
 		virtual const Environment CreateEnvironmentMap(const std::filesystem::path& filepath) const = 0;
 	public:

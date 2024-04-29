@@ -7,6 +7,7 @@
 
 #include <Radiant/Rendering/Image.hpp>
 #include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Rendering/2D/Rendering2D.hpp>
 #include <Radiant/Rendering/Framebuffer.hpp>
 #include <Radiant/Rendering/Pipeline.hpp>
 #include <Radiant/Rendering/Material.hpp>
@@ -116,6 +117,12 @@ namespace Radiant
 	};
 
 	static SceneInfo* s_SceneInfo = nullptr;
+
+	SceneRendering& SceneRendering::Get()
+	{
+		static SceneRendering instance;
+		return instance;
+	}
 
 	SceneRendering::~SceneRendering()
 	{
@@ -475,7 +482,7 @@ namespace Radiant
 		}
 	}
 
-	void GeometryPass()
+	void SceneRendering::GeometryPass()
 	{
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass);
 
@@ -519,6 +526,12 @@ namespace Radiant
 			command.Declration = { mesh.Transform, mesh.Mesh };
 
 			Rendering::SubmitMeshWithMaterial(command, s_SceneInfo->RenderPassList.GeoData.pipeline);
+
+
+			Rendering2D::Get().BeginScene({});
+			Rendering2D::Get().DrawAABB(mesh.Mesh, { });
+			Rendering2D::Get().EndScene();
+
 		}
 
 		if (s_SceneInfo->ShowGrid)
@@ -529,7 +542,7 @@ namespace Radiant
 		Rendering::EndRenderPass();
 	}
 
-	void ShadowMapPass()
+	void SceneRendering::ShadowMapPass()
 	{
 		auto& directionalLights = s_SceneInfo->LightEnvironment.DirectionalLights;
 		if (directionalLights.Intensity == 0.0f || !directionalLights.CastShadows)
@@ -577,7 +590,7 @@ namespace Radiant
 			});
 	}
 
-	void CompositePass()
+	void SceneRendering::CompositePass()
 	{
 		Rendering::BeginRenderPass(s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass);
 		s_SceneInfo->RenderPassList.CompData.material->SetFloat("u_Exposure", s_SceneInfo->SceneCamera.Exposure); //TODO: move to the UBO
@@ -594,7 +607,7 @@ namespace Radiant
 		Rendering::EndRenderPass();
 	}
 
-	void FlushDrawList()
+	void SceneRendering::FlushDrawList()
 	{
 		ShadowMapPass();
 		GeometryPass();
