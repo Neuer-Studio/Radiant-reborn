@@ -99,14 +99,4 @@ namespace Radiant
 		m_RenderingData.LinesData.LineVertexData[(lineCount++)].Position = p2;
 		m_RenderingData.LinesData.LineVertexBuffer->SetData(m_RenderingData.LinesData.LineVertexData.data(), lineCount * sizeof(Lines::LineVertex)); //TODO: should we use offset ? 
 	}
-
-	void Rendering2D::DrawAABB(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform)
-	{
-		const auto& bb = mesh->GetSubmeshes()[0].BoundingBox;
-
-		
-
-
-	}
-
 }

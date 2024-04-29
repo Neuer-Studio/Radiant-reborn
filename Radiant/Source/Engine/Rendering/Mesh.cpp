@@ -85,11 +85,21 @@ namespace Radiant
 			RADIANT_VERIFY(mesh->HasPositions(), "Meshes require positions.");
 			RADIANT_VERIFY(mesh->HasNormals(), "Meshes require normals.");
 
+			auto& aabb = submesh.BoundingBox;
+			aabb.Min = { FLT_MAX, FLT_MAX, FLT_MAX };
+			aabb.Max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 			for (int i = 0; i < mesh->mNumVertices; i++)
 			{
 				Vertex vertex;
 				vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 				vertex.Normals = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+
+				aabb.Min.x = glm::min(vertex.Position.x, aabb.Min.x);
+				aabb.Min.y = glm::min(vertex.Position.y, aabb.Min.y);
+				aabb.Min.z = glm::min(vertex.Position.z, aabb.Min.z);
+				aabb.Max.x = glm::max(vertex.Position.x, aabb.Max.x);
+				aabb.Max.y = glm::max(vertex.Position.y, aabb.Max.y);
+				aabb.Max.z = glm::max(vertex.Position.z, aabb.Max.z);
 
 				if (mesh->HasTangentsAndBitangents())
 				{

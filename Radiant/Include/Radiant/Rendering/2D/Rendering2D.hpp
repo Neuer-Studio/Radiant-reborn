@@ -28,7 +28,6 @@ namespace Radiant
 		void EndScene();
 
 		void DrawLine(const glm::vec3& p1, const glm::vec3& p2, float lineWidth = 1.0f);
-		void DrawAABB(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
 	private:
 		struct Lines
 		{

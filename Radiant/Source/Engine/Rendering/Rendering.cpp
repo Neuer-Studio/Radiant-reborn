@@ -278,6 +278,44 @@ namespace Radiant
 			});
 	}
 
+	void Rendering::DrawAABB(const Math::AABB& aabb, const glm::mat4& transform)
+	{
+		// https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=1368910cd52dcb700947890fcc846f367548df68
+		
+		// bottom
+		DrawLine(transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0));
+
+		DrawLine(transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0),	transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0));
+
+		// top
+		DrawLine(transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0), transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0), transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0), transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0), transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0));
+
+		// bringing the sides together
+		DrawLine(transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0));
+		DrawLine(transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0), transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0));
+		
+	}
+
+	void Rendering::DrawAABB(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform)
+	{
+		for (int i = 0; i < mesh->GetSubmeshes().size(); i++)
+		{
+			DrawAABB(mesh->GetSubmeshes()[i].BoundingBox, transform);
+		}
+	}
+
+	void Rendering::DrawLine(const glm::vec3& p1, const glm::vec3& p2, float lineWidth)
+	{
+		Rendering2D::Get().DrawLine(p1, p2, lineWidth);
+	}
+
 	void Rendering::BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear /*= true*/)
 	{
 		RADIANT_VERIFY(renderPass, "Render pass cannot be null!");

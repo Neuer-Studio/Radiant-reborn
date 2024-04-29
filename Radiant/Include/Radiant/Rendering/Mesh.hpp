@@ -3,6 +3,7 @@
 #include <Radiant/Rendering/VertexBuffer.hpp>
 #include <Radiant/Rendering/IndexBuffer.hpp>
 #include <Radiant/Rendering/Material.hpp>
+#include <Radiant/Core/Math/AABB.hpp>
 
 #include <glm/glm.hpp>
 
@@ -45,6 +46,7 @@ namespace Radiant
 		uint32_t BaseIndex;
 		uint32_t MaterialIndex;
 		uint32_t IndexCount;
+		Math::AABB BoundingBox;
 
 		glm::mat4 Transform;
 	};

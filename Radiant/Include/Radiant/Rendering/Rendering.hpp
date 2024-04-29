@@ -34,7 +34,9 @@ namespace Radiant
 		static void SubmitMeshWithMaterial(const DrawSpecificationCommandWithMaterial& specification, const Memory::Shared<Pipeline>& pipeline);
 		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true);
 		static void SetLineWidth(float width = 1.0f);
+		static void DrawLine(const glm::vec3& p1, const glm::vec3& p2, float lineWidth = 1.0f);
 		static void DrawAABB(const Math::AABB& aabb, const glm::mat4& transform);
+		static void DrawAABB(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
 
 		static void BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear = true);
 		static void EndRenderPass();

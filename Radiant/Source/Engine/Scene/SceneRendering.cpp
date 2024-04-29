@@ -107,8 +107,6 @@ namespace Radiant
 			float Exposure;
 		} SceneCamera;
 
-		bool ShowGrid = true; //TODO: move to options
-
 		uint32_t ViewportWidth;
 		uint32_t ViewportHeight;
 		Memory::Shared<Scene> ActiveScene;
@@ -489,6 +487,8 @@ namespace Radiant
 		s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
 		Rendering::SubmitFullscreenQuad(s_SceneInfo->SkyboxPipeline, nullptr);
 
+		const auto& options = s_SceneInfo->ActiveScene->GetSceneOptions();
+
 		for (const auto& mesh : s_SceneInfo->MeshDrawList)
 		{
 			// Env. map
@@ -527,14 +527,15 @@ namespace Radiant
 
 			Rendering::SubmitMeshWithMaterial(command, s_SceneInfo->RenderPassList.GeoData.pipeline);
 
-
-			Rendering2D::Get().BeginScene({});
-			Rendering2D::Get().DrawAABB(mesh.Mesh, { });
-			Rendering2D::Get().EndScene();
-
+			if (options.ShowAABB)
+			{
+				Rendering2D::Get().BeginScene({});//TODO: move to Rendering class
+				Rendering::DrawAABB(mesh.Mesh, mesh.Transform);
+				Rendering2D::Get().EndScene();
+			}
 		}
 
-		if (s_SceneInfo->ShowGrid)
+		if (options.ShowGrid )
 		{
 			Rendering::SubmitFullscreenQuad(s_SceneInfo->GridPipeline, s_SceneInfo->GridMaterial);
 		}

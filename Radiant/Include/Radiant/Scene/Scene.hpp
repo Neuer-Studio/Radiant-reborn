@@ -47,6 +47,12 @@ namespace Radiant
 		uint32_t Height;
 	};
 
+	struct SceneOptions
+	{
+		bool ShowGrid = true;
+		bool ShowAABB = false;
+	};
+
 	class Scene : public Memory::RefCounted
 	{
 	public:
@@ -60,6 +66,7 @@ namespace Radiant
 		void SetEnvironment(const Environment& env);
 		Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const;
 		LightEnvironment GetLightEnvironment() const { return m_LightEnvironment; }
+		const SceneOptions GetSceneOptions() const { return m_Options; }
 
 		const auto& GetSceneUpdateInfo() const { return m_Information; }
 
@@ -71,6 +78,7 @@ namespace Radiant
 		void SetIBLContribution(float value);
 
 	private:
+		SceneOptions m_Options;
 		uint32_t m_SamplesCount = 2;
 
 		std::string m_SceneName;
