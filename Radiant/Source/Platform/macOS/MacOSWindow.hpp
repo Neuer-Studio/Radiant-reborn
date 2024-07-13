@@ -1,17 +1,15 @@
 #pragma once
 
-#include <Windows.h>
-
 #include <Core/Window.hpp>
 #include <GLFW/glfw3.h>
 
 namespace Radiant
 {
-	class WindowsWindow : public Window
+	class MacOSWindow : public Window
 	{
 	public:
-		WindowsWindow(const WindowSpecification& specification);
-		~WindowsWindow() override;
+        MacOSWindow(const WindowSpecification& specification);
+		~MacOSWindow() override;
 
 		virtual const std::string& GetTitle() const override;
 		virtual void SetTitle(const std::string& title) override;

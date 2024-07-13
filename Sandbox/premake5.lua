@@ -1,22 +1,24 @@
-include "../Dependencies.lua"
+local currentDir = _MAIN_SCRIPT_DIR
+local dependenciesPath = currentDir .. "/BuildSystemDependencies/UNIX/MacOS/Dependencies.lua"
+include(dependenciesPath)
 
 project "Sandbox"
     kind "ConsoleApp"
 
     files { 
         -- Engine 
-        "Source/**.cpp", 
-        "Source/**.hpp",
+        "%{wks.location}/%{prj.name}/Source/**.cpp", 
+        "%{wks.location}/%{prj.name}/Source/**.hpp",
     }
 
-    includedirs {
-        "../Radiant/Include/",
+    externalincludedirs {
+        "%{wks.location}/Radiant/Include/",
 
-        "../ThirdParty/spdlog/include/",
-        "../ThirdParty/GLFW/include/",
-        "../ThirdParty/Glad/include/",
-        "../ThirdParty/glm/",
-        "../ThirdParty/",
+        "%{wks.location}/ThirdParty/spdlog/include/",
+        "%{wks.location}/ThirdParty/GLFW/include/",
+        "%{wks.location}/ThirdParty/Glad/include/",
+        "%{wks.location}/ThirdParty/glm/",
+        "%{wks.location}/ThirdParty/",
         "%{IncludeDir.entt}",
     }
 
@@ -33,3 +35,10 @@ project "Sandbox"
 
     filter "configurations:Release"
         defines { "RADIANT_CONFIG_RELEASE" }
+
+    filter { "system:windows" }
+        defines { "RADIANT_PLATFORM_WINDOWS" }
+
+    filter { "system:macosx" }
+        defines { "RADIANT_PLATFORM_MACOS" }
+

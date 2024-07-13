@@ -1,6 +1,6 @@
 #include <Radiant/Rendering/RenderingContext.hpp>
 #include <Radiant/Rendering/RendererAPI.hpp>
-#include <Radiant/Rendering/Platform/Vulkan/VulkanRenderingContext.hpp>
+//#include <Radiant/Rendering/Platform/Vulkan/VulkanRenderingContext.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderingContext.hpp>
 
 namespace Radiant
@@ -9,10 +9,10 @@ namespace Radiant
 	{
 		switch(RendererAPI::GetAPI())
 		{
-			case RenderingAPIType::Vulkan:
-			{
-				return Memory::Shared<VulkanRenderingContext>::Create(window);
-			}
+//			case RenderingAPIType::Vulkan:
+//			{
+//				return Memory::Shared<VulkanRenderingContext>::Create(window);
+//			}
 
 			case RenderingAPIType::OpenGL:
 			{

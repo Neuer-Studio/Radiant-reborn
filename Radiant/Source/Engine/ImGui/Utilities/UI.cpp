@@ -30,19 +30,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		_itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::Checkbox(s_IDBuffer, &value))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::Checkbox(s_IDBuffer, &value))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}
@@ -51,19 +51,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		_itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::DragFloat(s_IDBuffer, &value, delta, min, max))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		_itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::DragFloat(s_IDBuffer, &value, delta, min, max))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}
@@ -72,19 +72,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::ColorEdit3(s_IDBuffer, glm::value_ptr(value)))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::ColorEdit3(s_IDBuffer, glm::value_ptr(value)))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}
@@ -93,19 +93,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		_itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::SliderFloat3(s_IDBuffer, glm::value_ptr(value), min, max))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		_itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::SliderFloat3(s_IDBuffer, glm::value_ptr(value), min, max))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}
@@ -114,19 +114,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::SliderInt(s_IDBuffer, &value, min, max))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::SliderInt(s_IDBuffer, &value, min, max))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}
@@ -135,19 +135,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		_itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::SliderFloat(s_IDBuffer, &value, min, max))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		_itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::SliderFloat(s_IDBuffer, &value, min, max))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}
@@ -156,19 +156,19 @@ namespace Radiant
 	{
 		bool modified = false;
 
-		ImGui::Text(label);
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-
-		s_IDBuffer[0] = '#';
-		s_IDBuffer[1] = '#';
-		memset(s_IDBuffer + 2, 0, 14);
-		_itoa(s_Counter++, s_IDBuffer + 2, 16);
-		if (ImGui::DragFloat(s_IDBuffer, &value, speed, min, max))
-			modified = true;
-
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
+//		ImGui::Text(label);
+//		ImGui::NextColumn();
+//		ImGui::PushItemWidth(-1);
+//
+//		s_IDBuffer[0] = '#';
+//		s_IDBuffer[1] = '#';
+//		memset(s_IDBuffer + 2, 0, 14);
+//		_itoa(s_Counter++, s_IDBuffer + 2, 16);
+//		if (ImGui::DragFloat(s_IDBuffer, &value, speed, min, max))
+//			modified = true;
+//
+//		ImGui::PopItemWidth();
+//		ImGui::NextColumn();
 
 		return modified;
 	}

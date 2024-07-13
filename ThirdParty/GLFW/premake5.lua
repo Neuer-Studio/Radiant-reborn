@@ -1,7 +1,6 @@
 project "GLFW"
 	kind "StaticLib"
 	language "C"
-	staticruntime "off"
 
 	files
 	{
@@ -75,6 +74,36 @@ project "GLFW"
 			"Dwmapi.lib"
 		}
 
+	filter "system:macosx"
+		systemversion "latest"
+
+		files
+		{
+			"src/cocoa_init.m",
+			"src/cocoa_joystick.m",
+			"src/cocoa_monitor.m",
+			"src/cocoa_window.m",
+			"src/cocoa_time.c",
+			"src/posix_thread.c",
+			"src/nsgl_context.m",
+			"src/egl_context.c",
+			"src/osmesa_context.c"
+		}
+		links
+		{
+			"CoreFoundation.framework",
+			"CoreVideo.framework",
+			"OpenGL.framework",
+			"IOKit.framework",
+			"Cocoa.framework",
+			"CoreGraphics.framework",
+			"CoreServices.framework" 
+		}
+		defines
+		{
+			"_GLFW_COCOA"
+		}
+
 	filter "configurations:Debug"
 		runtime "Debug"
 		symbols "on"
@@ -86,4 +115,4 @@ project "GLFW"
 	filter "configurations:Dist"
 		runtime "Release"
 		optimize "on"
-        symbols "off"
+		symbols "off"

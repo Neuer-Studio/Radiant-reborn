@@ -17,5 +17,8 @@ if sys.platform == "win32":
 
     print(f"{Style.BRIGHT}{Back.GREEN}Generating Visual Studio 2022 solution.{Style.RESET_ALL}")
     subprocess.call(["vendor/bin/premake5.exe", "vs2022"])
+elif sys.platform == "darwin":
+    print(f"{Style.BRIGHT}{Back.GREEN}Generating XCode 4 solution.{Style.RESET_ALL}")
+    subprocess.call(["vendor/bin/MacOS/premake5", "xcode4", "--os=macosx"])
 else:
-    print("Ошибка: Данная операция поддерживается только на платформе Windows.")
+    print("Ошибка: Данная операция поддерживается только на платформе Windows и MacOS.")

@@ -32,17 +32,23 @@ decltype(auto) initializeDefaultValue() {
 #define RA_GET_VALUE(var) var.value_or(initializeDefaultValue<decltype(var)::value_type>())
 
 #if defined(RADIANT_PLATFORM_WINDOWS)
-#define RADIANT_DEBUG_BREAK __debugbreak()
-#elif defined(RADIANT_PLATFORM_LINUX)
-#include <signal.h>
-#define RADIANT_DEBUG_BREAK raise(SIGTRAP)
-#endif
+    #define RADIANT_DEBUG_BREAK __debugbreak()
 
+#elif defined(RADIANT_PLATFORM_LINUX)
+    #include <signal.h>
+    #define RADIANT_DEBUG_BREAK raise(SIGTRAP)
+
+#elif defined(RADIANT_PLATFORM_MACOS)
+    #define RADIANT_DEBUG_BREAK() __builtin_trap()
+
+#else
+    #error "Unsupported platform"
+#endif
 #define RADIANT_VERIFY(cond, ...) \
 	if (!(cond))                                   \
 	{                     \
 		Radiant::LogError("Verify failed: {} at {}:{}", #cond, __FILE__, __LINE__); \
-		__debugbreak();                     \
+        RADIANT_DEBUG_BREAK();        \
 	}
 
 #define RADIANT_VERIFY_WARN(cond, ...) \

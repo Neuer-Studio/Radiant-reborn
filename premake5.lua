@@ -3,7 +3,7 @@
 workspace "Radiant"
     configurations { "Debug", "Release" }
     architecture "x64"
-    startproject "Sanxbox"
+    startproject "Sandbox"
 
     language "C++"
 	cppdialect "C++17"
@@ -19,5 +19,11 @@ group "ThirdParty"
 include "ThirdParty/"
 group ""
 
-include "Radiant/"
+-- Platform-specific includes
+if os.target() == "windows" then
+    include "Radiant/BuildSystem/Windows"
+elseif os.target() == "macosx" then
+    include "Radiant/BuildSystem/UNIX/MacOS/premake5.lua"
+end
+
 include "Sandbox/"

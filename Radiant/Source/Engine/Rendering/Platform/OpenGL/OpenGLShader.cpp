@@ -177,7 +177,7 @@ namespace Radiant
 	{
 		CreateDirectoriesIfNotFound();
 
-		std::unordered_map<RadiantShaderType, std::vector<uint32_t>>& binarySPIRV = UploadFromBinaryFile(m_FilePath);
+		const std::unordered_map<RadiantShaderType, std::vector<uint32_t>>& binarySPIRV = UploadFromBinaryFile(m_FilePath);
 		bool statusCached = !binarySPIRV.empty();
 
 		if (statusCached)
@@ -240,10 +240,10 @@ namespace Radiant
 		return shaderTypes;
 	}
 
-	void OpenGLShader::Load(const std::string& shader—ontent)
+	void OpenGLShader::Load(const std::string& shaderContent)
 	{
 
-		const auto& shaderPreProccess = PreProcess(shader—ontent);
+		const auto& shaderPreProccess = PreProcess(shaderContent);
 		const auto& binarySPIRV = CompileToSPIR_V(shaderPreProccess);
 
 		for (const auto& sh : binarySPIRV)

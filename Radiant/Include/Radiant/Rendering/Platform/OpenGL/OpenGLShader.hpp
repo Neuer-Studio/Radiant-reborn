@@ -21,7 +21,7 @@ namespace Radiant
 		virtual const std::string GetShaderName() const { return m_Name; }
 	private:
 	private:
-		void Load(const std::string& shader—ontent);
+		void Load(const std::string& shaderContent);
 		void ParseBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
 		void ParseConstantBuffers(RadiantShaderType type, const std::vector<uint32_t>& data);
 		[[nodiscard]] const std::unordered_map<RadiantShaderType, std::vector<uint32_t>> CompileToSPIR_V(const std::unordered_map<RadiantShaderType, std::string>& shaderSource);
