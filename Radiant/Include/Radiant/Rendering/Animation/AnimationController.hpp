@@ -24,7 +24,7 @@ namespace Radiant::Animation
         }
 
         void UpdateAnimation( Timestep ts );
-        void CalculateBoneTransform(uint32_t jointID, const glm::mat4& parentTransform);
+        void CalculateBoneTransform(uint32_t indexIterator);
 
         const auto sdfsdf() const
         {
