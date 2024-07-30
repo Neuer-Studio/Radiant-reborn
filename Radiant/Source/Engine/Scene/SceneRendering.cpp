@@ -178,12 +178,14 @@ namespace Radiant
 				{ ShaderDataType::Float3, "a_Normals" },
 				{ ShaderDataType::Float2, "a_TexCoord" },
 				{ ShaderDataType::Float3, "a_Tangent" },
-				{ ShaderDataType::Float3, "a_Bitangent" }
+				{ ShaderDataType::Float3, "a_Bitangent" },
+				{ ShaderDataType::Int4, "a_BoneIndices" },
+				{ ShaderDataType::Float4, "a_BoneWeights" }
 			};
 
 			pipelineSpecification.DebugName = "PBR-Static";
 			pipelineSpecification.RenderPass = RenderPass::Create(renderPassSpec);
-			pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get("StaticPBR_Radiant.glsl");
+			pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get("AnimPBR_Radiant.glsl");
 
 			s_SceneInfo->RenderPassList.GeoData.pipeline = Pipeline::Create(pipelineSpecification);
 			s_SceneInfo->RenderPassList.GeoData.material = Material::Create(pipelineSpecification.Shader);
@@ -255,7 +257,9 @@ namespace Radiant
 				{ ShaderDataType::Float3, "a_Normals" },
 				{ ShaderDataType::Float2, "a_TexCoord" },
 				{ ShaderDataType::Float3, "a_Tangent" },
-				{ ShaderDataType::Float3, "a_Bitangent" }
+				{ ShaderDataType::Float3, "a_Bitangent" },
+				{ ShaderDataType::Int4, "a_BoneIndices" },
+				{ ShaderDataType::Float4, "a_BoneWeights" }
 			};
 			ps.Shader = Rendering::GetShaderLibrary()->Get("ShadowMap.glsl");
 			s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial = Material::Create(ps.Shader);

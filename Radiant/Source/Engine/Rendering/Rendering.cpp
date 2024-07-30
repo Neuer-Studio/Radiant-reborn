@@ -115,7 +115,7 @@ namespace Radiant
 			{
 
 				s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/Skybox.glsl");
-				s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/StaticPBR_Radiant.glsl");
+				s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/AnimPBR_Radiant.glsl");
 				s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/SceneComposite.glsl");
 				s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/SceneCompositeMSAA.glsl");
 				s_RenderingData->s_ShaderLibrary->Load("Resources/Shaders/Grid.glsl");
@@ -219,6 +219,13 @@ namespace Radiant
 
 			//Update transform
 			specification.Material->SetMat4("u_Transform", specification.Declration.Transform * submesh.Transform);
+
+			for ( uint32_t i = 0; i < mesh->GetFinalTransforms().size(); i++ )
+                        {
+                            specification.Material->SetMat4(
+                                 "u_BoneTransform", mesh->GetFinalTransforms()[i], i );
+                        }
+
 			shader->Use();
 
 			Rendering::SubmitCommand([submesh]()

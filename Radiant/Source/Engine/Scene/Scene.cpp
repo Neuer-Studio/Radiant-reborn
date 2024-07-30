@@ -101,6 +101,7 @@ namespace Radiant
 			auto [transformComponent, meshComponent] = mesh.get<TransformComponent, MeshComponent>(entity);
 			if (meshComponent.Mesh)
 			{
+				meshComponent.Mesh->GetAnimationController()->UpdateAnimation(information.TimeStep);
 				SceneRendering::Get().SubmitMesh(meshComponent, transformComponent.GetTransform());
 			}
 		}

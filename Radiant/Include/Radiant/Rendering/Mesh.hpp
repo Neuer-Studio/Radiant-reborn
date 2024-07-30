@@ -5,12 +5,19 @@
 #include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Core/Math/AABB.hpp>
 
+#include <Radiant/Rendering/Animation/AssimpExporter.hpp>
+#include <Radiant/Rendering/Animation/Joint.hpp>
+#include <Radiant/Rendering/Animation/AnimationController.hpp>
+
 #include <glm/glm.hpp>
+
+#include <Radiant/Rendering/Animation/BoneInfo.hpp>
 
 struct aiNode;
 struct aiAnimation;
 struct aiNodeAnim;
 struct aiScene;
+struct aiMesh;
 
 namespace Assimp
 {
@@ -19,13 +26,50 @@ namespace Assimp
 
 namespace Radiant
 {
-	struct Vertex {
+	static constexpr uint32_t MAX_BONE_INFLUENCE = 4U;
+
+	struct StaticVertex {
 		glm::vec3 Position;
 		glm::vec3 Normals;
 		glm::vec2 TexCoords;
 		glm::vec3 Tangent;
 		glm::vec3 Bitangent;
 	};
+
+	struct AnimatedVertex
+        {
+            AnimatedVertex()
+            {
+                SetDataToDefault();
+            }
+
+            StaticVertex                          StaticVertexData;
+            std::array<int, MAX_BONE_INFLUENCE>   IDs;
+            std::array<float, MAX_BONE_INFLUENCE> Weights;
+
+            void SetDataToDefault()
+            {
+                IDs.fill( -1 );
+                Weights.fill( 0 );
+            }
+
+            void AddBoneData( int id, float weight )
+            {
+                for ( uint32_t i = 0; i < MAX_BONE_INFLUENCE; i++ )
+                {
+                    if ( IDs[i] < 0 )
+                    {
+                        IDs[i]     = id;
+                        Weights[i] = weight;
+
+                        return;
+                    }
+                }
+                RA_WARN( "Vertex has more than four bones/weights affecting it, extra data will be discarded "
+                         "(BoneID={0}, Weight={1})",
+                         id, weight );
+            }
+        };
 
 	struct Index
 	{
@@ -64,18 +108,28 @@ namespace Radiant
 		void Use() const;
 		uint32_t GetIndexCount() const { return m_IndexBuffer->GetCount(); }
 
+		const auto GetFinalTransforms() const { return m_AnimationController->GetFinalBonesTransform(); }
+		const auto& GetAnimationController() const { return m_AnimationController; }
+
 		const auto& GetVertexBuffer() const { return m_VertexBuffer; }
 		const auto& GetIndexBuffer() const { return m_IndexBuffer; }
+		void ExtractBoneWeightForVertices(std::vector<AnimatedVertex>& vertices, aiMesh* mesh, const aiScene* scene);
 	private:
 		void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);
 	private:
+		glm::mat4 m_GlobalInverseTransform;
+
+		Animation::Joints m_Joints;
+		std::vector<Animation::Animation> m_Animations;
+		std::unique_ptr<Animation::AnimationController> m_AnimationController; 
+		std::unordered_map<std::string, Animation::BoneInfo> m_BoneInfoMap;
+
 		std::vector<Submesh> m_Submeshes;
 
 		Memory::Shared<VertexBuffer> m_VertexBuffer;
 		Memory::Shared<IndexBuffer> m_IndexBuffer;
 		Memory::Shared<Material> m_Material;
 
-		std::vector<Vertex> m_StaticVertices;
 		std::vector<Index> m_Indices;
 
 		std::string m_Name;
