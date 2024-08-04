@@ -223,7 +223,7 @@ namespace Radiant
 			for ( uint32_t i = 0; i < mesh->GetFinalTransforms().size(); i++ )
                         {
                             specification.Material->SetMat4(
-                                 "u_BoneTransform", mesh->GetFinalTransforms()[i], i );
+                                 "u_BoneTransform", (*specification.Declration.BoneTransforms)[i], i);
                         }
 
 			shader->Use();

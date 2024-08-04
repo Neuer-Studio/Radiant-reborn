@@ -1,11 +1,12 @@
 
+#include <Radiant/Rendering/Mesh.hpp>
+
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 
-#include <Radiant/Rendering/Mesh.hpp>
 #include <Radiant/Rendering/Animation/AssimpExporter.hpp>
 
 #include <Radiant/Core/Math/Matrix.hpp>
@@ -86,7 +87,7 @@ namespace Radiant
 
         m_Name = Utils::FileSystem::GetFileName( filepath );
 
-        static const auto s_Importer = std::make_unique<Assimp::Importer>();
+        const auto s_Importer = std::make_unique<Assimp::Importer>();
 
         const aiScene* scene = s_Importer->ReadFile( filepath.string(), s_ImportFlags );
         m_Submeshes.reserve( scene->mNumMeshes );
@@ -161,13 +162,13 @@ namespace Radiant
                 m_Animations.emplace_back( exporter.ImportAnimation( scene, names[0], m_Joints).value() );
 
                 m_AnimationController =
-                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Joints, m_BoneInfoMap);
+                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Joints, m_BoneInfo);
 
-                m_AnimationController->ffff(CalculateGlobalInverseTransform(scene->mRootNode));
+                m_AnimationController->ffff(glm::inverse(Mat4FromAssimpMat4(scene->mRootNode->mTransformation)));
             }
 
             m_VertexBuffer =
-                 VertexBuffer::Create( animatedVertices.data(), animatedVertices.size() * sizeof( StaticVertex ) );
+                 VertexBuffer::Create( animatedVertices.data(), animatedVertices.size() * sizeof(AnimatedVertex) );
 
             for ( int i = 0; i < mesh->mNumFaces; i++ )
             {
@@ -273,18 +274,18 @@ namespace Radiant
         {
             int         boneID   = -1;
             std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
-            if ( m_BoneInfoMap.find( boneName ) == m_BoneInfoMap.end() )
+            if ( m_BoneInfo.find( boneName ) == m_BoneInfo.end() )
             {
                 Animation::BoneInfo newBoneInfo;
-                newBoneInfo.ID = m_BoneInfoMap.size();
+                newBoneInfo.ID = m_BoneInfo.size();
                 newBoneInfo.BoneOffset =
                      Math::Matrix::AssimpAIMat4toGLMMat4( mesh->mBones[boneIndex]->mOffsetMatrix );
-                m_BoneInfoMap[boneName] = newBoneInfo;
+                m_BoneInfo[boneName] = newBoneInfo;
                 boneID                  = newBoneInfo.ID;
             }
             else
             {
-                boneID = m_BoneInfoMap[boneName].ID;
+                boneID = m_BoneInfo[boneName].ID;
             }
             RADIANT_VERIFY( boneID != -1 );
             auto weights    = mesh->mBones[boneIndex]->mWeights;

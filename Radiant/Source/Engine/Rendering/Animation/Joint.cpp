@@ -10,35 +10,21 @@ namespace Radiant::Animation
 
     Joints::Joints( uint32_t size )
     {
-        m_JointNames.reserve( size );
-        m_ParentJointIndices.reserve( size );
+        m_JointsInformation.reserve( size );
     }
 
-    [[nodiscard]] uint32_t Joints::AddJoint( std::string name, std::optional<uint32_t> parentIndex,
-                                             const glm::mat4& transform )
+    [[nodiscard]] uint32_t Joints::AddJoint( const JointInformation& jointInformation )
     {
-        uint32_t index = static_cast<uint32_t>( m_JointNames.size() );
-        m_JointNames.emplace_back( name );
-        m_ParentJointIndices.emplace_back( parentIndex );
-        m_JointTranslations.emplace_back();
-        m_JointRotations.emplace_back();
-        m_JointScales.emplace_back();
-        m_FinalJointTrasform.emplace_back(transform);
-
-        glm::vec3 skew;
-        glm::vec4 perspective;
-
-        glm::decompose( transform, m_JointScales.back(), m_JointRotations.back(), m_JointTranslations.back(), skew,
-                        perspective );
-
+        uint32_t index = m_JointsInformation.size();
+        m_JointsInformation.push_back(jointInformation);
         return index;
     }
 
     [[nodiscard]] std::optional<uint32_t> Joints::GetJointIndex( const std::string_view name ) const
     {
-        for ( size_t i = 0; i < m_JointNames.size(); ++i )
+        for ( size_t i = 0; i < m_JointsInformation.size(); ++i )
         {
-            if ( m_JointNames[i] == name )
+            if (m_JointsInformation[i].JointName == name )
             {
                 return static_cast<uint32_t>( i );
             }

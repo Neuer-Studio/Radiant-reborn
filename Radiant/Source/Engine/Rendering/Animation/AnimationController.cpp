@@ -101,32 +101,33 @@ namespace Radiant::Animation
     }
     //
 
-    void AnimationController::CalculateBoneTransform( uint32_t indexIterator ) //NOTE: Проблема скорее связана с тем, что parentTransform передается просто как предыдущий параметр. 
-// Например, мы расчитали JOINT_CORE, после для некоторых дочерних типа JOINT_AA -> JOINT_AA_END, получили матрицу трансформации, которую так же применяем уже к другим костям, а нужно JOINT_CORE
+    void AnimationController::CalculateBoneTransform( uint32_t indexIterator )
     {
         glm::mat4 nodeTransform = glm::mat4( 1.0 );
 
         if ( indexIterator >= m_Joints.JointCount() - 1 )
             return;
 
-        if (mmap.find(m_Joints.GetJointName(indexIterator)) != mmap.end())
+        if ( mmap.find( m_Joints.GetJointName( indexIterator ) ) != mmap.end() )
         {
-            const auto& nodeTransformOpt =
-                UpdateTransforms(m_CurrentTime, mmap[m_Joints.GetJointName(indexIterator)].ID);
-            if (nodeTransformOpt)
+            const auto& nodeTransformOpt = UpdateTransforms( m_CurrentTime, indexIterator );
+            if ( nodeTransformOpt )
             {
-                nodeTransform = nodeTransformOpt.value(); // NOTE: вы возвращаем nullopt, если нужный нам
-                // сустав не был найден, для того чтобы не искать его
-                // в маппере, а оставить его локальную трансформацию
+                nodeTransform = nodeTransformOpt.value();
             }
+            // else
+            //{
+            //     nodeTransform = m_Joints.GetFinalTransform(indexIterator);
+            // }
 
-            glm::mat4 globalTransformation = GetParrentTransform(indexIterator) * nodeTransform;
+            glm::mat4 globalTransformation = GetParrentTransform( indexIterator ) * nodeTransform;
 
-            int       index = mmap[m_Joints.GetJointName(indexIterator)].ID;
-            glm::mat4 offset = mmap[m_Joints.GetJointName(indexIterator)].BoneOffset;
-            m_FinalBoneMatrices[index] = globalTransformation * offset;
+            int       index                  = mmap[m_Joints.GetJointName( indexIterator )].ID;
+            glm::mat4 offset                 = mmap[m_Joints.GetJointName( indexIterator )].BoneOffset;
+            m_FinalBoneMatrices[index]       = m_sdf * globalTransformation * offset;
+            m_ParentFinalBoneMatrices[index] = globalTransformation;
         }
-            CalculateBoneTransform( ++indexIterator );
+        CalculateBoneTransform( ++indexIterator );
     }
 
     void AnimationController::UpdateAnimation( Timestep ts )
@@ -140,14 +141,19 @@ namespace Radiant::Animation
         }
     }
 
-    glm::mat4 AnimationController::GetParrentTransform(uint32_t jointID)
+    glm::mat4 AnimationController::GetParrentTransform( uint32_t jointID )
     {
-        const auto& parrent = m_Joints.GetParentJointIndex(jointID);
-        if (!parrent)
+        const auto& parrent = m_Joints.GetParentJointIndex( jointID );
+        if ( !parrent )
         {
-            return glm::mat4(1.0);
+            return glm::mat4( 1.0 );
         }
-        return m_FinalBoneMatrices[*parrent];
+        return m_ParentFinalBoneMatrices[*parrent];
+    }
+
+    const std::optional<glm::mat4> AnimationController::GetBoneUpdateTransform(uint32_t boneID)
+    {
+        return UpdateTransforms(m_CurrentTime, boneID);
     }
 
 } // namespace Radiant::Animation

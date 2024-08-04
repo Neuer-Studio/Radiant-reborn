@@ -12,15 +12,15 @@ namespace Radiant::Animation
 {
     class BoneHierarchy
     {
-   public:
+    public:
         BoneHierarchy( const aiScene* scene );
 
-        void            ExtractBones();
-        void            TraverseNode( aiNode* node, Joints* joints );
-        void            TraverseBone( aiNode* node, Joints* joints, std::optional<uint32_t> parentIndex );
+        void                  ExtractBones();
+        void                  TraverseNode( aiNode* node, Joints* joints );
+        void                  TraverseBone( aiNode* node, Joints* joints, std::optional<uint32_t> parentIndex );
         std::optional<Joints> CreateSkeleton();
 
-   private:
+    private:
         std::set<std::string_view> m_Bones;
         const aiScene*             m_Scene;
     };
@@ -39,7 +39,7 @@ namespace Radiant::Animation
         return animationNames;
     }
 
-	template <typename T>
+    template <typename T>
     struct KeyFrame
     {
         float FrameTime;
@@ -65,7 +65,7 @@ namespace Radiant::Animation
         std::unordered_map<std::string_view, uint32_t> boneIndices;
         for ( uint32_t i = 0; i < joints.JointCount(); ++i )
         {
-            boneIndices.emplace(joints.GetJointName( i ), i );
+            boneIndices.emplace( joints.GetJointName( i ), i );
         }
 
         std::set<std::tuple<uint32_t, aiNodeAnim*>> validChannels;
@@ -79,7 +79,7 @@ namespace Radiant::Animation
             }
         }
 
-        channels.resize(joints.JointCount() );
+        channels.resize( joints.JointCount() );
         for ( auto [boneIndex, nodeAnim] : validChannels )
         {
             channels[boneIndex].Index = boneIndex;
@@ -91,8 +91,8 @@ namespace Radiant::Animation
             //       because Assimp throws these out for us
             for ( uint32_t keyIndex = 0; keyIndex < nodeAnim->mNumPositionKeys; ++keyIndex )
             {
-                aiVectorKey key = nodeAnim->mPositionKeys[keyIndex];
-                float frameTime = key.mTime;
+                aiVectorKey key       = nodeAnim->mPositionKeys[keyIndex];
+                float       frameTime = key.mTime;
 
                 channels[boneIndex].Translations.emplace_back(
                      frameTime, glm::vec3{ static_cast<float>( key.mValue.x ), static_cast<float>( key.mValue.y ),
@@ -107,18 +107,16 @@ namespace Radiant::Animation
                      frameTime,
                      glm::quat{ static_cast<float>( key.mValue.w ), static_cast<float>( key.mValue.x ),
                                 static_cast<float>( key.mValue.y ), static_cast<float>( key.mValue.z ) } );
-
             }
             for ( uint32_t keyIndex = 0; keyIndex < nodeAnim->mNumScalingKeys; ++keyIndex )
             {
-                aiVectorKey key = nodeAnim->mScalingKeys[keyIndex];
-                float frameTime = key.mTime;
+                aiVectorKey key       = nodeAnim->mScalingKeys[keyIndex];
+                float       frameTime = key.mTime;
 
                 channels[boneIndex].Scales.emplace_back(
                      frameTime, glm::vec3{ static_cast<float>( key.mValue.x ), static_cast<float>( key.mValue.y ),
                                            static_cast<float>( key.mValue.z ) } );
             }
-           
         }
 
         return channels;
@@ -219,7 +217,7 @@ namespace Radiant::Animation
     }
 
     std::optional<Animation> Exporter::ImportAnimation( const aiScene* scene, const std::string_view animationName,
-                                      const Joints& skeleton )
+                                                        const Joints& skeleton )
     {
         if ( !scene )
         {
@@ -243,9 +241,8 @@ namespace Radiant::Animation
                     samplingRate = 1.0;
                 }
 
-                Animation animation( animationName, anim->mDuration);
-                animation.SetKeyFrames( translationKeys, rotationKeys,
-                                        scaleKeys );
+                Animation animation( animationName, anim->mDuration );
+                animation.SetKeyFrames( translationKeys, rotationKeys, scaleKeys );
                 return animation;
             }
         }
@@ -305,20 +302,29 @@ namespace Radiant::Animation
         {
             for ( uint32_t nodeIndex = 0; nodeIndex < node->mNumChildren; ++nodeIndex )
             {
-                TraverseNode( node->mChildren[nodeIndex], joints);
+                TraverseNode( node->mChildren[nodeIndex], joints );
             }
         }
     }
 
     void BoneHierarchy::TraverseBone( aiNode* node, Joints* skeleton, std::optional<uint32_t> parentIndex )
     {
-        uint32_t boneIndex = skeleton->AddJoint( node->mName.C_Str(), parentIndex,
-                                                Math::Matrix::AssimpAIMat4toGLMMat4( node->mTransformation ) );
+        using namespace Math::Matrix;
+
+        JointInformation info;
+        info.JointName        = node->mName.C_Str();
+        info.ParentJointIndex = parentIndex;
+
+        const auto decMatrix  = DecomposeTransform( AssimpAIMat4toGLMMat4( node->mTransformation ) );
+        info.JointRotation    = decMatrix.Rotation;
+        info.JointScale       = decMatrix.Scale;
+        info.JointTranslation = decMatrix.Translation;
+
+        uint32_t boneIndex = skeleton->AddJoint( info );
         for ( uint32_t nodeIndex = 0; nodeIndex < node->mNumChildren; ++nodeIndex )
         {
             TraverseBone( node->mChildren[nodeIndex], skeleton, boneIndex );
         }
     }
-
 
 } // namespace Radiant::Animation

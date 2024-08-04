@@ -13,6 +13,7 @@ namespace Radiant
 	struct DrawDeclarationCommand
 	{
 		glm::mat4 Transform;
+		std::optional<std::vector<glm::mat4>> BoneTransforms;
 		Memory::Shared<Mesh> Mesh;
 	};
 
