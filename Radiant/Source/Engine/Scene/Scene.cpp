@@ -101,8 +101,8 @@ namespace Radiant
 			auto [transformComponent, meshComponent] = mesh.get<TransformComponent, MeshComponent>(entity);
 			if (meshComponent.Mesh)
 			{
-				meshComponent.Mesh->GetAnimationController()->UpdateAnimation(information.TimeStep);
-				SceneRendering::Get().SubmitMesh(meshComponent, transformComponent.GetTransform());
+				meshComponent.Mesh->GetAnimationController()->OnUpdate(information.TimeStep);
+				SceneRendering::Get().SubmitMesh(meshComponent.Mesh, transformComponent.GetTransform());
 			}
 		}
 
@@ -123,7 +123,7 @@ namespace Radiant
 		return SceneRendering::Get().CreateEnvironmentMap(filepath);
 	}
 
-	void Scene::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
+	void Scene::SubmitMesh(Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
 	{
 		SceneRendering::Get().SubmitMesh(mesh, transform);
 	}

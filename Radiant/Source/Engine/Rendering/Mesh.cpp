@@ -95,6 +95,8 @@ namespace Radiant
         uint32_t vertexCount = 0;
         uint32_t indexCount  = 0;
 
+        m_GlobalInverseTransform = glm::inverse(Math::Matrix::AssimpAIMat4toGLMMat4(scene->mRootNode->mTransformation));
+
         for ( size_t m = 0; m < scene->mNumMeshes; m++ )
         {
             aiMesh* mesh = scene->mMeshes[m];
@@ -162,9 +164,8 @@ namespace Radiant
                 m_Animations.emplace_back( exporter.ImportAnimation( scene, names[0], m_Joints).value() );
 
                 m_AnimationController =
-                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Joints, m_BoneInfo);
+                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Joints);
 
-                m_AnimationController->ffff(glm::inverse(Mat4FromAssimpMat4(scene->mRootNode->mTransformation)));
             }
 
             m_VertexBuffer =

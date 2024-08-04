@@ -341,35 +341,42 @@ namespace Radiant
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
     }
 
-    void SceneRendering::SubmitMesh( const Memory::Shared<Mesh>& mesh, const glm::mat4& transform )
+    void SceneRendering::SubmitMesh( Memory::Shared<Mesh>& mesh, const glm::mat4& transform )
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
 
-       /* std::vector<glm::mat4> BoneTransforms(100, glm::mat4(1.0));
-        std::vector<glm::mat4> BoneParentTransforms(100, glm::mat4(1.0));
-        const auto&            boneInfo   = mesh->GetBoneInfo();
-        const auto&            controller = mesh->GetAnimationController();
+        std::vector<glm::mat4> BoneTransforms( 100, glm::mat4( 1.0 ) );
+        std::vector<glm::mat4> BoneParentTransforms( 100, glm::mat4( 1.0 ) );
+
+        auto&            boneInfo    = mesh->GetBoneInfo();
+        const auto&      controller  = mesh->GetAnimationController();
         const glm::mat4& invRootNode = mesh->GetGlobalInverseTransform();
+        const auto&      joints      = controller->GetJoints();
 
-        for ( uint32_t i = 0; i < boneInfo.size(); i++ )
+        for ( uint32_t i = 0; i < joints.JointCount(); ++i )
         {
-            if (i == 2)
-                i = 3;
-            if ( i == 4 )
-                i = 5;
-            const auto& boneTransform = controller->GetBoneUpdateTransform( i );
-            if ( boneTransform )
+            if ( boneInfo.find( joints.GetJointName( i ) ) != boneInfo.end() )
             {
-                glm::mat4 globalTransformation = BoneParentTransforms[i] * (*boneTransform);
-                uint32_t index = boneInfo[i].ID;
-                glm::mat4 offset = boneInfo[i].BoneOffset;
+                const auto  jointName        = joints.GetJointName( i );
+                glm::mat4   boneTransform    = glm::mat4( 1.0 );
+                const auto& boneTransformOpt = controller->GetBoneUpdateTransform( i );
+                if ( boneTransformOpt )
+                {
+                    boneTransform = boneTransformOpt.value();
+                }
+                const auto& parrent = joints.GetParentJointIndex( i );
+                glm::mat4   globalTransformation =
+                     ( parrent ? BoneParentTransforms[*parrent] : glm::mat4( 1.0 ) ) * boneTransform;
 
-                BoneTransforms[index] = invRootNode * globalTransformation * offset;
+                uint32_t  index  = boneInfo[jointName].ID;
+                glm::mat4 offset = boneInfo[jointName].BoneOffset;
+
+                BoneTransforms[index]       = invRootNode * globalTransformation * offset;
                 BoneParentTransforms[index] = globalTransformation;
             }
-        }*/
+        }
 
-        s_SceneInfo->MeshDrawList.push_back( { transform, mesh->GetFinalTransforms(), mesh } );
+        s_SceneInfo->MeshDrawList.push_back( { transform, BoneTransforms, mesh } );
     }
 
     Radiant::Memory::Shared<Radiant::Image2D> SceneRendering::GetFinalPassImage()

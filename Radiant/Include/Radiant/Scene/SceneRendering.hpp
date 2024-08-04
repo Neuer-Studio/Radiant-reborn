@@ -5,44 +5,47 @@
 
 namespace Radiant
 {
-	class Scene;
+    class Scene;
 
-	class SceneRendering
-	{
-	public:
-		static SceneRendering& Get();
+    class SceneRendering
+    {
+    public:
+        static SceneRendering& Get();
 
-		~SceneRendering();
-	private:
-		void BeginScene(Memory::Shared<Scene> m_Scene, const Camera& camera);
-		void Init();
-		void EndScene();
-		void OnUpdate(Timestep ts);
+        ~SceneRendering();
 
-		void SetSceneVeiwPortSize(const glm::vec2& size);
-		void SetEnvironment(const Environment& env);
+    private:
+        void BeginScene( Memory::Shared<Scene> m_Scene, const Camera& camera );
+        void Init();
+        void EndScene();
+        void OnUpdate( Timestep ts );
 
-		void SetEnvironmentAttributes(const EnvironmentAttributes& attributes);
+        void SetSceneVeiwPortSize( const glm::vec2& size );
+        void SetEnvironment( const Environment& env );
 
-		void SetEnvMapRotation(float rotation);
-		void SetIBLContribution(float value);
-		void OnImGuiRender();
+        void SetEnvironmentAttributes( const EnvironmentAttributes& attributes );
 
-		void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
+        void SetEnvMapRotation( float rotation );
+        void SetIBLContribution( float value );
+        void OnImGuiRender();
 
-		[[nodiscard]] static Memory::Shared<Image2D> GetFinalPassImage();
-		static Memory::Shared<Image2D> GetShadowMapPassImage();
+        void SubmitMesh( Memory::Shared<Mesh>& mesh, const glm::mat4& transform );
 
-		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
-	private:
-		void FlushDrawList();
-		void ShadowMapPass();
-		void GeometryPass();
-		void CompositePass();
-	private:
-		friend class Scene;
-		friend class Rendering;
-		friend class PanelOutliner;
-		friend class Environment;
-	};
-}
+        [[nodiscard]] static Memory::Shared<Image2D> GetFinalPassImage();
+        static Memory::Shared<Image2D>               GetShadowMapPassImage();
+
+        [[nodiscard]] static Environment CreateEnvironmentMap( const std::filesystem::path& filepath );
+
+    private:
+        void FlushDrawList();
+        void ShadowMapPass();
+        void GeometryPass();
+        void CompositePass();
+
+    private:
+        friend class Scene;
+        friend class Rendering;
+        friend class PanelOutliner;
+        friend class Environment;
+    };
+} // namespace Radiant

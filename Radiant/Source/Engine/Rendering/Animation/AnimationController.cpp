@@ -7,18 +7,15 @@
 
 namespace Radiant::Animation
 {
-    AnimationController::AnimationController( const Animation& animation, const Joints& joints,
-                                              std::unordered_map<std::string, BoneInfo> map )
-         : m_Animation( animation ), m_Joints( joints ), mmap( map )
+    AnimationController::AnimationController( const Animation& animation, const Joints& joints)
+         : m_Animation( animation ), m_Joints( joints )
     {
-        m_FinalBoneMatrices.resize( 100, glm::mat4( 1.0f ) );
-        m_ParentFinalBoneMatrices.resize( 100, glm::mat4( 1.0f ) );
     }
 
     void AnimationController::SetAnimation( const Animation& animation )
     {
         m_Animation   = animation;
-        m_CurrentTime = 0.0f;
+        m_AnimationTime = 0.0f;
     }
 
     std::optional<glm::mat4> AnimationController::UpdateTransforms( float animationTime, uint32_t jointID )
@@ -99,61 +96,21 @@ namespace Radiant::Animation
         float scaleFactor = GetScaleFactor( pair->first.FrameTime, pair->second.FrameTime, animationTime );
         return Math::InterpolateScale( pair->first.Value, pair->second.Value, scaleFactor );
     }
-    //
 
-    void AnimationController::CalculateBoneTransform( uint32_t indexIterator )
+    void AnimationController::OnUpdate( Timestep ts )
     {
-        glm::mat4 nodeTransform = glm::mat4( 1.0 );
-
-        if ( indexIterator >= m_Joints.JointCount() - 1 )
-            return;
-
-        if ( mmap.find( m_Joints.GetJointName( indexIterator ) ) != mmap.end() )
-        {
-            const auto& nodeTransformOpt = UpdateTransforms( m_CurrentTime, indexIterator );
-            if ( nodeTransformOpt )
-            {
-                nodeTransform = nodeTransformOpt.value();
-            }
-            // else
-            //{
-            //     nodeTransform = m_Joints.GetFinalTransform(indexIterator);
-            // }
-
-            glm::mat4 globalTransformation = GetParrentTransform( indexIterator ) * nodeTransform;
-
-            int       index                  = mmap[m_Joints.GetJointName( indexIterator )].ID;
-            glm::mat4 offset                 = mmap[m_Joints.GetJointName( indexIterator )].BoneOffset;
-            m_FinalBoneMatrices[index]       = m_sdf * globalTransformation * offset;
-            m_ParentFinalBoneMatrices[index] = globalTransformation;
-        }
-        CalculateBoneTransform( ++indexIterator );
-    }
-
-    void AnimationController::UpdateAnimation( Timestep ts )
-    {
-        // if ( m_Animation )
+        if (m_IsAnimationPlaying)
         {
 
-            m_CurrentTime += 30.0f * ts;
-            m_CurrentTime = fmod( m_CurrentTime, m_Animation.GetDuration() );
-            CalculateBoneTransform( 0 );
+            m_AnimationTime += ts * GetPlaybackSpeed() / m_Animation.GetDuration();
+            m_AnimationTime = m_AnimationTime - floorf(m_AnimationTime);
+            m_AnimationTime = fmod(m_AnimationTime, m_Animation.GetDuration() );
         }
-    }
-
-    glm::mat4 AnimationController::GetParrentTransform( uint32_t jointID )
-    {
-        const auto& parrent = m_Joints.GetParentJointIndex( jointID );
-        if ( !parrent )
-        {
-            return glm::mat4( 1.0 );
-        }
-        return m_ParentFinalBoneMatrices[*parrent];
     }
 
     const std::optional<glm::mat4> AnimationController::GetBoneUpdateTransform(uint32_t boneID)
     {
-        return UpdateTransforms(m_CurrentTime, boneID);
+        return UpdateTransforms(m_AnimationTime, boneID);
     }
 
 } // namespace Radiant::Animation

@@ -220,7 +220,7 @@ namespace Radiant
 			//Update transform
 			specification.Material->SetMat4("u_Transform", specification.Declration.Transform * submesh.Transform);
 
-			for ( uint32_t i = 0; i < mesh->GetFinalTransforms().size(); i++ )
+			for ( uint32_t i = 0; i < 100; i++ ) //todo
                         {
                             specification.Material->SetMat4(
                                  "u_BoneTransform", (*specification.Declration.BoneTransforms)[i], i);

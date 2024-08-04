@@ -92,7 +92,7 @@ namespace Radiant::Animation
             for ( uint32_t keyIndex = 0; keyIndex < nodeAnim->mNumPositionKeys; ++keyIndex )
             {
                 aiVectorKey key       = nodeAnim->mPositionKeys[keyIndex];
-                float       frameTime = key.mTime;
+                float frameTime = std::clamp(static_cast<float>(key.mTime / anim->mDuration), 0.0f, 1.0f);
 
                 channels[boneIndex].Translations.emplace_back(
                      frameTime, glm::vec3{ static_cast<float>( key.mValue.x ), static_cast<float>( key.mValue.y ),
@@ -101,7 +101,7 @@ namespace Radiant::Animation
             for ( uint32_t keyIndex = 0; keyIndex < nodeAnim->mNumRotationKeys; ++keyIndex )
             {
                 aiQuatKey key       = nodeAnim->mRotationKeys[keyIndex];
-                float     frameTime = key.mTime;
+                float frameTime = std::clamp(static_cast<float>(key.mTime / anim->mDuration), 0.0f, 1.0f);
 
                 channels[boneIndex].Rotations.emplace_back(
                      frameTime,
@@ -111,7 +111,7 @@ namespace Radiant::Animation
             for ( uint32_t keyIndex = 0; keyIndex < nodeAnim->mNumScalingKeys; ++keyIndex )
             {
                 aiVectorKey key       = nodeAnim->mScalingKeys[keyIndex];
-                float       frameTime = key.mTime;
+                float frameTime = std::clamp(static_cast<float>(key.mTime / anim->mDuration), 0.0f, 1.0f);
 
                 channels[boneIndex].Scales.emplace_back(
                      frameTime, glm::vec3{ static_cast<float>( key.mValue.x ), static_cast<float>( key.mValue.y ),
@@ -241,7 +241,7 @@ namespace Radiant::Animation
                     samplingRate = 1.0;
                 }
 
-                Animation animation( animationName, anim->mDuration );
+                Animation animation( animationName, static_cast<float>(anim->mDuration / samplingRate));
                 animation.SetKeyFrames( translationKeys, rotationKeys, scaleKeys );
                 return animation;
             }

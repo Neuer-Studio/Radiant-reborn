@@ -121,10 +121,6 @@ namespace Radiant
             return m_IndexBuffer->GetCount();
         }
 
-        const auto GetFinalTransforms() const
-        {
-            return m_AnimationController->GetFinalBonesTransform();
-        }
         const auto& GetAnimationController() const
         {
             return m_AnimationController;
@@ -139,7 +135,7 @@ namespace Radiant
             return m_IndexBuffer;
         }
 
-        const auto& GetBoneInfo() const
+        auto& GetBoneInfo() 
         {
             return m_BoneInfo;
         }

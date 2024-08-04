@@ -12,52 +12,45 @@ namespace Radiant::Animation
     class AnimationController
     {
     public:
-        AnimationController( const class Animation& animation, const Joints& joints, std::unordered_map<std::string, BoneInfo> map);
+        AnimationController( const class Animation& animation, const Joints& joints );
 
-        void SetAnimation( const class Animation& animation );
+        void                           SetAnimation( const class Animation& animation );
+        const std::optional<glm::mat4> GetBoneUpdateTransform( uint32_t boneID );
 
-        const auto& GetFinalBonesTransform() const
+        void OnUpdate( Timestep ts );
+
+        auto& GetJoints() const
         {
-            return m_FinalBoneMatrices;
-        }
-        void ffff( glm::mat4 sdf )
-        {
-            m_sdf = sdf;
-        }
-
-        const std::optional<glm::mat4> GetBoneUpdateTransform(uint32_t boneID);
-
-        void UpdateAnimation( Timestep ts );
-        void CalculateBoneTransform( uint32_t indexIterator );
-        uint32_t GetBoneIndex(const std::string& name)
-        {
-            return *m_Joints.GetJointIndex(name);
+            return m_Joints;
         }
 
-        const auto sdfsdf() const
+        float GetPlaybackSpeed() const
         {
-            return m_FinalBoneMatrices;
+            return m_PlaybackSpeed;
         }
-        std::unordered_map<std::string, BoneInfo> mmap;
-
+        void SetPlaybackSpeed( const float f )
+        {
+            m_PlaybackSpeed = f;
+        }
     private:
         std::optional<glm::mat4> UpdateTransforms( float animationTime, uint32_t jointID );
 
     private:
+        float m_PlaybackSpeed = 1.0;
+
+        bool      m_IsAnimationPlaying = true;
         Animation m_Animation;
         Joints    m_Joints;
-        float     m_CurrentTime = 0.0f; // current animation time
+        float     m_AnimationTime = 0.0f; // current animation time
     private:
         template <typename T>
         [[nodiscard]] std::vector<T> FilterAndSortByTrack( const std::vector<T>& keys, uint32_t track )
         {
             std::vector<T> filteredKeys;
 
-            // Ôèëüòğàöèÿ îáúåêòîâ
             std::copy_if( keys.begin(), keys.end(), std::back_inserter( filteredKeys ),
                           [track]( const T& key ) { return key.Track == track; } );
 
-            // Ñîğòèğîâêà îòôèëüòğîâàííûõ îáúåêòîâ ïî FrameTime
             std::sort( filteredKeys.begin(), filteredKeys.end(),
                        []( const T& a, const T& b ) { return a.FrameTime < b.FrameTime; } );
 
@@ -72,7 +65,7 @@ namespace Radiant::Animation
 
             for ( uint32_t i = 0; i < sortedKeys.size() - 1; i++ )
             {
-                if ( animationTime < sortedKeys[i + 1].FrameTime)
+                if ( animationTime < sortedKeys[i + 1].FrameTime )
                     return { sortedKeys, i };
             }
 
@@ -94,7 +87,6 @@ namespace Radiant::Animation
 
             const auto& p0Position = sortedKeys[p0Index];
             const auto& p1Position = sortedKeys[p0Index + 1];
-            // ÏĞÎÁËÅÌÀ Â ÏÎÈÑÊÅ ÍÓÆÍÛÕ ÒĞÀÍÑÔÎĞÌÀÖÈÉ!!! ÈÙÅÒ ÍÅ ÒÓ ÊÎÑÒÜ!!!!!!!!!!!!!
 
             return std::make_pair( p0Position, p1Position );
         }
@@ -102,16 +94,5 @@ namespace Radiant::Animation
         std::optional<glm::mat4> InterpolatePosition( float animationTime, uint32_t jointID );
         std::optional<glm::mat4> InterpolateRotation( float animationTime, uint32_t jointID );
         std::optional<glm::mat4> InterpolateScaling( float animationTime, uint32_t jointID );
-
-        [[nodiscard]] glm::mat4 GetParrentTransform( uint32_t jointID );
-
-    private:
-        [[nodiscard]] bool IsAnimationFinished();
-        uint32_t           m_CurrentAnimnationFrame = 0;
-
-    private:
-        std::vector<glm::mat4> m_FinalBoneMatrices;
-        std::vector<glm::mat4> m_ParentFinalBoneMatrices;
-        glm::mat4              m_sdf;
     };
 } // namespace Radiant::Animation
