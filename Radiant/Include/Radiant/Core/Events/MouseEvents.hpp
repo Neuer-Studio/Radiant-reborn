@@ -43,7 +43,7 @@ namespace Radiant {
 	public:
 		inline MouseButton GetMouseButton() const { return m_Button; }
 	protected:
-		MouseButtonEvent(MouseButton button)
+		explicit MouseButtonEvent(MouseButton button)
 			: m_Button(button) {}
 
 		MouseButton m_Button;
@@ -52,7 +52,7 @@ namespace Radiant {
 	class MouseButtonPressedEvent : public MouseButtonEvent
 	{
 	public:
-		MouseButtonPressedEvent(MouseButton button)
+		explicit MouseButtonPressedEvent(MouseButton button)
 			: MouseButtonEvent(button) {}
 
 		virtual const EventType GetEventType() const { return GetStaticType(); }

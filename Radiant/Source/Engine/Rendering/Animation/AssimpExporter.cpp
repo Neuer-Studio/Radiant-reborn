@@ -10,15 +10,30 @@
 
 namespace Radiant::Animation
 {
+    static const uint32_t s_AnimationImportFlags =
+         aiProcess_CalcTangentSpace | // Create binormals/tangents just in case
+         aiProcess_Triangulate |      // Make sure we're triangles
+         aiProcess_SortByPType |      // Split meshes by primitive type
+         aiProcess_GenNormals |       // Make sure we have legit normals
+         aiProcess_GenUVCoords |      // Convert UVs if required
+         //		aiProcess_OptimizeGraph |
+         aiProcess_OptimizeMeshes | // Batch draws where possible
+         aiProcess_JoinIdenticalVertices |
+         aiProcess_LimitBoneWeights | // If more than N (=4) bone weights, discard least influencing bones and
+                                      // renormalise sum to 1
+         aiProcess_GlobalScale |      // e.g. convert cm to m for fbx import (and other formats where cm is native)
+         //		aiProcess_PopulateArmatureData |    // not currently using this data
+         aiProcess_ValidateDataStructure; // Validation 
+
     class BoneHierarchy
     {
     public:
         BoneHierarchy( const aiScene* scene );
 
         void                  ExtractBones();
-        void                  TraverseNode( aiNode* node, Joints* joints );
-        void                  TraverseBone( aiNode* node, Joints* joints, std::optional<uint32_t> parentIndex );
-        std::optional<Joints> CreateSkeleton();
+        void                  TraverseNode( aiNode* node, Skeleton* skeleton);
+        void                  TraverseBone( aiNode* node, Skeleton* skeleton, std::optional<uint32_t> parentIndex );
+        std::optional<Skeleton> CreateSkeleton();
 
     private:
         std::set<std::string_view> m_Bones;
@@ -58,14 +73,14 @@ namespace Radiant::Animation
     };
 
     // Import all of the channels from anim that refer to bones in skeleton
-    static auto ImportChannels( const aiAnimation* anim, const Joints& joints )
+    static auto ImportChannels( const aiAnimation* anim, const Skeleton& skeleton)
     {
         std::vector<Channel> channels;
 
         std::unordered_map<std::string_view, uint32_t> boneIndices;
-        for ( uint32_t i = 0; i < joints.JointCount(); ++i )
+        for ( uint32_t i = 0; i < skeleton.BoneCount(); ++i )
         {
-            boneIndices.emplace( joints.GetJointName( i ), i );
+            boneIndices.emplace(skeleton.GetBoneName( i ), i );
         }
 
         std::set<std::tuple<uint32_t, aiNodeAnim*>> validChannels;
@@ -79,7 +94,7 @@ namespace Radiant::Animation
             }
         }
 
-        channels.resize( joints.JointCount() );
+        channels.resize(skeleton.BoneCount() );
         for ( auto [boneIndex, nodeAnim] : validChannels )
         {
             channels[boneIndex].Index = boneIndex;
@@ -217,7 +232,7 @@ namespace Radiant::Animation
     }
 
     std::optional<Animation> Exporter::ImportAnimation( const aiScene* scene, const std::string_view animationName,
-                                                        const Joints& skeleton )
+                                                        const Skeleton& skeleton )
     {
         if ( !scene )
         {
@@ -249,17 +264,33 @@ namespace Radiant::Animation
         return std::nullopt;
     }
 
-    std::optional<Radiant::Animation::Joints> Exporter::ImportJoints( const aiScene* scene ) const
+    std::optional<Animation> Exporter::ImportAnimation( const std::string_view filename,
+                                                                 const Skeleton&        skeleton )
+    {
+        Assimp::Importer importer;
+        const aiScene*   scene = importer.ReadFile( filename.data(), s_AnimationImportFlags );
+        auto animationNames = GetAnimationNames(scene);
+        return ImportAnimation(scene, animationNames.front(), skeleton);
+    }
+
+    std::optional<Radiant::Animation::Skeleton> Exporter::ImportSkeleton( const aiScene* scene ) const
     {
         BoneHierarchy boneHierarchy( scene );
         return boneHierarchy.CreateSkeleton();
+    }
+
+    std::optional<Radiant::Animation::Skeleton> Exporter::ImportSkeleton( const std::string_view filename )
+    {
+        Assimp::Importer importer;
+        const aiScene*   scene = importer.ReadFile( filename.data(), s_AnimationImportFlags );
+        return ImportSkeleton( scene );
     }
 
     BoneHierarchy::BoneHierarchy( const aiScene* scene ) : m_Scene( scene )
     {
     }
 
-    std::optional<Joints> BoneHierarchy::CreateSkeleton()
+    std::optional<Skeleton> BoneHierarchy::CreateSkeleton()
     {
         if ( !m_Scene )
         {
@@ -272,7 +303,7 @@ namespace Radiant::Animation
             return std::nullopt;
         }
 
-        auto skeleton = Joints( static_cast<uint32_t>( m_Bones.size() ) );
+        auto skeleton = Skeleton( static_cast<uint32_t>( m_Bones.size() ) );
         TraverseNode( m_Scene->mRootNode, &skeleton );
 
         return skeleton;
@@ -292,35 +323,35 @@ namespace Radiant::Animation
         }
     }
 
-    void BoneHierarchy::TraverseNode( aiNode* node, Joints* joints )
+    void BoneHierarchy::TraverseNode( aiNode* node, Skeleton* skeleton)
     {
         if ( m_Bones.find( node->mName.C_Str() ) != m_Bones.end() )
         {
-            TraverseBone( node, joints, std::nullopt );
+            TraverseBone( node, skeleton, std::nullopt );
         }
         else
         {
             for ( uint32_t nodeIndex = 0; nodeIndex < node->mNumChildren; ++nodeIndex )
             {
-                TraverseNode( node->mChildren[nodeIndex], joints );
+                TraverseNode( node->mChildren[nodeIndex], skeleton);
             }
         }
     }
 
-    void BoneHierarchy::TraverseBone( aiNode* node, Joints* skeleton, std::optional<uint32_t> parentIndex )
+    void BoneHierarchy::TraverseBone( aiNode* node, Skeleton* skeleton, std::optional<uint32_t> parentIndex )
     {
         using namespace Math::Matrix;
 
-        JointInformation info;
-        info.JointName        = node->mName.C_Str();
-        info.ParentJointIndex = parentIndex;
+        BoneInformation info;
+        info.BoneName        = node->mName.C_Str();
+        info.ParentBoneIndex = parentIndex;
 
         const auto decMatrix  = DecomposeTransform( AssimpAIMat4toGLMMat4( node->mTransformation ) );
-        info.JointRotation    = decMatrix.Rotation;
-        info.JointScale       = decMatrix.Scale;
-        info.JointTranslation = decMatrix.Translation;
+        info.BoneRotation    = decMatrix.Rotation;
+        info.BoneScale       = decMatrix.Scale;
+        info.BoneTranslation = decMatrix.Translation;
 
-        uint32_t boneIndex = skeleton->AddJoint( info );
+        uint32_t boneIndex = skeleton->AddBone( info );
         for ( uint32_t nodeIndex = 0; nodeIndex < node->mNumChildren; ++nodeIndex )
         {
             TraverseBone( node->mChildren[nodeIndex], skeleton, boneIndex );

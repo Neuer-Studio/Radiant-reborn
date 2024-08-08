@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Radiant/Core/Timestep.hpp>
 #include <Radiant/Core/Events/Event.hpp>
+#include <Radiant/Core/Timestep.hpp>
 
 #include <string>
 

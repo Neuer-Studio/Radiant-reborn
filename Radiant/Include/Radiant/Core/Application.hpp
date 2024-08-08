@@ -42,7 +42,7 @@ namespace Radiant
 		static Application& GetInstance() { return *s_Instance; }
 	private:
 	private:
-		bool OnClose(EventWindowClose& e){}
+		bool OnClose(EventWindowClose& e) { return true; }
 		void ProcessEvents(Event& e);
 	private:
 		Memory::Shared<Window> m_Window;

@@ -19,6 +19,11 @@
 
 #include <Radiant/Scene/SceneRendering.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 namespace Radiant
 {
     struct PointLightsDeclaration
@@ -341,39 +346,42 @@ namespace Radiant
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
     }
 
-    void SceneRendering::SubmitMesh( Memory::Shared<Mesh>& mesh, const glm::mat4& transform )
+    void SceneRendering::SubmitMesh( Memory::Shared<Mesh>& mesh, const glm::mat4& transform ) // TODO: move to
+                                                                                              // scene
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
 
         std::vector<glm::mat4> BoneTransforms( 100, glm::mat4( 1.0 ) );
         std::vector<glm::mat4> BoneParentTransforms( 100, glm::mat4( 1.0 ) );
 
-        auto&            boneInfo    = mesh->GetBoneInfo();
-        const auto&      controller  = mesh->GetAnimationController();
-        const glm::mat4& invRootNode = mesh->GetGlobalInverseTransform();
-        const auto&      joints      = controller->GetJoints();
+        auto&       boneInfo   = mesh->GetBoneInfo();
+        const auto& controller = mesh->GetAnimationController();
 
-        for ( uint32_t i = 0; i < joints.JointCount(); ++i )
+        for ( const auto& bone : boneInfo )
         {
-            if ( boneInfo.find( joints.GetJointName( i ) ) != boneInfo.end() )
+            const uint32_t index = bone.second.ID;
+            const auto boneTransform =
+                 glm::translate( glm::mat4( 1.0f ), controller->GetTranslation(index) ) *
+                 glm::toMat4( glm::quat( controller->GetRotation(index) ) ) *
+                 glm::scale( glm::mat4( 1.0f ),
+                             controller->GetScale( index ) ); // TODO: move to component system
+
+            glm::mat4   globalTransformation;
+            if (index == 0)
             {
-                const auto  jointName        = joints.GetJointName( i );
-                glm::mat4   boneTransform    = glm::mat4( 1.0 );
-                const auto& boneTransformOpt = controller->GetBoneUpdateTransform( i );
-                if ( boneTransformOpt )
-                {
-                    boneTransform = boneTransformOpt.value();
-                }
-                const auto& parrent = joints.GetParentJointIndex( i );
-                glm::mat4   globalTransformation =
-                     ( parrent ? BoneParentTransforms[*parrent] : glm::mat4( 1.0 ) ) * boneTransform;
-
-                uint32_t  index  = boneInfo[jointName].ID;
-                glm::mat4 offset = boneInfo[jointName].BoneOffset;
-
-                BoneTransforms[index]       = invRootNode * globalTransformation * offset;
-                BoneParentTransforms[index] = globalTransformation;
+                globalTransformation = glm::mat4(1.0) * boneTransform;
+                BoneParentTransforms[0] = glm::mat4(1.0) * boneTransform;
             }
+            else
+            {
+                globalTransformation = BoneParentTransforms[0] * boneTransform;
+            }
+
+            BoneTransforms[index]       = mesh->GetGlobalInverseTransform() * globalTransformation * bone.second.BoneOffset;
+
+            // TODO:
+            // the basic logic is that our const auto transform is stored in TransformComponent we get it, 
+            // then we count all transformations on the level above, and here we already equate inversed matrix
         }
 
         s_SceneInfo->MeshDrawList.push_back( { transform, BoneTransforms, mesh } );
@@ -413,12 +421,13 @@ namespace Radiant
 
     static void CalculateCascades( CascadeData* cascades, const glm::vec3& lightDirection )
     {
-        FrustumBounds frustumBounds[3];
+        FrustumBounds frustumBounds[3] = {};
 
         auto viewProjection = s_SceneInfo->SceneCamera.ViewProjection;
 
-        const int SHADOW_MAP_CASCADE_COUNT = 4;
-        float     cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
+        const int                                   SHADOW_MAP_CASCADE_COUNT = 4;
+        std::array<float, SHADOW_MAP_CASCADE_COUNT> cascadeSplits            = { 0.0 };
+        cascadeSplits.fill( 0.0 );
 
         // TODO: less hard-coding!
         float nearClip  = 0.1f;

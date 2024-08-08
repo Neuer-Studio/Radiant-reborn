@@ -4,13 +4,13 @@ namespace Radiant
 {
 	enum class EventType
 	{
-		None = 0, 
+		None = 0,
 		WindowClose, WindowResize, // Window
 		KeyPressed, // Keys
 		MouseMoved, MouseScroll, MousePressed// Mouse
 	};
 
-	class Event 
+	class Event
 	{
 	public:
 		virtual const EventType GetEventType() const = 0;
@@ -23,8 +23,8 @@ namespace Radiant
 	public:
 		template <typename T>
 		using EventFN = std::function<bool(const T&)>;
-		
-		EventManager(Event& e)
+
+		explicit EventManager(Event& e)
 			: m_Event(e) {}
 
 		template <typename T>
@@ -32,7 +32,7 @@ namespace Radiant
 		{
 			if (m_Event.GetEventType() == T::GetStaticType())
 			{
-				m_Event.m_Handled = func(*(T*)&m_Event);
+				m_Event.m_Handled = func(*(T*)&m_Event); //TODO: static_cast
 				return true;
 			}
 			return false;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Radiant/Rendering/Animation/Joint.hpp>
+#include <Radiant/Rendering/Animation/Skeleton.hpp>
 #include <Radiant/Rendering/Animation/BoneInfo.hpp>
 
 namespace Radiant::Animation

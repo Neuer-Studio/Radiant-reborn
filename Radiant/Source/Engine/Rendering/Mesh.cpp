@@ -159,12 +159,12 @@ namespace Radiant
                 Animation::Exporter exporter;
 
                 const auto names = exporter.GetAnimationNames( scene );
-                m_Joints = exporter.ImportJoints(scene).value();
+                m_Skeleton = exporter.ImportSkeleton(filepath.string()).value();
 
-                m_Animations.emplace_back( exporter.ImportAnimation( scene, names[0], m_Joints).value() );
+                m_Animations.emplace_back( exporter.ImportAnimation(filepath.string(), m_Skeleton).value() );
 
                 m_AnimationController =
-                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Joints);
+                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Skeleton);
 
             }
 

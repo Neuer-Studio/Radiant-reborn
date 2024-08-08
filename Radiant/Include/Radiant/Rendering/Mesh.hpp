@@ -6,7 +6,7 @@
 #include <Radiant/Core/Math/AABB.hpp>
 
 #include <Radiant/Rendering/Animation/AssimpExporter.hpp>
-#include <Radiant/Rendering/Animation/Joint.hpp>
+#include <Radiant/Rendering/Animation/Skeleton.hpp>
 #include <Radiant/Rendering/Animation/AnimationController.hpp>
 
 #include <glm/glm.hpp>
@@ -135,7 +135,7 @@ namespace Radiant
             return m_IndexBuffer;
         }
 
-        auto& GetBoneInfo() 
+        auto& GetBoneInfo()
         {
             return m_BoneInfo;
         }
@@ -154,10 +154,10 @@ namespace Radiant
     private:
         glm::mat4 m_GlobalInverseTransform;
 
-        Animation::Joints                               m_Joints;
-        std::vector<Animation::Animation>               m_Animations;
-        std::unique_ptr<Animation::AnimationController> m_AnimationController;
-        std::unordered_map<std::string, Animation::BoneInfo>                m_BoneInfo;
+        Animation::Skeleton                                  m_Skeleton;
+        std::vector<Animation::Animation>                    m_Animations;
+        std::unique_ptr<Animation::AnimationController>      m_AnimationController;
+        std::unordered_map<std::string, Animation::BoneInfo> m_BoneInfo;
 
         std::vector<Submesh> m_Submeshes;
 
