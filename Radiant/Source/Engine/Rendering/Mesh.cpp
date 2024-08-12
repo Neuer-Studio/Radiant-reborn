@@ -20,44 +20,8 @@ namespace Radiant
 #else
 #define MESH_LOG( ... )
 #endif
-    glm::mat4 Mat4FromAssimpMat4( const aiMatrix4x4& matrix )
-    {
-        glm::mat4 result;
-        // the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
-        result[0][0] = matrix.a1;
-        result[1][0] = matrix.a2;
-        result[2][0] = matrix.a3;
-        result[3][0] = matrix.a4;
-        result[0][1] = matrix.b1;
-        result[1][1] = matrix.b2;
-        result[2][1] = matrix.b3;
-        result[3][1] = matrix.b4;
-        result[0][2] = matrix.c1;
-        result[1][2] = matrix.c2;
-        result[2][2] = matrix.c3;
-        result[3][2] = matrix.c4;
-        result[0][3] = matrix.d1;
-        result[1][3] = matrix.d2;
-        result[2][3] = matrix.d3;
-        result[3][3] = matrix.d4;
-        return result;
-    }
 
-    glm::mat4 CalculateGlobalInverseTransform( const aiNode* rootNode )
-    {
-        glm::mat4     globalTransform = Mat4FromAssimpMat4( rootNode->mTransformation );
-        const aiNode* parent          = rootNode->mParent;
-
-        while ( parent )
-        {
-            globalTransform = Mat4FromAssimpMat4( parent->mTransformation ) * globalTransform;
-            parent          = parent->mParent;
-        }
-
-        return glm::inverse( globalTransform );
-    }
-
-    struct LogStream : public Assimp::LogStream
+    struct LogStream : public Assimp::LogStream // TOOD: move to new cpp file
     {
         static void Initialize()
         {
@@ -80,22 +44,25 @@ namespace Radiant
          aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure;
 
     Mesh::Mesh( const std::filesystem::path& filepath )
+        : m_AssetPath(filepath)
     {
         LogStream::Initialize();
-        RADIANT_VERIFY( Utils::FileSystem::Exists( filepath ) );
-        RA_TRACE( "Loading mesh: {0}", filepath.string().c_str() );
 
+        RADIANT_VERIFY( Utils::FileSystem::Exists( filepath ) );
+        RA_TRACE( "Loading mesh: {1}", filepath.string().c_str() );
         m_Name = Utils::FileSystem::GetFileName( filepath );
 
-        const auto s_Importer = std::make_unique<Assimp::Importer>();
+        m_Importer           = std::make_shared<Assimp::Importer>();
+        const aiScene* scene = m_Importer->ReadFile( filepath.string(), s_ImportFlags );
+        m_Scene              = scene;
 
-        const aiScene* scene = s_Importer->ReadFile( filepath.string(), s_ImportFlags );
         m_Submeshes.reserve( scene->mNumMeshes );
 
         uint32_t vertexCount = 0;
         uint32_t indexCount  = 0;
 
-        m_GlobalInverseTransform = glm::inverse(Math::Matrix::AssimpAIMat4toGLMMat4(scene->mRootNode->mTransformation));
+        m_GlobalInverseTransform =
+             glm::inverse( Math::Matrix::AssimpAIMat4toGLMMat4( scene->mRootNode->mTransformation ) );
 
         for ( size_t m = 0; m < scene->mNumMeshes; m++ )
         {
@@ -117,16 +84,11 @@ namespace Radiant
             aabb.Min   = { FLT_MAX, FLT_MAX, FLT_MAX };
             aabb.Max   = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
-            std::vector<StaticVertex>   staticVertices;
-            std::vector<AnimatedVertex> animatedVertices;
-
             for ( int i = 0; i < mesh->mNumVertices; i++ )
             {
-                AnimatedVertex vertex;
-                vertex.StaticVertexData.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y,
-                                                     mesh->mVertices[i].z };
-                vertex.StaticVertexData.Normals  = { mesh->mNormals[i].x, mesh->mNormals[i].y,
-                                                     mesh->mNormals[i].z };
+                StaticVertex vertex;
+                vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+                vertex.Normals  = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
                 /*aabb.Min.x = glm::min(vertex.Position.x, aabb.Min.x);
                 aabb.Min.y = glm::min(vertex.Position.y, aabb.Min.y);
@@ -137,39 +99,21 @@ namespace Radiant
 
                 if ( mesh->HasTangentsAndBitangents() )
                 {
-                    vertex.StaticVertexData.Tangent   = { mesh->mTangents[i].x, mesh->mTangents[i].y,
-                                                          mesh->mTangents[i].z };
-                    vertex.StaticVertexData.Bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y,
-                                                          mesh->mBitangents[i].z };
+                    vertex.Tangent   = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+                    vertex.Bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
                 }
 
                 if ( mesh->HasTextureCoords( 0 ) )
                 {
-                    vertex.StaticVertexData.TexCoords = { mesh->mTextureCoords[0][i].x,
-                                                          mesh->mTextureCoords[0][i].y };
+                    vertex.TexCoords = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
                 }
 
-                animatedVertices.push_back( vertex );
+                m_StaticVertices.push_back( vertex );
             }
 
-            ExtractBoneWeightForVertices( animatedVertices, mesh, scene );
-
-            if ( scene->mNumAnimations )
-            {
-                Animation::Exporter exporter;
-
-                const auto names = exporter.GetAnimationNames( scene );
-                m_Skeleton = exporter.ImportSkeleton(filepath.string()).value();
-
-                m_Animations.emplace_back( exporter.ImportAnimation(filepath.string(), m_Skeleton).value() );
-
-                m_AnimationController =
-                    std::make_unique<Animation::AnimationController>(m_Animations[0], m_Skeleton);
-
-            }
-
-            m_VertexBuffer =
-                 VertexBuffer::Create( animatedVertices.data(), animatedVertices.size() * sizeof(AnimatedVertex) );
+            /*
+              m_VertexBuffer = VertexBuffer::Create( animatedVertices.data(),
+                                                     animatedVertices.size() * sizeof( AnimatedVertex ) );*/
 
             for ( int i = 0; i < mesh->mNumFaces; i++ )
             {
@@ -262,14 +206,51 @@ namespace Radiant
         TraverseNodes( scene->mRootNode );
     }
 
-    void Mesh::Use() const
+    void Mesh::TraverseNodes( aiNode* node, const glm::mat4& parentTransform, uint32_t level )
     {
-        m_VertexBuffer->Use();
-        m_IndexBuffer->Use();
+        glm::mat4 transform = parentTransform * Math::Matrix::AssimpAIMat4toGLMMat4( node->mTransformation );
+        for ( uint32_t i = 0; i < node->mNumMeshes; i++ )
+        {
+            uint32_t mesh     = node->mMeshes[i];
+            auto&    submesh  = m_Submeshes[mesh];
+            submesh.NodeName  = node->mName.C_Str();
+            submesh.Transform = transform;
+        }
+
+        for ( uint32_t i = 0; i < node->mNumChildren; i++ )
+            TraverseNodes( node->mChildren[i], transform, level + 1 );
     }
 
-    void Mesh::ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
-                                             const aiScene* scene )
+    //************************ AnimatedMesh **************************//
+
+    AnimatedMesh::AnimatedMesh( const std::filesystem::path& filepath ) : Mesh( filepath )
+    {
+        for ( size_t m = 0; m < m_Scene->mNumMeshes; m++ )
+        {
+            aiMesh*                     mesh = m_Scene->mMeshes[m];
+            std::vector<AnimatedVertex> animatedVertices;
+
+            for ( int i = 0; i < mesh->mNumVertices; i++ )
+            {
+
+                // NOTE: Actually it is worth to optimize it somehow, at the moment in order not to create several
+                // times
+                //  the same StaticVertex, we declared it globally, which is also used in StaticMesh, and here we
+                //  just throw in AnimatedVertex
+
+                AnimatedVertex vertex;
+                vertex.StaticVertexData = m_StaticVertices[i];
+                animatedVertices.push_back( vertex );
+            }
+
+            ExtractBoneWeightForVertices( animatedVertices, mesh, m_Scene );
+            m_VertexBuffer = VertexBuffer::Create( animatedVertices.data(),
+                                                   animatedVertices.size() * sizeof( AnimatedVertex ) );
+        }
+    }
+
+    void AnimatedMesh::ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
+                                                     const aiScene* scene )
     {
         for ( int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex )
         {
@@ -282,7 +263,7 @@ namespace Radiant
                 newBoneInfo.BoneOffset =
                      Math::Matrix::AssimpAIMat4toGLMMat4( mesh->mBones[boneIndex]->mOffsetMatrix );
                 m_BoneInfo[boneName] = newBoneInfo;
-                boneID                  = newBoneInfo.ID;
+                boneID               = newBoneInfo.ID;
             }
             else
             {
@@ -300,22 +281,22 @@ namespace Radiant
                 vertices[vertexId].AddBoneData( boneID, weight );
             }
         }
+
+        auto exporter         = Animation::Exporter();
+        m_Skeleton            = exporter.ImportSkeleton( m_AssetPath.string() ).value();
+        m_Animations.push_back( exporter.ImportAnimation( m_AssetPath.string(), m_Skeleton ).value() );
+
+        m_AnimationController = std::make_unique<Animation::AnimationController>(m_Animations.back(), m_Skeleton);
     }
 
-    void Mesh::TraverseNodes( aiNode* node, const glm::mat4& parentTransform, uint32_t level )
+    //****************************************************//
+
+    //************************ StaticMesh **************************//
+
+    StaticMesh::StaticMesh( const std::filesystem::path& filepath ) : Mesh( filepath )
     {
-        glm::mat4 transform = parentTransform * Mat4FromAssimpMat4( node->mTransformation );
-        for ( uint32_t i = 0; i < node->mNumMeshes; i++ )
-        {
-            uint32_t mesh    = node->mMeshes[i];
-            auto&    submesh = m_Submeshes[mesh];
-            // submesh.NodeName = node->mName.C_Str();
-            submesh.Transform = transform;
-        }
-
-        // HZ_MESH_LOG("{0} {1}", LevelToSpaces(level), node->mName.C_Str());
-
-        for ( uint32_t i = 0; i < node->mNumChildren; i++ )
-            TraverseNodes( node->mChildren[i], transform, level + 1 );
+        m_VertexBuffer =
+             VertexBuffer::Create( m_StaticVertices.data(), m_StaticVertices.size() * sizeof( StaticVertex ) );
     }
+
 } // namespace Radiant

@@ -44,7 +44,7 @@ namespace Radiant
 
 		virtual const SamplerUniform& GetSamplerInformation(const std::string& name) const = 0;
 
-		virtual void UpdateForRendering() const = 0;
+		virtual void RT_UpdateForRendering() const = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value, std::optional<uint32_t> arrayIndex = std::nullopt) const = 0;
 		virtual void SetBool(const std::string& name, bool value, std::optional<uint32_t> arrayIndex = std::nullopt) const = 0;
 		virtual void SetUint(const std::string& name, uint32_t value, std::optional<uint32_t> arrayIndex = std::nullopt) const = 0;

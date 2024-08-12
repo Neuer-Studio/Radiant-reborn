@@ -59,7 +59,7 @@ namespace Radiant
 			Input::Mouse::Get().SetCursorMode(Input::MouseState::Locked);
 
 			const float YawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
-			const float CameraSpeed = 0.01f * ts.GetMilliseconds();
+			const float CameraSpeed = 0.002f * ts.GetMilliseconds();
 			const float RotationSpeed = 0.3f * ts.GetMilliseconds();
 
 			if (Input::Keyboard::IsKeyPressed(KeyCode::Q))

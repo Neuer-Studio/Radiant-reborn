@@ -347,6 +347,20 @@ namespace Radiant
         }
     }
 
+    void SceneRendering::UpdateEnvTextures( const Memory::Shared<Material>& material )
+    {
+        TextureDescriptor descriptor;
+
+        descriptor.Name = "u_EnvRadianceTex";
+        material->SetImage2D( descriptor, s_SceneInfo->EnvironmentMap.Radiance );
+
+        descriptor.Name = "u_EnvIrradianceTex";
+        material->SetImage2D( descriptor, s_SceneInfo->EnvironmentMap.Irradiance );
+
+        descriptor.Name = "u_BRDFLUTTexture";
+        material->SetImage2D( descriptor, s_SceneInfo->BRDF_LUT->GetImage2D() );
+    }
+
     void SceneRendering::SetEnvironment( const Environment& env )
     {
         s_SceneInfo->EnvironmentMap = env;
@@ -354,6 +368,9 @@ namespace Radiant
 
         descriptor.Name = "u_EnvTexture";
         s_SceneInfo->SkyboxMaterial->SetImage2D( descriptor, env.Radiance );
+
+        UpdateEnvTextures( s_SceneInfo->RenderPassList.Geometry.material );
+        UpdateEnvTextures( s_SceneInfo->RenderPassList.GeometryAnimated.material );
     }
 
     void SceneRendering::SetEnvironmentAttributes( const EnvironmentAttributes& attributes )
@@ -549,7 +566,7 @@ namespace Radiant
         Rendering::BeginRenderPass( s_SceneInfo->RenderPassList.Geometry.pipeline->GetSpecification().RenderPass );
 
         s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
-        Rendering::SubmitFullscreenQuad( s_SceneInfo->SkyboxPipeline, nullptr );
+        Rendering::SubmitFullscreenQuad( s_SceneInfo->SkyboxPipeline, s_SceneInfo->SkyboxMaterial );
 
         const auto& options = s_SceneInfo->ActiveScene->GetSceneOptions();
 
@@ -706,7 +723,7 @@ namespace Radiant
                               .TargetFramebuffer->GetColorAttachmentImage() );
 
         s_SceneInfo->RenderPassList.Composite.pipeline->GetSpecification().Shader->Use();
-        Rendering::SubmitFullscreenQuad( s_SceneInfo->RenderPassList.Composite.pipeline, nullptr );
+        Rendering::SubmitFullscreenQuad( s_SceneInfo->RenderPassList.Composite.pipeline, s_SceneInfo->RenderPassList.Composite.material);
         Rendering::EndRenderPass();
     }
 

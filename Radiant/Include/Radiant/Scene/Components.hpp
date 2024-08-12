@@ -53,11 +53,13 @@ namespace Radiant
 	{
 		Memory::Shared<class Mesh> Mesh;
 
+		bool LoadAsStatic = false; //TODO: remove 
+
 		MeshComponent() = default;
-		MeshComponent(const Memory::Shared<class Mesh>& mesh)
+		MeshComponent(const Memory::Shared<class StaticMesh>& mesh)
 			: Mesh(mesh) {}
 
-		operator Memory::Shared<Radiant::Mesh>() { return Mesh; }
+		operator Memory::Shared<Radiant::StaticMesh>() { return Mesh; }
 	};
 
 	struct EnvironmentMap

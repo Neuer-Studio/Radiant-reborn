@@ -75,7 +75,7 @@ namespace Radiant
 
 	void OpenGLRenderingContext::EndFrame() const
 	{
-		static float rgba[4] = { 0.4f, 0.3f, 0.1f, 1.0f };
+		static std::array<float, 4> rgba = { 0.4f, 0.3f, 0.1f, 1.0f };
 		Rendering::Clear(rgba);
 	}
 

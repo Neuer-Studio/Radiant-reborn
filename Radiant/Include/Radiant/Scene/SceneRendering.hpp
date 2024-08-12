@@ -37,7 +37,8 @@ namespace Radiant
         static Memory::Shared<Image2D>               GetShadowMapPassImage();
 
         [[nodiscard]] static Environment CreateEnvironmentMap( const std::filesystem::path& filepath );
-
+    private:
+        void UpdateEnvTextures(const Memory::Shared<Material>& material);
     private:
         void FlushDrawList();
         void ShadowMapPass();
