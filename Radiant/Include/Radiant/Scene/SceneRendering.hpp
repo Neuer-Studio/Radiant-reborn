@@ -29,7 +29,9 @@ namespace Radiant
         void SetIBLContribution( float value );
         void OnImGuiRender();
 
-        void SubmitMesh( Memory::Shared<Mesh>& mesh, const glm::mat4& transform );
+        void SubmitAnimatedMesh( const Memory::Shared<AnimatedMesh>& mesh, std::vector<glm::mat4>& boneTransforms,
+                         const glm::mat4& transform );
+        void SubmitStaticMesh( const Memory::Shared<StaticMesh>& mesh, const glm::mat4& transform );
 
         [[nodiscard]] static Memory::Shared<Image2D> GetFinalPassImage();
         static Memory::Shared<Image2D>               GetShadowMapPassImage();
@@ -41,6 +43,7 @@ namespace Radiant
         void ShadowMapPass();
         void GeometryPass();
         void CompositePass();
+    private:
 
     private:
         friend class Scene;

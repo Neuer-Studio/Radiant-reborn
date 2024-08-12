@@ -19,11 +19,6 @@
 
 #include <Radiant/Scene/SceneRendering.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 namespace Radiant
 {
     struct PointLightsDeclaration
@@ -48,7 +43,7 @@ namespace Radiant
         Memory::Shared<Material> material;
     };
 
-    struct ShadowData
+    struct Shadow
     {
         Memory::Shared<Pipeline> ShadowPassPipeline[4];
         Memory::Shared<Material> ShadowMapMaterial;
@@ -78,30 +73,39 @@ namespace Radiant
 
     struct RenderPassList
     {
-        GeometryData  GeoData;
-        CompositeData CompData;
-        ShadowData    Shadowdata;
+        GeometryData  Geometry;
+        GeometryData  GeometryAnimated;
+        CompositeData Composite;
+        Shadow        Shadow;
+    };
+
+    struct DrawCommandRigged
+    {
+        glm::mat4                             Transform;
+        std::optional<std::vector<glm::mat4>> BoneTransforms;
+        Memory::Shared<AnimatedMesh>          Mesh;
     };
 
     struct DrawCommand
     {
         glm::mat4                             Transform;
         std::optional<std::vector<glm::mat4>> BoneTransforms;
-        Memory::Shared<Mesh>                  Mesh;
+        Memory::Shared<StaticMesh>            Mesh;
     };
 
     struct SceneInfo
     {
-        struct RenderPassList     RenderPassList;
-        Memory::Shared<Shader>    DefaultShader;
-        std::vector<DrawCommand>  MeshDrawList;
-        Memory::Shared<Pipeline>  GridPipeline;
-        Memory::Shared<Material>  GridMaterial;
-        Memory::Shared<Pipeline>  SkyboxPipeline;
-        Memory::Shared<Material>  SkyboxMaterial;
-        struct LightEnvironment   LightEnvironment;
-        Memory::Shared<Texture2D> BRDF_LUT;
-        UBLights                  LightUB;
+        struct RenderPassList          RenderPassList;
+        Memory::Shared<Shader>         DefaultShader;
+        std::vector<DrawCommand>       StaticMeshDrawList;
+        std::vector<DrawCommandRigged> RiggedMeshDrawList;
+        Memory::Shared<Pipeline>       GridPipeline;
+        Memory::Shared<Material>       GridMaterial;
+        Memory::Shared<Pipeline>       SkyboxPipeline;
+        Memory::Shared<Material>       SkyboxMaterial;
+        struct LightEnvironment        LightEnvironment;
+        Memory::Shared<Texture2D>      BRDF_LUT;
+        UBLights                       LightUB;
 
         struct
         {
@@ -183,19 +187,42 @@ namespace Radiant
                                         { ImageFormat::RGBA16F, ImageFormat::DEPTH32F } } );
             renderPassSpec.DebugName = "Geometry Render Pass";
 
-            PipelineSpecification pipelineSpecification;
-            pipelineSpecification.Layout = {
-                 { ShaderDataType::Float3, "a_Position" },   { ShaderDataType::Float3, "a_Normals" },
-                 { ShaderDataType::Float2, "a_TexCoord" },   { ShaderDataType::Float3, "a_Tangent" },
-                 { ShaderDataType::Float3, "a_Bitangent" },  { ShaderDataType::Int4, "a_BoneIndices" },
-                 { ShaderDataType::Float4, "a_BoneWeights" } };
+            {
+                // Geometry static pass
 
-            pipelineSpecification.DebugName  = "PBR-Static";
-            pipelineSpecification.RenderPass = RenderPass::Create( renderPassSpec );
-            pipelineSpecification.Shader     = Rendering::GetShaderLibrary()->Get( "AnimPBR_Radiant.glsl" );
+                PipelineSpecification pipelineSpecification;
+                pipelineSpecification.Layout = { { ShaderDataType::Float3, "a_Position" },
+                                                 { ShaderDataType::Float3, "a_Normals" },
+                                                 { ShaderDataType::Float2, "a_TexCoord" },
+                                                 { ShaderDataType::Float3, "a_Tangent" },
+                                                 { ShaderDataType::Float3, "a_Bitangent" } };
 
-            s_SceneInfo->RenderPassList.GeoData.pipeline = Pipeline::Create( pipelineSpecification );
-            s_SceneInfo->RenderPassList.GeoData.material = Material::Create( pipelineSpecification.Shader );
+                pipelineSpecification.DebugName  = "PBR-Static";
+                pipelineSpecification.RenderPass = RenderPass::Create( renderPassSpec );
+                pipelineSpecification.Shader     = Rendering::GetShaderLibrary()->Get( "StaticPBR_Radiant.glsl" );
+
+                s_SceneInfo->RenderPassList.Geometry.pipeline = Pipeline::Create( pipelineSpecification );
+                s_SceneInfo->RenderPassList.Geometry.material = Material::Create( pipelineSpecification.Shader );
+            }
+
+            {
+                // Geometry animated pass
+
+                PipelineSpecification pipelineSpecification;
+                pipelineSpecification.Layout = {
+                     { ShaderDataType::Float3, "a_Position" },   { ShaderDataType::Float3, "a_Normals" },
+                     { ShaderDataType::Float2, "a_TexCoord" },   { ShaderDataType::Float3, "a_Tangent" },
+                     { ShaderDataType::Float3, "a_Bitangent" },  { ShaderDataType::Int4, "a_BoneIndices" },
+                     { ShaderDataType::Float4, "a_BoneWeights" } };
+
+                pipelineSpecification.DebugName  = "PBR-Animated";
+                pipelineSpecification.RenderPass = RenderPass::Create( renderPassSpec );
+                pipelineSpecification.Shader     = Rendering::GetShaderLibrary()->Get( "AnimPBR_Radiant.glsl" );
+
+                s_SceneInfo->RenderPassList.GeometryAnimated.pipeline = Pipeline::Create( pipelineSpecification );
+                s_SceneInfo->RenderPassList.GeometryAnimated.material =
+                     Material::Create( pipelineSpecification.Shader );
+            }
         }
 
         // Composite pass
@@ -213,9 +240,9 @@ namespace Radiant
             pipelineSpecification.DebugName  = "Scene Composite";
             pipelineSpecification.RenderPass = RenderPass::Create( renderPassSpec );
             pipelineSpecification.Shader = Rendering::GetShaderLibrary()->Get( "SceneCompositeMSAA.glsl" ); // TODO
-            s_SceneInfo->RenderPassList.CompData.pipeline = Pipeline::Create( pipelineSpecification );
+            s_SceneInfo->RenderPassList.Composite.pipeline = Pipeline::Create( pipelineSpecification );
 
-            s_SceneInfo->RenderPassList.CompData.material = Material::Create( pipelineSpecification.Shader );
+            s_SceneInfo->RenderPassList.Composite.material = Material::Create( pipelineSpecification.Shader );
         }
 
         // Grid
@@ -231,7 +258,7 @@ namespace Radiant
             pipelineSpec.Shader     = gridShader;
             pipelineSpec.Layout     = { { ShaderDataType::Float3, "a_Position" },
                                         { ShaderDataType::Float2, "a_TexCoord" } };
-            pipelineSpec.RenderPass = s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass;
+            pipelineSpec.RenderPass = s_SceneInfo->RenderPassList.Geometry.pipeline->GetSpecification().RenderPass;
             s_SceneInfo->GridPipeline = Pipeline::Create( pipelineSpec );
         }
 
@@ -259,7 +286,7 @@ namespace Radiant
                              { ShaderDataType::Float3, "a_Bitangent" },  { ShaderDataType::Int4, "a_BoneIndices" },
                              { ShaderDataType::Float4, "a_BoneWeights" } };
             ps.Shader    = Rendering::GetShaderLibrary()->Get( "ShadowMap.glsl" );
-            s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial = Material::Create( ps.Shader );
+            s_SceneInfo->RenderPassList.Shadow.ShadowMapMaterial = Material::Create( ps.Shader );
 
             // 4 cascades
             for ( int i = 0; i < 4; i++ )
@@ -271,28 +298,29 @@ namespace Radiant
 
                 ps.RenderPass = RenderPass::Create( shadowMapRenderPassSpec );
 
-                s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i] = Pipeline::Create( ps );
+                s_SceneInfo->RenderPassList.Shadow.ShadowPassPipeline[i] = Pipeline::Create( ps );
             }
 
             Rendering::SubmitCommand(
                  []()
                  {
-                     glGenSamplers( 1, &s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler );
+                     glGenSamplers( 1, &s_SceneInfo->RenderPassList.Shadow.ShadowMapSampler );
 
                      // Setup the shadowmap depth sampler
-                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler,
+                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadow.ShadowMapSampler,
                                           GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler,
+                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadow.ShadowMapSampler,
                                           GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler,
-                                          GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler,
-                                          GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadow.ShadowMapSampler, GL_TEXTURE_WRAP_S,
+                                          GL_CLAMP_TO_EDGE );
+                     glSamplerParameteri( s_SceneInfo->RenderPassList.Shadow.ShadowMapSampler, GL_TEXTURE_WRAP_T,
+                                          GL_CLAMP_TO_EDGE );
                  } );
         }
 
         s_SceneInfo->BRDF_LUT = Texture2D::Create( "Resources/Textures/BRDF_LUT.tga" );
-        s_SceneInfo->MeshDrawList.reserve( 100 ); // TODO: Add a capcaity from YAML(scene)
+        s_SceneInfo->StaticMeshDrawList.reserve( 100 ); // TODO: Add a capcaity from YAML(scene)
+        s_SceneInfo->RiggedMeshDrawList.reserve( 100 ); // TODO: Add a capcaity from YAML(scene)
     }
 
     void SceneRendering::SetSceneVeiwPortSize( const glm::vec2& size )
@@ -305,10 +333,15 @@ namespace Radiant
             s_SceneInfo->ViewportWidth  = size.x;
             s_SceneInfo->ViewportHeight = size.y;
 
-            s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification()
+            s_SceneInfo->RenderPassList.Geometry.pipeline->GetSpecification()
                  .RenderPass->GetSpecification()
                  .TargetFramebuffer->Resize( size.x, size.y );
-            s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification()
+
+            s_SceneInfo->RenderPassList.GeometryAnimated.pipeline->GetSpecification()
+                 .RenderPass->GetSpecification()
+                 .TargetFramebuffer->Resize( size.x, size.y );
+
+            s_SceneInfo->RenderPassList.Composite.pipeline->GetSpecification()
                  .RenderPass->GetSpecification()
                  .TargetFramebuffer->Resize( size.x, size.y );
         }
@@ -346,51 +379,38 @@ namespace Radiant
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
     }
 
-    void SceneRendering::SubmitMesh( Memory::Shared<Mesh>& mesh, const glm::mat4& transform ) // TODO: move to
-                                                                                              // scene
+    void SceneRendering::SubmitAnimatedMesh( const Memory::Shared<AnimatedMesh>& mesh,
+                                             std::vector<glm::mat4>&             boneTransforms,
+                                             const glm::mat4&                    transform ) // TODO: move to
+                                                                          // scene
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
 
-        std::vector<glm::mat4> BoneTransforms( 100, glm::mat4( 1.0 ) );
-        std::vector<glm::mat4> BoneParentTransforms( 100, glm::mat4( 1.0 ) );
-
-        auto&       boneInfo   = mesh->GetBoneInfo();
-        const auto& controller = mesh->GetAnimationController();
-
+        auto& boneInfo = mesh.As<AnimatedMesh>()->GetBoneInfo();
         for ( const auto& bone : boneInfo )
         {
-            const uint32_t index = bone.second.ID;
-            const auto boneTransform =
-                 glm::translate( glm::mat4( 1.0f ), controller->GetTranslation(index) ) *
-                 glm::toMat4( glm::quat( controller->GetRotation(index) ) ) *
-                 glm::scale( glm::mat4( 1.0f ),
-                             controller->GetScale( index ) ); // TODO: move to component system
+            boneTransforms[bone.second.ID] =
+                 mesh->GetGlobalInverseTransform() * boneTransforms[bone.second.ID] * bone.second.BoneOffset;
 
-            glm::mat4   globalTransformation;
-            if (index == 0)
-            {
-                globalTransformation = glm::mat4(1.0) * boneTransform;
-                BoneParentTransforms[0] = glm::mat4(1.0) * boneTransform;
-            }
-            else
-            {
-                globalTransformation = BoneParentTransforms[0] * boneTransform;
-            }
-
-            BoneTransforms[index]       = mesh->GetGlobalInverseTransform() * globalTransformation * bone.second.BoneOffset;
-
-            // TODO:
-            // the basic logic is that our const auto transform is stored in TransformComponent we get it, 
-            // then we count all transformations on the level above, and here we already equate inversed matrix
+            //    // TODO:
+            //    // the basic logic is that our const auto transform is stored in TransformComponent we get it,
+            //    // then we count all transformations on the level above, and here we already equate inversed
+            //    matrix
         }
 
-        s_SceneInfo->MeshDrawList.push_back( { transform, BoneTransforms, mesh } );
+        s_SceneInfo->RiggedMeshDrawList.push_back( { transform, boneTransforms, mesh } );
+    }
+
+    void SceneRendering::SubmitStaticMesh( const Memory::Shared<StaticMesh>& mesh, const glm::mat4& transform )
+    {
+        RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
+        s_SceneInfo->StaticMeshDrawList.push_back( { transform, std::nullopt, mesh } );
     }
 
     Radiant::Memory::Shared<Radiant::Image2D> SceneRendering::GetFinalPassImage()
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
-        return s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification()
+        return s_SceneInfo->RenderPassList.Composite.pipeline->GetSpecification()
              .RenderPass->GetSpecification()
              .TargetFramebuffer->GetColorAttachmentImage( 0 );
     }
@@ -444,10 +464,10 @@ namespace Radiant
         // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
         for ( uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++ )
         {
-            float p       = ( i + 1 ) / static_cast<float>( SHADOW_MAP_CASCADE_COUNT );
-            float log     = minZ * std::pow( ratio, p );
-            float uniform = minZ + range * p;
-            float d = s_SceneInfo->RenderPassList.Shadowdata.CascadeSplitLambda * ( log - uniform ) + uniform;
+            float p          = ( i + 1 ) / static_cast<float>( SHADOW_MAP_CASCADE_COUNT );
+            float log        = minZ * std::pow( ratio, p );
+            float uniform    = minZ + range * p;
+            float d          = s_SceneInfo->RenderPassList.Shadow.CascadeSplitLambda * ( log - uniform ) + uniform;
             cascadeSplits[i] = ( d - nearClip ) / clipRange;
         }
 
@@ -512,8 +532,8 @@ namespace Radiant
                                                       glm::vec3( 0.0f, 0.0f, 1.0f ) );
             glm::mat4 lightOrthoMatrix = glm::ortho(
                  minExtents.x, maxExtents.x, minExtents.y, maxExtents.y,
-                 0.0f + s_SceneInfo->RenderPassList.Shadowdata.CascadeNearPlaneOffset,
-                 maxExtents.z - minExtents.z + s_SceneInfo->RenderPassList.Shadowdata.CascadeFarPlaneOffset );
+                 0.0f + s_SceneInfo->RenderPassList.Shadow.CascadeNearPlaneOffset,
+                 maxExtents.z - minExtents.z + s_SceneInfo->RenderPassList.Shadow.CascadeFarPlaneOffset );
 
             // Store split distance and matrix in cascade
             cascades[i].SplitDepth = ( nearClip + splitDist * clipRange ) * -1.0f;
@@ -526,67 +546,86 @@ namespace Radiant
 
     void SceneRendering::GeometryPass()
     {
-        Rendering::BeginRenderPass( s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification().RenderPass );
+        Rendering::BeginRenderPass( s_SceneInfo->RenderPassList.Geometry.pipeline->GetSpecification().RenderPass );
 
         s_SceneInfo->SkyboxPipeline->GetSpecification().Shader->Use();
         Rendering::SubmitFullscreenQuad( s_SceneInfo->SkyboxPipeline, nullptr );
 
         const auto& options = s_SceneInfo->ActiveScene->GetSceneOptions();
 
-        for ( const auto& mesh : s_SceneInfo->MeshDrawList )
+        for ( const auto& dc : s_SceneInfo->RiggedMeshDrawList )
         {
-            // Env. map
-            TextureDescriptor descriptor;
-
-            descriptor.Name = "u_EnvRadianceTex";
-            s_SceneInfo->RenderPassList.GeoData.material->SetImage2D(
-                 descriptor, s_SceneInfo->EnvironmentMap.Radiance ); // TODO: create ubo, contatins the textures
-
-            descriptor.Name = "u_EnvIrradianceTex";
-            s_SceneInfo->RenderPassList.GeoData.material->SetImage2D( descriptor,
-                                                                      s_SceneInfo->EnvironmentMap.Irradiance );
-
-            descriptor.Name = "u_BRDFLUTTexture";
-            s_SceneInfo->RenderPassList.GeoData.material->SetImage2D( descriptor,
-                                                                      s_SceneInfo->BRDF_LUT->GetImage2D() );
-
-            // Shadow
-
-            TextureDescriptor shadowDescriptor;
-            shadowDescriptor.Name    = "u_ShadowMapTexture";
-            shadowDescriptor.Sampler = s_SceneInfo->RenderPassList.Shadowdata.ShadowMapSampler;
-
-            for ( int i = 0; i < 4; i++ )
-            {
-                shadowDescriptor.ArrayIndex = i;
-
-                s_SceneInfo->RenderPassList.GeoData.material->SetMat4(
-                     "u_LightMatrixCascade", s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[i], i );
-                s_SceneInfo->RenderPassList.GeoData.material->SetImage2D(
-                     shadowDescriptor, s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]
-                                            ->GetSpecification()
-                                            .RenderPass->GetSpecification()
-                                            .TargetFramebuffer->GetDepthAttachmentImage() );
-            }
-
-            s_SceneInfo->RenderPassList.GeoData.material->SetVec4(
-                 "u_CascadeSplits", s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits );
-            s_SceneInfo->RenderPassList.GeoData.material->SetMat4(
-                 "u_LightView", s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix );
-
             DrawSpecificationCommandWithMaterial command;
-            command.Material   = s_SceneInfo->RenderPassList.GeoData.material;
-            command.Declration = { mesh.Transform, mesh.BoneTransforms, mesh.Mesh };
+            command.Material   = s_SceneInfo->RenderPassList.GeometryAnimated.material;
+            command.Pipeline   = s_SceneInfo->RenderPassList.GeometryAnimated.pipeline;
+            command.Declration = { dc.Transform, dc.BoneTransforms, dc.Mesh };
 
-            Rendering::SubmitMeshWithMaterial( command, s_SceneInfo->RenderPassList.GeoData.pipeline );
-
-            if ( options.ShowAABB )
-            {
-                Rendering2D::Get().BeginScene( {} ); // TODO: move to Rendering class
-                Rendering::DrawAABB( mesh.Mesh, mesh.Transform );
-                Rendering2D::Get().EndScene();
-            }
+            Rendering::SubmitMeshWithMaterial( command );
         }
+
+        for ( const auto& dc : s_SceneInfo->StaticMeshDrawList )
+        {
+            DrawSpecificationCommandWithMaterial command;
+            command.Material   = s_SceneInfo->RenderPassList.Geometry.material;
+            command.Pipeline   = s_SceneInfo->RenderPassList.Geometry.pipeline;
+            command.Declration = { dc.Transform, std::nullopt, dc.Mesh };
+
+            Rendering::SubmitMeshWithMaterial( command );
+        }
+        // for ( const auto& mesh : s_SceneInfo->MeshDrawList )
+        //{
+        //     // Env. map
+        //     TextureDescriptor descriptor;
+
+        //    descriptor.Name = "u_EnvRadianceTex";
+        //    s_SceneInfo->RenderPassList.Geometry.material->SetImage2D(
+        //         descriptor, s_SceneInfo->EnvironmentMap.Radiance ); // TODO: create ubo, contatins the textures
+
+        //    descriptor.Name = "u_EnvIrradianceTex";
+        //    s_SceneInfo->RenderPassList.Geometry.material->SetImage2D( descriptor,
+        //                                                               s_SceneInfo->EnvironmentMap.Irradiance );
+
+        //    descriptor.Name = "u_BRDFLUTTexture";
+        //    s_SceneInfo->RenderPassList.Geometry.material->SetImage2D( descriptor,
+        //                                                               s_SceneInfo->BRDF_LUT->GetImage2D() );
+
+        //    // Shadow
+
+        //    TextureDescriptor shadowDescriptor;
+        //    shadowDescriptor.Name    = "u_ShadowMapTexture";
+        //    shadowDescriptor.Sampler = s_SceneInfo->RenderPassList.Shadow.ShadowMapSampler;
+
+        //    for ( int i = 0; i < 4; i++ )
+        //    {
+        //        shadowDescriptor.ArrayIndex = i;
+
+        //        s_SceneInfo->RenderPassList.Geometry.material->SetMat4(
+        //             "u_LightMatrixCascade", s_SceneInfo->RenderPassList.Shadow.LightMatrices[i], i );
+        //        s_SceneInfo->RenderPassList.Geometry.material->SetImage2D(
+        //             shadowDescriptor, s_SceneInfo->RenderPassList.Shadow.ShadowPassPipeline[i]
+        //                                    ->GetSpecification()
+        //                                    .RenderPass->GetSpecification()
+        //                                    .TargetFramebuffer->GetDepthAttachmentImage() );
+        //    }
+
+        //    s_SceneInfo->RenderPassList.Geometry.material->SetVec4(
+        //         "u_CascadeSplits", s_SceneInfo->RenderPassList.Shadow.CascadeSplits );
+        //    s_SceneInfo->RenderPassList.Geometry.material->SetMat4(
+        //         "u_LightView", s_SceneInfo->RenderPassList.Shadow.LightViewMatrix );
+
+        //    DrawSpecificationCommandWithMaterial command;
+        //    command.Material   = s_SceneInfo->RenderPassList.Geometry.material;
+        //    command.Declration = { mesh.Transform, mesh.BoneTransforms, mesh.Mesh };
+
+        //    Rendering::SubmitMeshWithMaterial( command, s_SceneInfo->RenderPassList.Geometry.pipeline );
+
+        //    if ( options.ShowAABB )
+        //    {
+        //        Rendering2D::Get().BeginScene( {} ); // TODO: move to Rendering class
+        //        Rendering::DrawAABB( mesh.Mesh, mesh.Transform );
+        //        Rendering2D::Get().EndScene();
+        //    }
+        //}
 
         if ( options.ShowGrid )
         {
@@ -605,7 +644,7 @@ namespace Radiant
             {
                 // Clear shadow maps
                 Rendering::BeginRenderPass(
-                     s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]->GetSpecification().RenderPass );
+                     s_SceneInfo->RenderPassList.Shadow.ShadowPassPipeline[i]->GetSpecification().RenderPass );
                 Rendering::EndRenderPass();
             }
             return;
@@ -619,53 +658,55 @@ namespace Radiant
 
         CascadeData cascades[4];
         CalculateCascades( cascades, directionalLights.Direction );
-        s_SceneInfo->RenderPassList.Shadowdata.LightViewMatrix = cascades[0].View;
+        s_SceneInfo->RenderPassList.Shadow.LightViewMatrix = cascades[0].View;
 
-        for ( int i = 0; i < 4; i++ )
+        /*for ( int i = 0; i < 4; i++ )
         {
             Rendering::BeginRenderPass(
-                 s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i]->GetSpecification().RenderPass );
+                 s_SceneInfo->RenderPassList.Shadow.ShadowPassPipeline[i]->GetSpecification().RenderPass );
 
-            s_SceneInfo->RenderPassList.Shadowdata.CascadeSplits[i] = cascades[i].SplitDepth;
-            glm::mat4 shadowMapVP                                   = cascades[i].ViewProj;
-            s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial->SetMat4( "u_ViewProjection", shadowMapVP );
+            s_SceneInfo->RenderPassList.Shadow.CascadeSplits[i] = cascades[i].SplitDepth;
+            glm::mat4 shadowMapVP                               = cascades[i].ViewProj;
+            s_SceneInfo->RenderPassList.Shadow.ShadowMapMaterial->SetMat4( "u_ViewProjection", shadowMapVP );
 
             static glm::mat4 scaleBiasMatrix = glm::scale( glm::mat4( 1.0f ), { 0.5f, 0.5f, 0.5f } ) *
                                                glm::translate( glm::mat4( 1.0f ), { 1, 1, 1 } );
-            s_SceneInfo->RenderPassList.Shadowdata.LightMatrices[i] = scaleBiasMatrix * cascades[i].ViewProj;
+            s_SceneInfo->RenderPassList.Shadow.LightMatrices[i] = scaleBiasMatrix * cascades[i].ViewProj;
 
             for ( const auto& mesh : s_SceneInfo->MeshDrawList )
             {
                 Rendering::SubmitMesh( { mesh.Transform, std::nullopt, mesh.Mesh },
-                                       s_SceneInfo->RenderPassList.Shadowdata.ShadowPassPipeline[i],
-                                       s_SceneInfo->RenderPassList.Shadowdata.ShadowMapMaterial );
+                                       s_SceneInfo->RenderPassList.Shadow.ShadowPassPipeline[i],
+                                       s_SceneInfo->RenderPassList.Shadow.ShadowMapMaterial );
             }
 
             Rendering::EndRenderPass();
-        }
+        }*/
 
         Rendering::SubmitCommand( []() { glDisable( GL_CULL_FACE ); } );
     }
 
     void SceneRendering::CompositePass()
     {
-        Rendering::BeginRenderPass( s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().RenderPass );
-        s_SceneInfo->RenderPassList.CompData.material->SetFloat(
+        Rendering::BeginRenderPass(
+             s_SceneInfo->RenderPassList.Composite.pipeline->GetSpecification().RenderPass );
+        s_SceneInfo->RenderPassList.Composite.material->SetFloat(
              "u_Exposure", s_SceneInfo->SceneCamera.Exposure ); // TODO: move to the UBO
-        s_SceneInfo->RenderPassList.CompData.material->SetUint( "u_SamplesCount",
-                                                                s_SceneInfo->ActiveScene->GetSceneSamplesCount() );
+        s_SceneInfo->RenderPassList.Composite.material->SetUint(
+             "u_SamplesCount", s_SceneInfo->ActiveScene->GetSceneSamplesCount() );
 
         Material::SetUBOMember( 10, "u_TextureLod", s_SceneInfo->Attributes.EnvironmentMapLod );
         Material::SetUBOMember( 10, "u_SkyIntensity", s_SceneInfo->Attributes.Intensity );
 
         TextureDescriptor descriptor;
         descriptor.Name = "u_Texture";
-        s_SceneInfo->RenderPassList.CompData.material->SetImage2D(
-             descriptor, s_SceneInfo->RenderPassList.GeoData.pipeline->GetSpecification()
+        s_SceneInfo->RenderPassList.Composite.material->SetImage2D(
+             descriptor, s_SceneInfo->RenderPassList.Geometry.pipeline->GetSpecification()
                               .RenderPass->GetSpecification()
                               .TargetFramebuffer->GetColorAttachmentImage() );
-        s_SceneInfo->RenderPassList.CompData.pipeline->GetSpecification().Shader->Use();
-        Rendering::SubmitFullscreenQuad( s_SceneInfo->RenderPassList.CompData.pipeline, nullptr );
+
+        s_SceneInfo->RenderPassList.Composite.pipeline->GetSpecification().Shader->Use();
+        Rendering::SubmitFullscreenQuad( s_SceneInfo->RenderPassList.Composite.pipeline, nullptr );
         Rendering::EndRenderPass();
     }
 
@@ -675,7 +716,8 @@ namespace Radiant
         GeometryPass();
         CompositePass();
 
-        s_SceneInfo->MeshDrawList.clear(); // TODO: Optimize
+        s_SceneInfo->StaticMeshDrawList.clear(); // TODO: Optimize
+        s_SceneInfo->RiggedMeshDrawList.clear(); // TODO: Optimize
     }
 
     void SceneRendering::OnUpdate( Timestep ts )

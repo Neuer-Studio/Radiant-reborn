@@ -93,14 +93,18 @@ namespace Radiant
         uint32_t   IndexCount;
         Math::AABB BoundingBox;
 
-        glm::mat4 Transform;
+        std::string NodeName;
+        std::string MeshName;
+        glm::mat4   Transform;
     };
 
     class Mesh : public Memory::RefCounted
     {
-    public:
+    protected:
         Mesh( const std::filesystem::path& filepath );
 
+    public:
+        virtual ~Mesh() = default;
         std::vector<Submesh>& GetSubmeshes()
         {
             return m_Submeshes;
@@ -115,15 +119,9 @@ namespace Radiant
             return m_Name;
         }
 
-        void     Use() const;
         uint32_t GetIndexCount() const
         {
             return m_IndexBuffer->GetCount();
-        }
-
-        const auto& GetAnimationController() const
-        {
-            return m_AnimationController;
         }
 
         const auto& GetVertexBuffer() const
@@ -135,42 +133,33 @@ namespace Radiant
             return m_IndexBuffer;
         }
 
-        auto& GetBoneInfo()
-        {
-            return m_BoneInfo;
-        }
-
         const auto& GetGlobalInverseTransform() const
         {
             return m_GlobalInverseTransform;
         }
 
+        virtual bool IsRigged() const = 0;
+
     private:
-        void ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
-                                           const aiScene* scene );
         void TraverseNodes( aiNode* node, const glm::mat4& parentTransform = glm::mat4( 1.0f ),
                             uint32_t level = 0 );
 
+    protected:
+        std::string                       m_Name;
+        std::filesystem::path             m_AssetPath;
+
+        const aiScene*           m_Scene = nullptr;
+        std::shared_ptr<Assimp::Importer> m_Importer;
+        std::vector<StaticVertex> m_StaticVertices;
+        Memory::Shared<VertexBuffer> m_VertexBuffer;
     private:
         glm::mat4 m_GlobalInverseTransform;
-
-        Animation::Skeleton                                  m_Skeleton;
-        std::vector<Animation::Animation>                    m_Animations;
-        std::unique_ptr<Animation::AnimationController>      m_AnimationController;
-        std::unordered_map<std::string, Animation::BoneInfo> m_BoneInfo;
-
         std::vector<Submesh> m_Submeshes;
-
-        Memory::Shared<VertexBuffer> m_VertexBuffer;
         Memory::Shared<IndexBuffer>  m_IndexBuffer;
         Memory::Shared<Material>     m_Material;
-
         std::vector<Index> m_Indices;
 
-        std::string           m_Name;
-        std::filesystem::path m_AssetPath;
-
-        // Note: Enabled - flag: is texture has been loaded
+        // Note: The Enabled field is used to know if we were able to load the texture from assimp
 
         struct BaseMeshMaterial
         {
@@ -208,10 +197,46 @@ namespace Radiant
     class StaticMesh : public Mesh
     {
     public:
+        StaticMesh( const std::filesystem::path& filepath );
+
+        virtual bool IsRigged() const override
+        {
+            return false;
+        }
     };
 
     class AnimatedMesh : public Mesh
     {
     public:
+        AnimatedMesh( const std::filesystem::path& filepath );
+
+        const auto& GetSkeleton() const
+        {
+            return m_Skeleton;
+        }
+
+        auto& GetBoneInfo()
+        {
+            return m_BoneInfo;
+        }
+
+        const auto& GetAnimationController() const
+        {
+            return m_AnimationController;
+        }
+
+        virtual bool IsRigged() const override
+        {
+            return true;
+        }
+
+    private:
+        void ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
+                                           const aiScene* scene );
+    private:
+        Animation::Skeleton                                  m_Skeleton;
+        std::vector<Animation::Animation>                    m_Animations;
+        std::unique_ptr<Animation::AnimationController>      m_AnimationController;
+        std::unordered_map<std::string, Animation::BoneInfo> m_BoneInfo;
     };
 } // namespace Radiant

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <Radiant/Rendering/Animation/Animation.hpp>
-#include <Radiant/Rendering/Animation/Skeleton.hpp>
 #include <Radiant/Core/Timestep.hpp>
-
+#include <Radiant/Rendering/Animation/Animation.hpp>
 #include <Radiant/Rendering/Animation/BoneInfo.hpp>
+#include <Radiant/Rendering/Animation/Skeleton.hpp>
 
 namespace Radiant::Animation
 {
@@ -24,10 +23,10 @@ namespace Radiant::Animation
         {
             m_Values.resize( numTracks * 2,
                              T() ); // Values vector stores the current and next key for each track, interleaved.
-                                    // These are the values that we interpolate to sample animation at a given time
+            // These are the values that we interpolate to sample animation at a given time
             m_FrameTimes.resize( numTracks * 2,
                                  0.0f ); // FrameTimes vector stores the frame time for current and next key.  This
-                                         // is used to figure out the interpolation between values.
+            // is used to figure out the interpolation between values.
         }
 
         void Reset( const Animation* animation, const std::vector<T>& values )
@@ -114,13 +113,8 @@ namespace Radiant::Animation
     public:
         AnimationController( const class Animation& animation, const Skeleton& skeleton );
 
-        void                           SetAnimation( const class Animation& animation );
+        void SetAnimation( const class Animation& animation );
         void OnUpdate( Timestep ts );
-
-        auto& GetJoints() const // TODO: remove
-        {
-            return m_Skeleton;
-        }
 
         float GetPlaybackSpeed() const
         {
@@ -149,7 +143,7 @@ namespace Radiant::Animation
         }
 
     private:
-        void                     SampleAnimation();
+        void SampleAnimation();
 
     private:
         TranslationCache m_TranslationCache;
@@ -162,9 +156,9 @@ namespace Radiant::Animation
         Animation  m_Animation;
         Skeleton   m_Skeleton;
         float      m_PreviousAnimationTime = -FLT_MAX;
-        float      m_AnimationTime = 0.0f; // current animation time
+        float      m_AnimationTime         = 0.0f; // current animation time
         RootMotion m_RootMotion;
-        RootPose m_RootPose;
+        RootPose   m_RootPose;
 
     private:
         std::vector<glm::vec3> m_LocalTranslations;
