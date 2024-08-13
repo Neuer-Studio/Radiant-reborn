@@ -49,6 +49,37 @@ namespace Radiant
         return entity;
     }
 
+    std::optional<Radiant::Entity> Scene::TryGetDescendantEntityWithTag( Entity& entity, const std::string& tag )
+    {
+        if ( entity )
+        {
+            if ( entity.GetComponent<TagComponent>().Tag == tag )
+                return entity;
+
+            for ( const auto& childId : entity.Children() )
+            {
+                const auto& descendant =
+                     TryGetDescendantEntityWithTag( *( TryGetEntityWithUUID( childId ) ), tag );
+                if ( descendant )
+                    return descendant;
+            }
+        }
+        return std::nullopt;
+    }
+
+    void Scene::BuildMeshBoneEntityIds( Entity& parentEntity )
+    {
+        if ( parentEntity.HasComponent<MeshComponent>() )
+        {
+            auto& mc   = parentEntity.GetComponent<MeshComponent>();
+            auto  mesh = mc.Mesh;
+            if ( mesh && mesh->IsRigged() )
+            {
+                mc.BoneEntityIds = FindBoneEntityIds( parentEntity, mesh.As<AnimatedMesh>() );
+            }
+        }
+    }
+
     std::optional<Radiant::Entity> Scene::TryGetEntityWithUUID( const UUID& uuid ) const
     {
         if ( const auto iter = m_EntityIDMap.find( uuid ); iter != m_EntityIDMap.end() )
@@ -178,12 +209,14 @@ namespace Radiant
     [[nodiscard]] Radiant::Entity Scene::InstantiateMesh( const Memory::Shared<Mesh>&  mesh,
                                                           const std::optional<Entity>& parentEntity )
     {
-        const auto& skeleton   = mesh.As<AnimatedMesh>()->GetSkeleton();
+        const auto& skeleton = mesh.As<AnimatedMesh>()->GetSkeleton();
         if ( !mesh->IsRigged() )
         {
             return parentEntity.value();
         }
-        BuildMeshEntityHierarchy(parentEntity.value(), mesh );
+        BuildMeshEntityHierarchy( parentEntity.value(), mesh );
+        Entity e = *parentEntity;
+        BuildMeshBoneEntityIds( e );
     }
 
     void Scene::BuildMeshEntityHierarchy( const Entity& rootEntity, const Memory::Shared<AnimatedMesh>& mesh )
@@ -197,7 +230,7 @@ namespace Radiant
             const auto& [boneName, parentIndex] = raw_bones[i];
 
             Entity parentEntity = parentIndex.has_value() ? entities[parentIndex.value()] : rootEntity;
-            entities[i] = CreateChildEntity( parentEntity, boneName );
+            entities[i]         = CreateChildEntity( parentEntity, boneName );
         }
     }
 
@@ -226,6 +259,22 @@ namespace Radiant
             }
         }
         return boneTransforms;
+    }
+
+    std::vector<UUID> Scene::FindBoneEntityIds( Entity& parent, const Memory::Shared<AnimatedMesh>& mesh )
+    {
+        std::vector<UUID> boneEntityIds;
+        // given a parent entity, find descendant entities holding the transforms for the specified mesh's bones
+        if ( mesh )
+        {
+            const auto& bonesInfo = mesh->GetSkeleton().GetBonesInfo();
+            for ( const auto& boneInfo : bonesInfo )
+            {
+                const auto& e = TryGetDescendantEntityWithTag( parent, boneInfo.BoneName );
+                boneEntityIds.emplace_back(e ? e->GetUUID() : UUID(0));
+            }
+        }
+        return boneEntityIds;
     }
 
 } // namespace Radiant

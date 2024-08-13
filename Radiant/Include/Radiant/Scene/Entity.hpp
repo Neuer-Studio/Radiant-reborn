@@ -24,7 +24,7 @@ namespace Radiant
         }
 
         template <typename T>
-        bool HasComponent() 
+        bool HasComponent()
         {
             return m_Scene->m_Registry.has<T>( m_EntityHandle );
         }
@@ -44,7 +44,7 @@ namespace Radiant
         }
 
         template <typename T>
-        T& GetComponent() 
+        T& GetComponent()
         {
             RADIANT_VERIFY( HasComponent<T>() );
             return m_Scene->m_Registry.get<T>( m_EntityHandle );
@@ -57,9 +57,19 @@ namespace Radiant
             m_Scene->m_Registry.remove<T>( m_EntityHandle );
         }
 
-        UUID GetUUID() const
+        const UUID GetUUID() const
         {
             return GetComponent<IDComponent>().ID;
+        }
+
+        UUID GetUUID()
+        {
+            return GetComponent<IDComponent>().ID;
+        }
+
+        UUID GetSceneUUID()
+        {
+            return m_Scene->GetUUID();
         }
 
         std::optional<UUID> GetParentUUID() const
@@ -87,7 +97,7 @@ namespace Radiant
             return m_Scene->TryGetEntityWithUUID( *parent );
         }
 
-        bool RemoveChild( const Entity &child )
+        bool RemoveChild( const Entity& child )
         {
             UUID               childId  = child.GetUUID();
             std::vector<UUID>& children = Children();

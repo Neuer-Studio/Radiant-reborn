@@ -70,6 +70,13 @@ namespace Radiant
         [[nodiscard]] Entity CreateChildEntity( const std::optional<Entity>& parent,
                                                 const std::string&           name = "" );
 
+        void BuildMeshBoneEntityIds( Entity& parentEntity); // TODO
+
+        [[nodiscard]] std::optional<Radiant::Entity> TryGetDescendantEntityWithTag( Entity&            entity,
+                                                                                    const std::string& tag );
+
+        std::vector<UUID> Scene::FindBoneEntityIds( Entity& parent, const Memory::Shared<AnimatedMesh>& mesh );
+
         std::optional<Radiant::Entity> TryGetEntityWithUUID( const UUID& uuid ) const;
 
         [[nodiscard]] Entity GetMainCameraEntity();
@@ -96,6 +103,11 @@ namespace Radiant
             return m_SamplesCount;
         }
 
+        UUID GetUUID() const
+        {
+            return m_SceneID;
+        }
+
         void SubmitMesh( const Memory::Shared<Mesh>& mesh, std::vector<glm::mat4>& boneTransforms,
                          const glm::mat4& transform ) const;
         const Memory::Shared<Image2D>& GetFinalPassImage() const;
@@ -111,6 +123,7 @@ namespace Radiant
         GetModelSpaceBoneTransforms( const Memory::Shared<AnimatedMesh>& mesh );
 
     private:
+        UUID      m_SceneID;
         EntityMap m_EntityIDMap;
 
         SceneOptions m_Options;

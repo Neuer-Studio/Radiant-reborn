@@ -5,7 +5,7 @@
 
 #include <Radiant/Scene/Entity.hpp>
 #include <Radiant/Scene/SceneRendering.hpp>
-#include <Radiant/ImGui/Editor/Panels/PanelOutliner.hpp>
+#include <Radiant/ImGui/Editor/Panels/SceneHierarchyPanel.hpp>
 #include <Radiant/ImGui/Editor/Panels/SceneRenderingPanel.hpp>
 #include <ImGUI/imgui.h>
 
@@ -24,7 +24,7 @@ namespace Radiant
 
 			/*auto env = m_Scene->CreateEnvironmentScene("Resources/Textures/HDR/environment.hdr");
 			m_Scene->SetEnvironment(env);*/
-			m_Outliner = new PanelOutliner(m_Scene);
+			m_SceneHierarchyPanel = new SceneHierarchyPanel(m_Scene);
 			m_SceneRenderingPanel = new SceneRenderingPanel(m_Scene);
 			
 		}
@@ -93,7 +93,7 @@ namespace Radiant
 
 			bool isMaximized = Application::GetInstance().GetWindow()->IsWindowMaximized();
 
-			m_Outliner->DrawComponentsUI();
+			m_SceneHierarchyPanel->DrawComponentsUI();
 
 			// Dockspace
 			float minWinSizeX = style.WindowMinSize.x;
@@ -126,7 +126,7 @@ namespace Radiant
 			ImGui::End();
 			ImGui::PopStyleVar();
 
-			m_Outliner->DrawImGuiUI();
+			m_SceneHierarchyPanel->DrawImGuiUI();
 			m_SceneRenderingPanel->DrawImGuiUI();
 			//m_ScenePanel->DrawImGuiUI();
 			ImGui::Begin("Models");
@@ -156,7 +156,7 @@ namespace Radiant
 		ImVec2 m_ViewportSize;
 		Camera m_EditorCamera;
 
-		Memory::Shared<PanelOutliner> m_Outliner;
+		Memory::Shared<SceneHierarchyPanel> m_SceneHierarchyPanel;
 		Memory::Shared<SceneRenderingPanel> m_SceneRenderingPanel;
 	};
 }

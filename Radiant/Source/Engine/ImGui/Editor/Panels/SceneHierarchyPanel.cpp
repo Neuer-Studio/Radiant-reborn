@@ -328,7 +328,7 @@ namespace Radiant
             }
         }
 
-        std::string TextUUID( "UUID: " + m_SelectionContext.GetComponent<IDComponent>().ID.ToString() );
+        std::string TextUUID( "UUID: " + m_SelectionContext.GetUUID().ToString() );
 
         ImGui::Text( TextUUID.c_str() );
         /*::ImGui::Unindent(contentRegionAvailable.x * 0.05f);
