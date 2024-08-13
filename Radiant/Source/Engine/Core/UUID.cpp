@@ -1,6 +1,6 @@
-#include <Radiant/Core/Math/UUID.hpp>
+#include <Radiant/Core/UUID.hpp>
 
-namespace Radiant::Math
+namespace Radiant
 {
 	static std::random_device s_RandomDevice;
 	static std::mt19937_64 eng(s_RandomDevice());

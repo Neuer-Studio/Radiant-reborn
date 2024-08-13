@@ -23,14 +23,38 @@ namespace Radiant
 
     Radiant::Entity Scene::CreateEntity( const std::string& name /*= ""*/ )
     {
+        return CreateChildEntity( std::nullopt, name );
+    }
+
+    Radiant::Entity Scene::CreateChildEntity( const std::optional<Entity>& parent,
+                                              const std::string&           name /*= "" */ )
+    {
         auto  entity      = Entity{ m_Registry.create(), this };
         auto& idComponent = entity.AddComponent<IDComponent>();
-        idComponent.ID    = {};
+        idComponent.ID    = UUID();
+
         entity.AddComponent<TransformComponent>();
         if ( !name.empty() )
+        {
             entity.AddComponent<TagComponent>( name );
+        }
 
+        entity.AddComponent<RelationshipComponent>();
+        if ( parent )
+        {
+            entity.SetParent( *parent );
+        }
+
+        m_EntityIDMap[idComponent.ID] = entity;
         return entity;
+    }
+
+    std::optional<Radiant::Entity> Scene::TryGetEntityWithUUID( const UUID& uuid ) const
+    {
+        if ( const auto iter = m_EntityIDMap.find( uuid ); iter != m_EntityIDMap.end() )
+            return iter->second;
+
+        return std::nullopt;
     }
 
     Entity Scene::GetMainCameraEntity()
@@ -103,9 +127,9 @@ namespace Radiant
                 const auto& mesh = meshComponent.Mesh;
                 if ( mesh->IsRigged() )
                 {
-                    mesh.As<AnimatedMesh>()->GetAnimationController()->OnUpdate(information.TimeStep);
+                    mesh.As<AnimatedMesh>()->GetAnimationController()->OnUpdate( information.TimeStep );
                     SceneRendering::Get().SubmitAnimatedMesh( mesh, GetModelSpaceBoneTransforms( mesh ).value(),
-                                                      transformComponent.GetTransform() );
+                                                              transformComponent.GetTransform() );
                 }
                 else
                 {
@@ -149,6 +173,32 @@ namespace Radiant
     void Scene::SetIBLContribution( float value )
     {
         SceneRendering::Get().SetIBLContribution( value );
+    }
+
+    [[nodiscard]] Radiant::Entity Scene::InstantiateMesh( const Memory::Shared<Mesh>&  mesh,
+                                                          const std::optional<Entity>& parentEntity )
+    {
+        const auto& skeleton   = mesh.As<AnimatedMesh>()->GetSkeleton();
+        if ( !mesh->IsRigged() )
+        {
+            return parentEntity.value();
+        }
+        BuildMeshEntityHierarchy(parentEntity.value(), mesh );
+    }
+
+    void Scene::BuildMeshEntityHierarchy( const Entity& rootEntity, const Memory::Shared<AnimatedMesh>& mesh )
+    {
+        const auto& raw_bones = mesh->GetBonesHierarchy_RAW();
+
+        std::vector<Entity> entities( raw_bones.size() );
+
+        for ( uint32_t i = 0; i < raw_bones.size(); ++i )
+        {
+            const auto& [boneName, parentIndex] = raw_bones[i];
+
+            Entity parentEntity = parentIndex.has_value() ? entities[parentIndex.value()] : rootEntity;
+            entities[i] = CreateChildEntity( parentEntity, boneName );
+        }
     }
 
     std::optional<std::vector<glm::mat4>>

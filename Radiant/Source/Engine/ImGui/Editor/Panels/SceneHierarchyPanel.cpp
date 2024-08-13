@@ -1,4 +1,4 @@
-#include <Radiant/ImGui/Editor/Panels/PanelOutliner.hpp>
+#include <Radiant/ImGui/Editor/Panels/SceneHierarchyPanel.hpp>
 #include <Radiant/Scene/Entity.hpp>
 #include <Radiant/Scene/Components.hpp>
 #include <Radiant/ImGui/Utilities/UI.hpp>
@@ -145,27 +145,31 @@ namespace Radiant
 
     } // namespace
 
-    PanelOutliner::PanelOutliner( const Memory::Shared<Scene>& context ) : m_Context( context )
+    SceneHierarchyPanel::SceneHierarchyPanel( const Memory::Shared<Scene>& context ) : m_Context( context )
     {
     }
 
-    void PanelOutliner::SetContext( const Memory::Shared<Scene>& scene )
+    void SceneHierarchyPanel::SetContext( const Memory::Shared<Scene>& scene )
     {
         m_Context = scene;
     }
 
-    void PanelOutliner::DrawImGuiUI()
+    void SceneHierarchyPanel::DrawImGuiUI()
     {
-        ImGui::Begin( "Outliner" );
+        ImGui::Begin( "Scene Hierarchy" );
         if ( m_Context )
         {
-            m_Context->m_Registry.each(
-                 [&]( entt::entity entity )
-                 {
-                     Entity e( entity, m_Context.Ptr() );
-                     if ( e.HasComponent<IDComponent>() )
-                         DrawEntityNodeUI( e );
-                 } );
+            for ( auto entity : m_Context->m_Registry.view<IDComponent, RelationshipComponent>() )
+            {
+                Entity e( entity, m_Context.Raw() );
+                if ( !e.GetParentUUID() )
+                {
+                    if ( e.HasComponent<IDComponent>() )
+                    {
+                        DrawEntityNodeUI( e );
+                    }
+                }
+            }
         }
 
         ImGui::End();
@@ -178,7 +182,7 @@ namespace Radiant
         ImGui::End();
     }
 
-    void PanelOutliner::DrawComponentsUI( const std::string& ButtonName, float x, float y )
+    void SceneHierarchyPanel::DrawComponentsUI( const std::string& ButtonName, float x, float y )
     {
         if ( m_Context )
         {
@@ -273,17 +277,24 @@ namespace Radiant
         }
     }
 
-    void PanelOutliner::DrawEntityNodeUI( Entity entity )
+    void SceneHierarchyPanel::DrawEntityNodeUI( Entity entity )
     {
         const char* name = "Unnamed Entity";
 
         if ( entity.HasComponent<TagComponent>() )
             name = entity.GetComponent<TagComponent>().Tag.c_str();
 
+        const bool isSelected = entity == m_SelectionContext;
+
         ImGuiTreeNodeFlags flags =
-             ( entity == m_SelectionContext ? ImGuiTreeNodeFlags_Selected : 0 ) | ImGuiTreeNodeFlags_OpenOnArrow;
+             ( isSelected ? ImGuiTreeNodeFlags_Selected : 0 ) | ImGuiTreeNodeFlags_OpenOnArrow;
         flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
-        bool opened = ImGui::TreeNodeEx( (void*)&entity, flags, name );
+
+        if ( entity.Children().empty() )
+            flags |= ImGuiTreeNodeFlags_Leaf;
+
+        const std::string strID = std::string(name) + std::to_string((uint32_t)entity);
+        bool opened = ImGui::TreeNodeEx( (void*)&strID, flags, name );
 
         if ( ImGui::IsItemClicked() )
         {
@@ -293,11 +304,13 @@ namespace Radiant
         if ( opened )
         {
             // TODO: Children
+            for ( auto child : entity.Children() )
+                DrawEntityNodeUI( m_Context->TryGetEntityWithUUID( child ).value() );
             ImGui::TreePop();
         }
     }
 
-    void PanelOutliner::DrawPropertiesUI( Entity entity )
+    void SceneHierarchyPanel::DrawPropertiesUI( Entity entity )
     {
         ImGui::AlignTextToFramePadding();
         // ...
@@ -391,6 +404,7 @@ namespace Radiant
                                                     {
                                                         mesh = Memory::Shared<StaticMesh>::Create( file );
                                                     }
+                                                    m_Context->InstantiateMesh( mesh, entity );
                                                 }
                                             }
 

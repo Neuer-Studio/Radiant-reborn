@@ -145,19 +145,20 @@ namespace Radiant
                             uint32_t level = 0 );
 
     protected:
-        std::string                       m_Name;
-        std::filesystem::path             m_AssetPath;
+        std::string           m_Name;
+        std::filesystem::path m_AssetPath;
 
-        const aiScene*           m_Scene = nullptr;
+        const aiScene*                    m_Scene = nullptr;
         std::shared_ptr<Assimp::Importer> m_Importer;
-        std::vector<StaticVertex> m_StaticVertices;
-        Memory::Shared<VertexBuffer> m_VertexBuffer;
+        std::vector<StaticVertex>         m_StaticVertices;
+        Memory::Shared<VertexBuffer>      m_VertexBuffer;
+
     private:
-        glm::mat4 m_GlobalInverseTransform;
-        std::vector<Submesh> m_Submeshes;
-        Memory::Shared<IndexBuffer>  m_IndexBuffer;
-        Memory::Shared<Material>     m_Material;
-        std::vector<Index> m_Indices;
+        glm::mat4                   m_GlobalInverseTransform;
+        std::vector<Submesh>        m_Submeshes;
+        Memory::Shared<IndexBuffer> m_IndexBuffer;
+        Memory::Shared<Material>    m_Material;
+        std::vector<Index>          m_Indices;
 
         // Note: The Enabled field is used to know if we were able to load the texture from assimp
 
@@ -230,13 +231,30 @@ namespace Radiant
             return true;
         }
 
+        // NOTE:
+        // The function is not related to the Skeleton class,
+        // here we get all the names of nodes and their parents in order to correctly build the hierarchy in
+        // the SceneHierarchyPanel,
+        // unlike Skeleton,
+        // where we get only the bones that will be animated
+        const auto& GetBonesHierarchy_RAW() const
+        {
+            return m_BonesHierarchy_RAW;
+        }
+
     private:
         void ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
                                            const aiScene* scene );
+
+    private:
+        void BuildBonesHierarchy( const aiNode* node, std::optional<uint32_t> parentIndex = std::nullopt );
+
     private:
         Animation::Skeleton                                  m_Skeleton;
         std::vector<Animation::Animation>                    m_Animations;
         std::unique_ptr<Animation::AnimationController>      m_AnimationController;
         std::unordered_map<std::string, Animation::BoneInfo> m_BoneInfo;
+
+        std::vector<std::pair<std::string, std::optional<uint32_t>>> m_BonesHierarchy_RAW;
     };
 } // namespace Radiant

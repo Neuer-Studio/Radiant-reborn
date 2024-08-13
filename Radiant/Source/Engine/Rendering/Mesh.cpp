@@ -43,8 +43,7 @@ namespace Radiant
          aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals |
          aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure;
 
-    Mesh::Mesh( const std::filesystem::path& filepath )
-        : m_AssetPath(filepath)
+    Mesh::Mesh( const std::filesystem::path& filepath ) : m_AssetPath( filepath )
     {
         LogStream::Initialize();
 
@@ -247,6 +246,7 @@ namespace Radiant
             m_VertexBuffer = VertexBuffer::Create( animatedVertices.data(),
                                                    animatedVertices.size() * sizeof( AnimatedVertex ) );
         }
+        BuildBonesHierarchy(m_Scene->mRootNode);
     }
 
     void AnimatedMesh::ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
@@ -282,11 +282,24 @@ namespace Radiant
             }
         }
 
-        auto exporter         = Animation::Exporter();
-        m_Skeleton            = exporter.ImportSkeleton( m_AssetPath.string() ).value();
+        auto exporter = Animation::Exporter();
+        m_Skeleton    = exporter.ImportSkeleton( m_AssetPath.string() ).value();
         m_Animations.push_back( exporter.ImportAnimation( m_AssetPath.string(), m_Skeleton ).value() );
 
-        m_AnimationController = std::make_unique<Animation::AnimationController>(m_Animations.back(), m_Skeleton);
+        m_AnimationController =
+             std::make_unique<Animation::AnimationController>( m_Animations.back(), m_Skeleton );
+    }
+
+    void AnimatedMesh::BuildBonesHierarchy( const aiNode* node, std::optional<uint32_t> parentIndex )
+    {
+        m_BonesHierarchy_RAW.push_back( { node->mName.C_Str(), parentIndex } );
+
+        uint32_t currentIndex = m_BonesHierarchy_RAW.size() - 1;
+
+        for ( uint32_t i = 0; i < node->mNumChildren; ++i )
+        {
+            BuildBonesHierarchy( node->mChildren[i], currentIndex );
+        }
     }
 
     //****************************************************//

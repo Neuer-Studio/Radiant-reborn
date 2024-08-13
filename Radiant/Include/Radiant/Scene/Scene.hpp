@@ -2,6 +2,7 @@
 
 #include <Radiant/Core/Camera.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
+// #include <Radiant/Scene/Entity.hpp>
 
 #include <entt/entt.hpp>
 
@@ -56,19 +57,27 @@ namespace Radiant
         bool ShowAABB = false;
     };
 
+    class Entity;
+    using EntityMap = std::unordered_map<UUID, Entity>;
+
     class Scene : public Memory::RefCounted
     {
     public:
         Scene( const std::string& sceneName );
         ~Scene();
 
-        Entity CreateEntity( const std::string& name = "" );
-        Entity GetMainCameraEntity();
+        [[nodiscard]] Entity CreateEntity( const std::string& name = "" );
+        [[nodiscard]] Entity CreateChildEntity( const std::optional<Entity>& parent,
+                                                const std::string&           name = "" );
 
-        void             OnUpdate( const SceneUpdateInformation& information );
-        void             SetEnvironment( const Environment& env );
-        Environment      CreateEnvironmentScene( const std::filesystem::path& filepath ) const;
-        LightEnvironment GetLightEnvironment() const
+        std::optional<Radiant::Entity> TryGetEntityWithUUID( const UUID& uuid ) const;
+
+        [[nodiscard]] Entity GetMainCameraEntity();
+
+        void                           OnUpdate( const SceneUpdateInformation& information );
+        void                           SetEnvironment( const Environment& env );
+        [[nodiscard]] Environment      CreateEnvironmentScene( const std::filesystem::path& filepath ) const;
+        [[nodiscard]] LightEnvironment GetLightEnvironment() const
         {
             return m_LightEnvironment;
         }
@@ -93,11 +102,17 @@ namespace Radiant
         void                           SetEnvMapRotation( float rotation );
         void                           SetIBLContribution( float value );
 
+        [[nodiscard]] Entity InstantiateMesh( const Memory::Shared<Mesh>&  mesh,
+                                              const std::optional<Entity>& parentEntity );
+        void BuildMeshEntityHierarchy( const Entity& rootEntity, const Memory::Shared<AnimatedMesh>& mesh );
+
     private:
         [[nodiscard]] std::optional<std::vector<glm::mat4>>
         GetModelSpaceBoneTransforms( const Memory::Shared<AnimatedMesh>& mesh );
 
     private:
+        EntityMap m_EntityIDMap;
+
         SceneOptions m_Options;
         uint32_t     m_SamplesCount = 2;
 
@@ -108,7 +123,7 @@ namespace Radiant
         SceneUpdateInformation m_Information;
 
         friend class Entity;
-        friend class PanelOutliner;
+        friend class SceneHierarchyPanel;
         friend class SceneRenderingPanel;
     };
 } // namespace Radiant

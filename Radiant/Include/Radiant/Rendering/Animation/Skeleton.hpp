@@ -23,14 +23,14 @@ namespace Radiant::Animation
     class Skeleton
     {
 
-   public:
+    public:
         explicit Skeleton( uint32_t size );
         Skeleton() = default;
 
-        [[nodiscard]] uint32_t                AddBone(const BoneInformation& BoneInformation );
+        [[nodiscard]] uint32_t                AddBone( const BoneInformation& BoneInformation );
         [[nodiscard]] std::optional<uint32_t> GetBoneIndex( const std::string_view name ) const;
 
-        [[nodiscard]] std::optional<uint32_t> GetParentBoneIndex( const uint32_t boneIndex) const
+        [[nodiscard]] std::optional<uint32_t> GetParentBoneIndex( const uint32_t boneIndex ) const
         {
             RADIANT_VERIFY( boneIndex < m_BonesInformation.size(),
                             "Bone index out of range in Bones::GetParentIndex()!" );
@@ -39,10 +39,10 @@ namespace Radiant::Animation
 
         [[nodiscard]] std::vector<glm::vec3> ListTranslations() const
         {
-            std::vector< glm::vec3> temp;
-            for (const auto& bone : m_BonesInformation)
+            std::vector<glm::vec3> temp;
+            for ( const auto& bone : m_BonesInformation )
             {
-                temp.push_back(bone.BoneTranslation);
+                temp.push_back( bone.BoneTranslation );
             }
             return temp;
         }
@@ -69,19 +69,24 @@ namespace Radiant::Animation
 
         [[nodiscard]] uint32_t BoneCount() const
         {
-            return static_cast<uint32_t>(m_BonesInformation.size() );
+            return static_cast<uint32_t>( m_BonesInformation.size() );
         }
 
-        [[nodiscard]] const std::string& GetBoneName( const uint32_t boneIndex) const
+        [[nodiscard]] const std::string& GetBoneName( const uint32_t boneIndex ) const
         {
-            RADIANT_VERIFY(boneIndex < m_BonesInformation.size(),
+            RADIANT_VERIFY( boneIndex < m_BonesInformation.size(),
                             "bone index out of range in Skeleton::GetBoneName()!" );
             return m_BonesInformation[boneIndex].BoneName;
         }
 
-        [[nodiscard]] const auto& GetBoneInfo(uint32_t index) const
+        [[nodiscard]] const auto& GetBoneInfo( uint32_t index ) const
         {
             return m_BonesInformation[index];
+        }
+
+        [[nodiscard]] const auto& GetBonesInfo( ) const
+        {
+            return m_BonesInformation;
         }
 
         bool operator==( const Skeleton& other ) const;
@@ -91,7 +96,7 @@ namespace Radiant::Animation
             return !( *this == other );
         }
 
-   private:
+    private:
         std::vector<BoneInformation> m_BonesInformation;
     };
 }; // namespace Radiant::Animation

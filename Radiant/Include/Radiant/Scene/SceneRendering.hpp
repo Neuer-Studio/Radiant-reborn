@@ -49,7 +49,7 @@ namespace Radiant
     private:
         friend class Scene;
         friend class Rendering;
-        friend class PanelOutliner;
+        friend class SceneHierarchyPanel;
         friend class Environment;
     };
 } // namespace Radiant
