@@ -70,7 +70,7 @@ namespace Radiant
         [[nodiscard]] Entity CreateChildEntity( const std::optional<Entity>& parent,
                                                 const std::string&           name = "" );
 
-        void BuildMeshBoneEntityIds( Entity& parentEntity); // TODO
+        void BuildMeshBoneEntityIds( Entity& parentEntity ); // TODO
 
         [[nodiscard]] std::optional<Radiant::Entity> TryGetDescendantEntityWithTag( Entity&            entity,
                                                                                     const std::string& tag );
@@ -108,8 +108,9 @@ namespace Radiant
             return m_SceneID;
         }
 
-        void SubmitMesh( const Memory::Shared<Mesh>& mesh, std::vector<glm::mat4>& boneTransforms,
-                         const glm::mat4& transform ) const;
+        void                           SubmitMesh( const Memory::Shared<Mesh>&                  mesh,
+                                                   const std::optional<std::vector<glm::mat4>>& boneTransforms,
+                                                   const glm::mat4&                             transform ) const;
         const Memory::Shared<Image2D>& GetFinalPassImage() const;
         void                           SetEnvMapRotation( float rotation );
         void                           SetIBLContribution( float value );
@@ -118,9 +119,17 @@ namespace Radiant
                                               const std::optional<Entity>& parentEntity );
         void BuildMeshEntityHierarchy( const Entity& rootEntity, const Memory::Shared<AnimatedMesh>& mesh );
 
+        template <typename... Components>
+        auto GetAllEntitiesWith()
+        {
+            return m_Registry.view<Components...>();
+        }
+
     private:
         [[nodiscard]] std::optional<std::vector<glm::mat4>>
-        GetModelSpaceBoneTransforms( const Memory::Shared<AnimatedMesh>& mesh );
+        GetModelSpaceBoneTransforms(const std::vector<UUID>& boneEntityIds, const Memory::Shared<AnimatedMesh>& mesh );
+
+        void UpdateAnimation( Timestep ts );
 
     private:
         UUID      m_SceneID;

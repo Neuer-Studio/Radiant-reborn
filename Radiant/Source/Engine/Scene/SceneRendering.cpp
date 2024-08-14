@@ -397,16 +397,16 @@ namespace Radiant
     }
 
     void SceneRendering::SubmitAnimatedMesh( const Memory::Shared<AnimatedMesh>& mesh,
-                                             std::vector<glm::mat4>&             boneTransforms,
-                                             const glm::mat4&                    transform ) // TODO: move to
-                                                                          // scene
+                                             const std::vector<glm::mat4>&             boneTransforms,
+                                             const glm::mat4&                    transform ) 
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
 
         auto& boneInfo = mesh.As<AnimatedMesh>()->GetBoneInfo();
+        std::vector<glm::mat4> updatedBoneTransforms(boneTransforms.size());
         for ( const auto& bone : boneInfo )
         {
-            boneTransforms[bone.second.ID] =
+            updatedBoneTransforms[bone.second.ID] =
                  mesh->GetGlobalInverseTransform() * boneTransforms[bone.second.ID] * bone.second.BoneOffset;
 
             //    // TODO:
@@ -415,7 +415,7 @@ namespace Radiant
             //    matrix
         }
 
-        s_SceneInfo->RiggedMeshDrawList.push_back( { transform, boneTransforms, mesh } );
+        s_SceneInfo->RiggedMeshDrawList.push_back( { transform, updatedBoneTransforms, mesh } );
     }
 
     void SceneRendering::SubmitStaticMesh( const Memory::Shared<StaticMesh>& mesh, const glm::mat4& transform )

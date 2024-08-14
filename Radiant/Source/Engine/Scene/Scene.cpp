@@ -156,18 +156,10 @@ namespace Radiant
             if ( meshComponent.Mesh )
             {
                 const auto& mesh = meshComponent.Mesh;
-                if ( mesh->IsRigged() )
-                {
-                    mesh.As<AnimatedMesh>()->GetAnimationController()->OnUpdate( information.TimeStep );
-                    SceneRendering::Get().SubmitAnimatedMesh( mesh, GetModelSpaceBoneTransforms( mesh ).value(),
-                                                              transformComponent.GetTransform() );
-                }
-                else
-                {
-                    SceneRendering::Get().SubmitStaticMesh( mesh, transformComponent.GetTransform() );
-                }
+                SubmitMesh( mesh, GetModelSpaceBoneTransforms(meshComponent.BoneEntityIds, mesh ), transformComponent.GetTransform() );
             }
         }
+        UpdateAnimation( information.TimeStep );
 
         SceneRendering::Get().BeginScene( this, information.Camera );
         SceneRendering::Get().OnUpdate( information.TimeStep );
@@ -185,10 +177,19 @@ namespace Radiant
         return SceneRendering::Get().CreateEnvironmentMap( filepath );
     }
 
-    void Scene::SubmitMesh( const Memory::Shared<Mesh>& mesh, std::vector<glm::mat4>& boneTransforms,
-                            const glm::mat4& transform ) const
+    void Scene::SubmitMesh( const Memory::Shared<Mesh>&                  mesh,
+                            const std::optional<std::vector<glm::mat4>>& boneTransforms,
+                            const glm::mat4&                             transform ) const
     {
-        SceneRendering::Get().SubmitAnimatedMesh( mesh, boneTransforms, transform );
+        if ( mesh->IsRigged() && boneTransforms )
+        {
+            auto& boneTransformsValue = boneTransforms.value();
+            SceneRendering::Get().SubmitAnimatedMesh( mesh, boneTransformsValue, transform );
+        }
+        else
+        {
+            SceneRendering::Get().SubmitStaticMesh( mesh, transform );
+        }
     }
 
     const Radiant::Memory::Shared<Radiant::Image2D>& Scene::GetFinalPassImage() const
@@ -235,23 +236,24 @@ namespace Radiant
     }
 
     std::optional<std::vector<glm::mat4>>
-    Scene::GetModelSpaceBoneTransforms( const Memory::Shared<AnimatedMesh>& mesh )
+    Scene::GetModelSpaceBoneTransforms( const std::vector<UUID>&            boneEntityIds,
+                                        const Memory::Shared<AnimatedMesh>& mesh )
     {
         // std::vector<glm::mat4> boneTransforms( mesh->GetBoneInfo().size() );
         std::vector<glm::mat4> boneTransforms( 100, glm::mat4( 1.0 ) );
 
-        const auto& controller = mesh->GetAnimationController();
-
         if ( mesh->IsRigged() )
         {
             const auto& skeleton = mesh->GetSkeleton();
+            RADIANT_VERIFY( boneEntityIds.size() == skeleton.BoneCount(),
+                            "Wrong number of boneEntityIds for mesh skeleton!" );
+
             for ( auto i = 0; i < skeleton.BoneCount(); ++i )
             {
-                const auto localTransform =
-                     glm::translate( glm::mat4( 1.0f ), controller->GetTranslation( i ) ) *
-                     glm::toMat4( glm::quat( controller->GetRotation( i ) ) ) *
-                     glm::scale( glm::mat4( 1.0f ),
-                                 controller->GetScale( i ) ); // TODO: move to component system
+                const auto boneEntity     = TryGetEntityWithUUID( boneEntityIds[i] );
+                glm::mat4  localTransform = boneEntity
+                                                 ? boneEntity->GetComponent<TransformComponent>().GetTransform()
+                                                 : glm::identity<glm::mat4>();
 
                 auto parentIndex = skeleton.GetParentBoneIndex( i );
                 boneTransforms[i] =
@@ -259,6 +261,33 @@ namespace Radiant
             }
         }
         return boneTransforms;
+    }
+
+    void Scene::UpdateAnimation( Timestep ts )
+    {
+        const auto& view =
+             GetAllEntitiesWith<MeshComponent>(); // TODO: Use AnimationComponent instead of MeshComponent
+        for ( const auto& entity : view )
+        {
+            Entity e    = { entity, this };
+            auto&  anim = e.GetComponent<MeshComponent>();
+            const auto& animationController = anim.Mesh.As<AnimatedMesh>()->GetAnimationController();
+            if(anim.Mesh)
+            animationController->OnUpdate(ts);
+
+            for ( size_t i = 0; i < anim.BoneEntityIds.size(); ++i )
+            {
+                auto boneTransformEntity = TryGetEntityWithUUID( anim.BoneEntityIds[i] );
+                if ( boneTransformEntity )
+                {
+                    // Note: we're assuming there is always a transform component
+                    auto& transform       = boneTransformEntity->GetComponent<TransformComponent>();
+                    transform.Translation = animationController->GetTranslation( i );
+                    transform.Rotation    = glm::eulerAngles( animationController->GetRotation( i ) );
+                    transform.Scale       = animationController->GetScale( i );
+                }
+            }
+        }
     }
 
     std::vector<UUID> Scene::FindBoneEntityIds( Entity& parent, const Memory::Shared<AnimatedMesh>& mesh )
@@ -271,7 +300,7 @@ namespace Radiant
             for ( const auto& boneInfo : bonesInfo )
             {
                 const auto& e = TryGetDescendantEntityWithTag( parent, boneInfo.BoneName );
-                boneEntityIds.emplace_back(e ? e->GetUUID() : UUID(0));
+                boneEntityIds.emplace_back( e ? e->GetUUID() : UUID( 0 ) );
             }
         }
         return boneEntityIds;

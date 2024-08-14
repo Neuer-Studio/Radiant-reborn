@@ -29,7 +29,7 @@ namespace Radiant
         void SetIBLContribution( float value );
         void OnImGuiRender();
 
-        void SubmitAnimatedMesh( const Memory::Shared<AnimatedMesh>& mesh, std::vector<glm::mat4>& boneTransforms,
+        void SubmitAnimatedMesh( const Memory::Shared<AnimatedMesh>& mesh, const std::vector<glm::mat4>& boneTransforms,
                          const glm::mat4& transform );
         void SubmitStaticMesh( const Memory::Shared<StaticMesh>& mesh, const glm::mat4& transform );
 
