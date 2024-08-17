@@ -214,7 +214,7 @@ namespace Radiant
              [binding, memberName, value]() mutable
              {
                  ShaderUniformBufferObject buffer  = OpenGLShader::s_UniformBuffers[binding];
-                 MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
+                 UBOField uniform = buffer.Uniforms[memberName];
                  RADIANT_VERIFY( uniform.Name != "" );
 
                  if ( buffer.Name.empty() )
@@ -233,7 +233,7 @@ namespace Radiant
              [binding, memberName, value]() mutable
              {
                  ShaderUniformBufferObject buffer  = OpenGLShader::s_UniformBuffers[binding];
-                 MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
+                 UBOField uniform = buffer.Uniforms[memberName];
                  RADIANT_VERIFY( uniform.Name != "" );
 
                  if ( buffer.Name.empty() )
@@ -252,7 +252,7 @@ namespace Radiant
              [binding, memberName, value]() mutable
              {
                  ShaderUniformBufferObject buffer  = OpenGLShader::s_UniformBuffers[binding];
-                 MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
+                 UBOField uniform = buffer.Uniforms[memberName];
                  RADIANT_VERIFY( uniform.Name != "" );
 
                  if ( buffer.Name.empty() )
@@ -270,7 +270,7 @@ namespace Radiant
              [binding, memberName, value]() mutable
              {
                  ShaderUniformBufferObject buffer  = OpenGLShader::s_UniformBuffers[binding];
-                 MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
+                 UBOField uniform = buffer.Uniforms[memberName];
                  RADIANT_VERIFY( uniform.Name != "" );
 
                  if ( buffer.Name.empty() )
@@ -288,7 +288,7 @@ namespace Radiant
              [binding, memberName, value]() mutable
              {
                  ShaderUniformBufferObject buffer  = OpenGLShader::s_UniformBuffers[binding];
-                 MemberUniformBufferObject uniform = buffer.Uniforms[memberName];
+                 UBOField uniform = buffer.Uniforms[memberName];
                  RADIANT_VERIFY( uniform.Name != "" );
 
                  if ( buffer.Name.empty() )

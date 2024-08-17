@@ -3,6 +3,8 @@
 #include <Radiant/Rendering/Texture.hpp>
 #include <Radiant/Scene/Scene.hpp>
 
+#include <Radiant/Rendering/UniformBufferInfo.hpp>
+
 namespace Radiant
 {
     class Scene;
@@ -23,7 +25,7 @@ namespace Radiant
         void SetSceneVeiwPortSize( const glm::vec2& size );
         void SetEnvironment( const Environment& env );
 
-        void SetEnvironmentAttributes( const EnvironmentAttributes& attributes );
+        void SetEnvironmentAttributes( const struct EnvironmentAttributes& attributes );
 
         void SetEnvMapRotation( float rotation );
         void SetIBLContribution( float value );
@@ -45,7 +47,7 @@ namespace Radiant
         void GeometryPass();
         void CompositePass();
     private:
-
+        Memory::Shared<UniformBufferInfo> m_UniformBufferInfo;
     private:
         friend class Scene;
         friend class Rendering;

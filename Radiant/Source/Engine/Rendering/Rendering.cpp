@@ -7,7 +7,7 @@
 #include <Radiant/Rendering/Shader.hpp>
 #include <Radiant/Rendering/Texture.hpp>
 #include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderer.hpp>
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 #include <Radiant/Rendering/2D/Rendering2D.hpp>
 
 namespace Radiant

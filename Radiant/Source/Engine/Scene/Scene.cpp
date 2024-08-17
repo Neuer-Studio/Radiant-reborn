@@ -2,7 +2,7 @@
 #include <Radiant/Scene/Entity.hpp>
 #include <Radiant/Rendering/Animation/Skeleton.hpp> //TODO: remove and use component system for bone transform
 
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -273,7 +273,7 @@ namespace Radiant
             auto&  anim = e.GetComponent<MeshComponent>();
             const auto& animationController = anim.Mesh.As<AnimatedMesh>()->GetAnimationController();
             if(anim.Mesh)
-            animationController->OnUpdate(ts);
+            animationController->OnUpdate(ts); //TODO: get from AnimationComponent
 
             for ( size_t i = 0; i < anim.BoneEntityIds.size(); ++i )
             {

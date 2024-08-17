@@ -17,15 +17,32 @@
 
 #include <Radiant/Scene/Scene.hpp>
 
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 
 namespace Radiant
 {
+    enum Bindings : uint32_t
+    {
+        Transformations          = 0,
+        Lights                   = 2,
+        EnvironmentMapAttributes = 10,
+    };
+
     struct PointLightsDeclaration
     {
         uint32_t   Count{ 0 };
         PointLight PointLights[1024]{};
     };
+
+    struct UBTransformations
+    {
+        glm::mat4 ViewProjectionMatrix;
+        glm::mat4 InversedViewProjectionMatrix;
+        glm::mat4 ViewMatrix;
+        glm::mat4 ProjectionMatrix;
+        glm::vec3 CameraPosition;
+    };
+    static constexpr uint32_t kUBTransformationsSize = sizeof( UBTransformations );
 
     struct UBLights
     {
@@ -33,9 +50,10 @@ namespace Radiant
         PointLightsDeclaration pointLights;
     };
 
-    static constexpr int kShadowMapSize        = 4096;
-    static constexpr int kBRDF_LUT_Size        = 256;
-    static constexpr int kLightEnvironmentSize = sizeof( UBLights );
+    static constexpr int kShadowMapSize           = 4096;
+    static constexpr int kBRDF_LUT_Size           = 256;
+    static constexpr int kLightEnvironmentSize    = sizeof( UBLights );
+    static constexpr int kUBEnvironmentAttributes = sizeof( EnvironmentAttributes );
 
     struct GeometryData
     {
@@ -95,6 +113,7 @@ namespace Radiant
 
     struct SceneInfo
     {
+
         struct RenderPassList          RenderPassList;
         Memory::Shared<Shader>         DefaultShader;
         std::vector<DrawCommand>       StaticMeshDrawList;
@@ -117,11 +136,11 @@ namespace Radiant
             float     Exposure;
         } SceneCamera;
 
-        uint32_t              ViewportWidth;
-        uint32_t              ViewportHeight;
-        Memory::Shared<Scene> ActiveScene;
-        Environment           EnvironmentMap;
-        EnvironmentAttributes Attributes;
+        uint32_t                     ViewportWidth;
+        uint32_t                     ViewportHeight;
+        Memory::Shared<Scene>        ActiveScene;
+        Environment                  EnvironmentMap;
+        struct EnvironmentAttributes Attributes;
     };
 
     static SceneInfo* s_SceneInfo = nullptr;
@@ -135,38 +154,6 @@ namespace Radiant
     SceneRendering::~SceneRendering()
     {
         delete s_SceneInfo;
-    }
-
-    void SceneRendering::BeginScene( Memory::Shared<Scene> scene, const Camera& camera )
-    {
-        RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
-        RADIANT_VERIFY( !s_SceneInfo->ActiveScene, "There active scene! Can you call EndScene()?" );
-        RADIANT_VERIFY( scene );
-        s_SceneInfo->ActiveScene = scene;
-
-        s_SceneInfo->SceneCamera.ViewProjection         = camera.GetViewProjection();
-        s_SceneInfo->SceneCamera.View                   = camera.GetViewMatrix();
-        s_SceneInfo->SceneCamera.Projection             = camera.GetProjectionMatrix();
-        s_SceneInfo->SceneCamera.CameraPos              = camera.GetPosition();
-        s_SceneInfo->SceneCamera.Exposure               = 0.8f; // camera.GetExposure();
-        s_SceneInfo->SceneCamera.InversedViewProjection = glm::inverse( camera.GetViewProjection() );
-
-        s_SceneInfo->LightEnvironment = s_SceneInfo->ActiveScene->GetLightEnvironment();
-
-        UBLights& lightsUB         = s_SceneInfo->LightUB;
-        lightsUB.directionalLight  = s_SceneInfo->LightEnvironment.DirectionalLights;
-        lightsUB.pointLights.Count = s_SceneInfo->LightEnvironment.PointLights.size();
-        std::memcpy( lightsUB.pointLights.PointLights, s_SceneInfo->LightEnvironment.PointLights.data(),
-                     s_SceneInfo->LightEnvironment.GetPointLightsSize() );
-
-        // UBO
-        Material::SetUBO( 2, &lightsUB, kLightEnvironmentSize );
-    }
-
-    void SceneRendering::EndScene()
-    {
-        RADIANT_VERIFY( s_SceneInfo->ActiveScene, "No active scene! Can you call BeginScene()?" );
-        s_SceneInfo->ActiveScene = nullptr;
     }
 
     void SceneRendering::Init()
@@ -318,9 +305,52 @@ namespace Radiant
                  } );
         }
 
+        // Uniform buffers
+
+        {
+            m_UniformBufferInfo = Memory::Shared<UniformBufferInfo>::Create();
+
+            m_UniformBufferInfo->Create( kUBTransformationsSize, Bindings::Transformations );
+            m_UniformBufferInfo->Create( kLightEnvironmentSize, Bindings::Lights );
+            m_UniformBufferInfo->Create( kUBEnvironmentAttributes, Bindings::EnvironmentMapAttributes );
+        }
+
         s_SceneInfo->BRDF_LUT = Texture2D::Create( "Resources/Textures/BRDF_LUT.tga" );
         s_SceneInfo->StaticMeshDrawList.reserve( 100 ); // TODO: Add a capcaity from YAML(scene)
         s_SceneInfo->RiggedMeshDrawList.reserve( 100 ); // TODO: Add a capcaity from YAML(scene)
+    }
+
+    void SceneRendering::BeginScene( Memory::Shared<Scene> scene, const Camera& camera )
+    {
+        RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
+        RADIANT_VERIFY( !s_SceneInfo->ActiveScene, "There active scene! Can you call EndScene()?" );
+        RADIANT_VERIFY( scene );
+        s_SceneInfo->ActiveScene = scene;
+
+        s_SceneInfo->SceneCamera.ViewProjection         = camera.GetViewProjection();
+        s_SceneInfo->SceneCamera.View                   = camera.GetViewMatrix();
+        s_SceneInfo->SceneCamera.Projection             = camera.GetProjectionMatrix();
+        s_SceneInfo->SceneCamera.CameraPos              = camera.GetPosition();
+        s_SceneInfo->SceneCamera.Exposure               = 0.8f; // camera.GetExposure();
+        s_SceneInfo->SceneCamera.InversedViewProjection = glm::inverse( camera.GetViewProjection() );
+
+        s_SceneInfo->LightEnvironment = s_SceneInfo->ActiveScene->GetLightEnvironment();
+
+        UBLights& lightsUB         = s_SceneInfo->LightUB;
+        lightsUB.directionalLight  = s_SceneInfo->LightEnvironment.DirectionalLights;
+        lightsUB.pointLights.Count = s_SceneInfo->LightEnvironment.PointLights.size();
+        std::memcpy( lightsUB.pointLights.PointLights, s_SceneInfo->LightEnvironment.PointLights.data(),
+                     s_SceneInfo->LightEnvironment.GetPointLightsSize() );
+
+        m_UniformBufferInfo->Get( Bindings::EnvironmentMapAttributes )
+             ->SetData( &s_SceneInfo->Attributes.EnvironmentMapLod, kUBEnvironmentAttributes );
+        m_UniformBufferInfo->Get( Bindings::Lights )->SetData( &lightsUB, kLightEnvironmentSize );
+    }
+
+    void SceneRendering::EndScene()
+    {
+        RADIANT_VERIFY( s_SceneInfo->ActiveScene, "No active scene! Can you call BeginScene()?" );
+        s_SceneInfo->ActiveScene = nullptr;
     }
 
     void SceneRendering::SetSceneVeiwPortSize( const glm::vec2& size )
@@ -373,7 +403,7 @@ namespace Radiant
         UpdateEnvTextures( s_SceneInfo->RenderPassList.GeometryAnimated.material );
     }
 
-    void SceneRendering::SetEnvironmentAttributes( const EnvironmentAttributes& attributes )
+    void SceneRendering::SetEnvironmentAttributes( const struct EnvironmentAttributes& attributes )
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
         s_SceneInfo->Attributes = attributes;
@@ -382,13 +412,13 @@ namespace Radiant
     void SceneRendering::SetEnvMapRotation( float rotation )
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
-        Material::SetUBOMember( 10, "u_EnvMapRotation", rotation );
+        s_SceneInfo->Attributes.Rotation = rotation;
     }
 
     void SceneRendering::SetIBLContribution( float value )
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
-        Material::SetUBOMember( 10, "u_IBLContribution", value );
+        s_SceneInfo->Attributes.Rotation = value;
     }
 
     void SceneRendering::OnImGuiRender()
@@ -397,13 +427,13 @@ namespace Radiant
     }
 
     void SceneRendering::SubmitAnimatedMesh( const Memory::Shared<AnimatedMesh>& mesh,
-                                             const std::vector<glm::mat4>&             boneTransforms,
-                                             const glm::mat4&                    transform ) 
+                                             const std::vector<glm::mat4>&       boneTransforms,
+                                             const glm::mat4&                    transform )
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
 
-        auto& boneInfo = mesh.As<AnimatedMesh>()->GetBoneInfo();
-        std::vector<glm::mat4> updatedBoneTransforms(boneTransforms.size());
+        auto&                  boneInfo = mesh.As<AnimatedMesh>()->GetBoneInfo();
+        std::vector<glm::mat4> updatedBoneTransforms( boneTransforms.size() );
         for ( const auto& bone : boneInfo )
         {
             updatedBoneTransforms[bone.second.ID] =
@@ -712,9 +742,6 @@ namespace Radiant
         s_SceneInfo->RenderPassList.Composite.material->SetUint(
              "u_SamplesCount", s_SceneInfo->ActiveScene->GetSceneSamplesCount() );
 
-        Material::SetUBOMember( 10, "u_TextureLod", s_SceneInfo->Attributes.EnvironmentMapLod );
-        Material::SetUBOMember( 10, "u_SkyIntensity", s_SceneInfo->Attributes.Intensity );
-
         TextureDescriptor descriptor;
         descriptor.Name = "u_Texture";
         s_SceneInfo->RenderPassList.Composite.material->SetImage2D(
@@ -723,7 +750,8 @@ namespace Radiant
                               .TargetFramebuffer->GetColorAttachmentImage() );
 
         s_SceneInfo->RenderPassList.Composite.pipeline->GetSpecification().Shader->Use();
-        Rendering::SubmitFullscreenQuad( s_SceneInfo->RenderPassList.Composite.pipeline, s_SceneInfo->RenderPassList.Composite.material);
+        Rendering::SubmitFullscreenQuad( s_SceneInfo->RenderPassList.Composite.pipeline,
+                                         s_SceneInfo->RenderPassList.Composite.material );
         Rendering::EndRenderPass();
     }
 
@@ -747,12 +775,14 @@ namespace Radiant
 
         FlushDrawList();
 
-        Material::SetUBOMember( 0, "u_ViewProjectionMatrix", s_SceneInfo->SceneCamera.ViewProjection );
-        Material::SetUBOMember( 0, "u_InversedViewProjectionMatrix",
-                                s_SceneInfo->SceneCamera.InversedViewProjection );
-        Material::SetUBOMember( 0, "u_ViewMatrix", s_SceneInfo->SceneCamera.View );
-        Material::SetUBOMember( 0, "u_ProjectionMatrix", s_SceneInfo->SceneCamera.Projection );
-        Material::SetUBOMember( 0, "u_CameraPosition", s_SceneInfo->SceneCamera.CameraPos );
+        UBTransformations transformations;
+        transformations.CameraPosition               = s_SceneInfo->SceneCamera.CameraPos;
+        transformations.InversedViewProjectionMatrix = s_SceneInfo->SceneCamera.InversedViewProjection;
+        transformations.ProjectionMatrix             = s_SceneInfo->SceneCamera.Projection;
+        transformations.ViewMatrix                   = s_SceneInfo->SceneCamera.View;
+        transformations.ViewProjectionMatrix         = s_SceneInfo->SceneCamera.ViewProjection;
+
+        m_UniformBufferInfo->Get( Bindings::Transformations )->SetData( &transformations, kUBTransformationsSize );
 
         s_SceneInfo->GridMaterial->SetMat4( "u_Transform", transform ); // TODO: UBO
     }

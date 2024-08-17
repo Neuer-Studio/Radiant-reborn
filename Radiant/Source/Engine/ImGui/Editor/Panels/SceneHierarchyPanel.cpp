@@ -2,7 +2,7 @@
 #include <Radiant/Scene/Entity.hpp>
 #include <Radiant/Scene/Components.hpp>
 #include <Radiant/ImGui/Utilities/UI.hpp>
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 #include <Radiant/Scene/Entity.hpp>
 
 #include <imgui/imgui.h>

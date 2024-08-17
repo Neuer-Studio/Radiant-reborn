@@ -31,14 +31,6 @@ namespace Radiant
 
 		virtual const Memory::Shared<Shader>& GetShader() const = 0;
 
-		static void SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::vec3& value);
-		static void SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::vec2& value);
-		static void SetUBOMember(BindingPoint binding, const std::string& memberName, const glm::mat4& value);
-		static void SetUBOMember(BindingPoint binding, const std::string& memberName, float value);
-		static void SetUBOMember(BindingPoint binding, const std::string& memberName, bool value);
-
-		static void SetUBO(BindingPoint binding, const void* data, std::size_t size, std::size_t offset = 0);
-
 		virtual void SetImage2D(const TextureDescriptor& descriptor, const Memory::Shared<Texture2D>& texture2D) const = 0;
 		virtual void SetImage2D(const TextureDescriptor& descriptor, const Memory::Shared<Image2D>& image2D) const = 0;
 
