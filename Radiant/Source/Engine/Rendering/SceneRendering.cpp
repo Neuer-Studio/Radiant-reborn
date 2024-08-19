@@ -635,6 +635,7 @@ namespace Radiant
         Rendering::SubmitFullscreenQuad( s_SceneInfo->SkyboxPipeline, s_SceneInfo->SkyboxMaterial );
 
         const auto& options = s_SceneInfo->ActiveScene->GetSceneOptions();
+        Rendering2D::Get().BeginScene( {} ); // TODO: move to Rendering class
 
         for ( const auto& dc : s_SceneInfo->RiggedMeshDrawList )
         {
@@ -661,13 +662,13 @@ namespace Radiant
 
             if ( options.ShowAABB )
             {
-                Rendering2D::Get().BeginScene( {} ); // TODO: move to Rendering class
                 Rendering::DrawAABB( dc.Mesh, dc.Transform );
-                Rendering2D::Get().EndScene();
             }
 
             Rendering::SubmitMeshWithMaterial( command );
         }
+        Rendering2D::Get().EndScene();
+
         // for ( const auto& mesh : s_SceneInfo->MeshDrawList )
         //{
         //     // Env. map
