@@ -15,6 +15,8 @@ namespace Radiant
 
         virtual void Reload() override;
         virtual void Use( BindUsage use = BindUsage::Bind ) const override;
+        virtual void RT_Use( BindUsage use = BindUsage::Bind ) const override;
+
 
         virtual RenderingID GetRenderingID() const
         {

@@ -17,15 +17,13 @@ namespace Radiant
 
 		virtual const std::filesystem::path& GetPath() const override { return m_FilePath; }
 		virtual const std::string& GetName() const override { return m_Name; }
-		virtual bool Loaded() const override { return m_Loaded; }
+		virtual bool Loaded() const override { return m_Image2D->IsLoaded(); }
 
 		virtual const Memory::Shared<Image2D>& GetImage2D() const override { return m_Image2D; }
 	private:
 		std::filesystem::path m_FilePath;
-		RenderingID m_RenderingID = 0;
 		std::string m_Name;
 		bool m_sRGB = false;
 		Memory::Shared<Image2D> m_Image2D;
-		bool m_Loaded = false;
 	};
 }

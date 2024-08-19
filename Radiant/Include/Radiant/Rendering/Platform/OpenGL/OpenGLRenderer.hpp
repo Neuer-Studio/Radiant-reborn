@@ -12,7 +12,7 @@ namespace Radiant
         virtual void RT_SubmitFullscreenQuad( const RendererResources&                       resources,
                                               const std::optional<Memory::Shared<Material>>& material ) override;
         virtual void
-        RT_SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification ) override;
+        SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification ) override;
 
         virtual void Clear( const std::array<float, 4>& rgba ) const override;
         virtual void DrawPrimitive( Primitives primitive = Primitives::Triangle, uint32_t count = 3,
@@ -23,6 +23,8 @@ namespace Radiant
 
     private:
         static void RT_UpdateMaterialForRendering( const Memory::Shared<Material>& material );
+        static void UpdateMaterialForRendering( const Memory::Shared<Material>& material );
         static void RT_BindBuffersAndPipeline( const RendererResources& resources );
+        static void BindBuffersAndPipeline( const RendererResources& resources );
     };
 } // namespace Radiant

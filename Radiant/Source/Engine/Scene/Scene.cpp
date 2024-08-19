@@ -271,8 +271,11 @@ namespace Radiant
         {
             Entity e    = { entity, this };
             auto&  anim = e.GetComponent<MeshComponent>();
+            if (!anim.Mesh || !anim.Mesh->IsRigged())
+            {
+                continue;
+            }
             const auto& animationController = anim.Mesh.As<AnimatedMesh>()->GetAnimationController();
-            if(anim.Mesh)
             animationController->OnUpdate(ts); //TODO: get from AnimationComponent
 
             for ( size_t i = 0; i < anim.BoneEntityIds.size(); ++i )

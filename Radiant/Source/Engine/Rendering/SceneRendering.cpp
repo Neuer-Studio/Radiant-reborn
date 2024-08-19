@@ -379,7 +379,7 @@ namespace Radiant
 
     void SceneRendering::UpdateEnvTextures( const Memory::Shared<Material>& material )
     {
-        TextureDescriptor descriptor;
+        ImageDescriptor descriptor;
 
         descriptor.Name = "u_EnvRadianceTex";
         material->SetImage2D( descriptor, s_SceneInfo->EnvironmentMap.Radiance );
@@ -394,7 +394,7 @@ namespace Radiant
     void SceneRendering::SetEnvironment( const Environment& env )
     {
         s_SceneInfo->EnvironmentMap = env;
-        TextureDescriptor descriptor;
+        ImageDescriptor descriptor;
 
         descriptor.Name = "u_EnvTexture";
         s_SceneInfo->SkyboxMaterial->SetImage2D( descriptor, env.Radiance );
@@ -603,7 +603,9 @@ namespace Radiant
         for ( const auto& dc : s_SceneInfo->RiggedMeshDrawList )
         {
             DrawSpecificationCommandWithMaterial command;
-            command.Material   = s_SceneInfo->RenderPassList.GeometryAnimated.material;
+            command.Material = dc.Mesh->GetMaterial();
+            command.Material->SetImage2D( "u_EnvRadianceTex", s_SceneInfo->EnvironmentMap.Radiance );
+            command.Material->SetImage2D( "u_EnvIrradianceTex ", s_SceneInfo->EnvironmentMap.Irradiance );
             command.Pipeline   = s_SceneInfo->RenderPassList.GeometryAnimated.pipeline;
             command.Declration = { dc.Transform, dc.BoneTransforms, dc.Mesh };
 
@@ -613,7 +615,9 @@ namespace Radiant
         for ( const auto& dc : s_SceneInfo->StaticMeshDrawList )
         {
             DrawSpecificationCommandWithMaterial command;
-            command.Material   = s_SceneInfo->RenderPassList.Geometry.material;
+            command.Material = dc.Mesh->GetMaterial();
+            command.Material->SetImage2D( "u_EnvRadianceTex", s_SceneInfo->EnvironmentMap.Radiance );
+            command.Material->SetImage2D( "u_EnvIrradianceTex ", s_SceneInfo->EnvironmentMap.Irradiance );
             command.Pipeline   = s_SceneInfo->RenderPassList.Geometry.pipeline;
             command.Declration = { dc.Transform, std::nullopt, dc.Mesh };
 
@@ -742,7 +746,7 @@ namespace Radiant
         s_SceneInfo->RenderPassList.Composite.material->SetUint(
              "u_SamplesCount", s_SceneInfo->ActiveScene->GetSceneSamplesCount() );
 
-        TextureDescriptor descriptor;
+        ImageDescriptor descriptor;
         descriptor.Name = "u_Texture";
         s_SceneInfo->RenderPassList.Composite.material->SetImage2D(
              descriptor, s_SceneInfo->RenderPassList.Geometry.pipeline->GetSpecification()

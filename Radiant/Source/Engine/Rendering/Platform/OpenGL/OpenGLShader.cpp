@@ -612,12 +612,18 @@ namespace Radiant
         Rendering::SubmitCommand(
              [instance, use]() mutable
              {
-                 if ( use == BindUsage::Unbind )
-                 {
-                     glUseProgram( 0 );
-                     return;
-                 }
-                 glUseProgram( instance->m_RenderingID );
+                instance->RT_Use(use);
              } );
     }
+
+    void OpenGLShader::RT_Use( BindUsage use ) const
+    {
+        if ( use == BindUsage::Unbind )
+        {
+            glUseProgram( 0 );
+            return;
+        }
+        glUseProgram( m_RenderingID );
+    }
+
 } // namespace Radiant

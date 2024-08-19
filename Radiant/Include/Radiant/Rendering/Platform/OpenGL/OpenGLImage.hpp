@@ -16,6 +16,7 @@ namespace Radiant
 		RenderingID GetSamplerID() const { return m_SamplerRendererID; }
 		virtual uint32_t GetMipmapLevels() const override { return m_MipmapLevels; }
 
+		virtual bool IsLoaded() const { return m_Loaded; }
 		virtual void Use(uint32_t slot = 0, BindUsage use = BindUsage::Bind) const override;
 	public:
 		void Invalidate();
@@ -25,5 +26,7 @@ namespace Radiant
 		RenderingID m_RenderingID;
 		RenderingID m_SamplerRendererID;
 		uint32_t m_MipmapLevels = 0;
+
+		bool m_Loaded = false;
 	};
 }

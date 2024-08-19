@@ -75,7 +75,7 @@ namespace Radiant
         virtual void RT_SubmitFullscreenQuad( const RendererResources&                       resources,
                                               const std::optional<Memory::Shared<Material>>& material ) = 0;
 
-        virtual void RT_SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification ) = 0;
+        virtual void SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification ) = 0;
         virtual void Clear( const std::array<float, 4>& rgba ) const                                        = 0;
         virtual void DrawPrimitive( Primitives primitive = Primitives::Triangle, uint32_t count = 3,
                                     bool depthTest = true ) const                                           = 0;

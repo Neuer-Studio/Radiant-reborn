@@ -37,14 +37,13 @@ namespace Radiant
         glm::vec3 Bitangent;
     };
 
-    struct AnimatedVertex
+    struct BoneInfluence
     {
-        AnimatedVertex()
+        BoneInfluence()
         {
             SetDataToDefault();
         }
 
-        StaticVertex                          StaticVertexData;
         std::array<int, MAX_BONE_INFLUENCE>   IDs;
         std::array<float, MAX_BONE_INFLUENCE> Weights;
 
@@ -70,6 +69,16 @@ namespace Radiant
                      "(BoneID={0}, Weight={1})",
                      id, weight );
         }
+    };
+
+    struct AnimatedVertex
+    {
+        AnimatedVertex()
+        {
+        }
+
+        StaticVertex  StaticVertexData;
+        BoneInfluence BoneInfluenceData;
     };
 
     struct Index
@@ -138,12 +147,13 @@ namespace Radiant
             return m_GlobalInverseTransform;
         }
 
+        const auto& GetMaterial() const { return m_Material; }
+
         virtual bool IsRigged() const = 0;
 
     private:
         void TraverseNodes( aiNode* node, const glm::mat4& parentTransform = glm::mat4( 1.0f ),
                             uint32_t level = 0 );
-
     protected:
         std::string           m_Name;
         std::filesystem::path m_AssetPath;
@@ -158,38 +168,8 @@ namespace Radiant
         std::vector<Submesh>        m_Submeshes;
         Memory::Shared<IndexBuffer> m_IndexBuffer;
         Memory::Shared<Material>    m_Material;
+        Memory::Shared<Shader>      m_MeshShader;
         std::vector<Index>          m_Indices;
-
-        // Note: The Enabled field is used to know if we were able to load the texture from assimp
-
-        struct BaseMeshMaterial
-        {
-            bool                      Enabled = false;
-            Memory::Shared<Texture2D> Texture;
-        };
-
-        struct
-        {
-            BaseMeshMaterial Material;
-            glm::vec3        AlbedoColor;
-        } MaterialDiffuseData;
-
-        struct
-        {
-            BaseMeshMaterial Material;
-        } MaterialNormalData;
-
-        struct
-        {
-            BaseMeshMaterial Material;
-            float            Roughness;
-        } MaterialRoughnessData;
-
-        struct
-        {
-            BaseMeshMaterial Material;
-            float            Metalness;
-        } MaterialMetalnessData;
 
     private:
         friend class Rendering;

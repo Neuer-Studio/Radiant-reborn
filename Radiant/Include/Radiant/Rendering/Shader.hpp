@@ -90,6 +90,7 @@ namespace Radiant
         virtual ~Shader() = default;
 
         virtual void              Use( BindUsage use = BindUsage::Bind ) const = 0;
+        virtual void              RT_Use( BindUsage use = BindUsage::Bind ) const = 0;
         virtual void              Reload()                                     = 0;
         virtual const std::string GetShaderName() const                        = 0;
         virtual RenderingID       GetRenderingID() const                       = 0;

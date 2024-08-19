@@ -177,7 +177,7 @@ namespace Radiant
 
     void Rendering::SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification )
     {
-        s_RenderingAPIPlatform->RT_SubmitMeshWithMaterial( specification );
+        s_RenderingAPIPlatform->SubmitMeshWithMaterial( specification );
     }
 
     void Rendering::SubmitMesh( const DrawDeclarationCommand&   specification,

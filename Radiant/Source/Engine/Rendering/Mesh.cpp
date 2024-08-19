@@ -1,5 +1,6 @@
 
 #include <Radiant/Rendering/Mesh.hpp>
+#include <Radiant/Rendering/Rendering.hpp>
 
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -43,6 +44,125 @@ namespace Radiant
          aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals |
          aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure;
 
+    namespace
+    {
+        glm::vec3 GetAlbedoColor( const aiMaterial* material )
+        {
+            aiColor3D aiColor;
+            if ( material->Get( AI_MATKEY_COLOR_DIFFUSE, aiColor ) == aiReturn_SUCCESS )
+            {
+                return { aiColor.r, aiColor.g, aiColor.b };
+            }
+
+            return { 0.0, 0.0, 0.0 };
+        }
+
+        float GetRoughness( const aiMaterial* material )
+        {
+            aiColor3D aiColor;
+            float     shininess;
+            if ( material->Get( AI_MATKEY_SHININESS, shininess ) != aiReturn_SUCCESS )
+            {
+                shininess = 80.0f; // Default value
+            }
+
+            return 1.0f - glm::sqrt( shininess / 100.0f );
+        }
+
+        float GetMetalness( const aiMaterial* material )
+        {
+            aiColor3D aiColor;
+            float     metalness;
+            if ( material->Get( AI_MATKEY_REFLECTIVITY, metalness ) != aiReturn_SUCCESS )
+            {
+                metalness = 0.0f;
+            }
+
+            return metalness;
+        }
+
+        Memory::Shared<Texture2D> GetDiffuseImage( const std::filesystem::path& pathAsset,
+                                                 const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->GetTexture( aiTextureType_DIFFUSE, 0, &texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
+
+                MESH_LOG( "aiTextureType_DIFFUSE: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
+
+            return nullptr;
+        }
+
+        Memory::Shared<Texture2D> GetNormalsImage( const std::filesystem::path& pathAsset,
+                                                 const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->GetTexture( aiTextureType_NORMALS, 0, &texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
+
+                MESH_LOG( "aiTextureType_NORMALS: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
+
+            return nullptr;
+        }
+
+        Memory::Shared<Texture2D> GetShininessImage( const std::filesystem::path& pathAsset,
+                                                   const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->GetTexture( aiTextureType_SHININESS, 0, &texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
+
+                MESH_LOG( "aiTextureType_SHININESS: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
+
+            return nullptr;
+        }
+
+        Memory::Shared<Texture2D> GetMetalnessImage( const std::filesystem::path& pathAsset,
+                                                   const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->Get( "$raw.ReflectionFactor|file", aiPTI_String, 0, texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
+
+                MESH_LOG( "$raw.ReflectionFactor|file: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
+
+            return nullptr;
+        }
+
+        void SetMaterialImage( const std::string& uniformNameToggle, const std::string& uniformNameImage, const Memory::Shared<Texture2D>& image,
+                               const Memory::Shared<Material>& material )
+        {
+            if (image.Raw() != nullptr)
+            {
+                material->SetBool(uniformNameToggle, true);
+                ImageDescriptor desc;
+                desc.Name = uniformNameImage;
+                material->SetImage2D(desc, image);
+            }
+            else
+            {
+                material->SetBool(uniformNameToggle, false);
+            }
+
+        }
+    } // namespace
+
     Mesh::Mesh( const std::filesystem::path& filepath ) : m_AssetPath( filepath )
     {
         LogStream::Initialize();
@@ -54,6 +174,11 @@ namespace Radiant
         m_Importer           = std::make_shared<Assimp::Importer>();
         const aiScene* scene = m_Importer->ReadFile( filepath.string(), s_ImportFlags );
         m_Scene              = scene;
+
+        m_MeshShader = scene->mAnimations != nullptr
+                            ? Rendering::GetShaderLibrary()->Get( "AnimPBR_Radiant.glsl" )
+                            : Rendering::GetShaderLibrary()->Get( "StaticPBR_Radiant.glsl" );
+        m_Material   = Material::Create( m_MeshShader );
 
         m_Submeshes.reserve( scene->mNumMeshes );
 
@@ -110,10 +235,6 @@ namespace Radiant
                 m_StaticVertices.push_back( vertex );
             }
 
-            /*
-              m_VertexBuffer = VertexBuffer::Create( animatedVertices.data(),
-                                                     animatedVertices.size() * sizeof( AnimatedVertex ) );*/
-
             for ( int i = 0; i < mesh->mNumFaces; i++ )
             {
                 RADIANT_VERIFY( mesh->mFaces[i].mNumIndices == 3, "Must have 3 indices." );
@@ -136,68 +257,24 @@ namespace Radiant
                 {
                     const aiMaterial* aiMaterial = scene->mMaterials[i];
                     aiString          texturePath;
-                    aiColor3D         aiColor;
 
-                    MaterialDiffuseData.AlbedoColor = { 0.0, 0.0, 0.0 };
+                    glm::vec3 albedoColor = GetAlbedoColor( aiMaterial );
+                    float     metalness   = GetMetalness( aiMaterial );
+                    float     roughness   = GetRoughness( aiMaterial );
 
-                    if ( aiMaterial->Get( AI_MATKEY_COLOR_DIFFUSE, aiColor ) == aiReturn_SUCCESS )
-                        MaterialDiffuseData.AlbedoColor = { aiColor.r, aiColor.g, aiColor.b };
-                    float shininess, metalness;
-                    if ( aiMaterial->Get( AI_MATKEY_SHININESS, shininess ) != aiReturn_SUCCESS )
-                        shininess = 80.0f; // Default value
+                    const auto diffuseImage   = GetDiffuseImage( m_AssetPath, aiMaterial );
+                    const auto normalsImage   = GetNormalsImage( m_AssetPath, aiMaterial );
+                    const auto shininessImage = GetShininessImage( m_AssetPath, aiMaterial );
+                    const auto metalnessImage = GetMetalnessImage( m_AssetPath, aiMaterial );
 
-                    if ( aiMaterial->Get( AI_MATKEY_REFLECTIVITY, metalness ) != aiReturn_SUCCESS )
-                        metalness = 0.0f;
-                    float roughness = 1.0f - glm::sqrt( shininess / 100.0f );
+                    m_Material->SetVec3( "u_AlbedoColor", albedoColor );
+                    m_Material->SetFloat( "u_Metalness", metalness );
+                    m_Material->SetFloat( "u_Roughness", roughness );
 
-                    if ( aiMaterial->GetTexture( aiTextureType_DIFFUSE, 0, &texturePath ) ==
-                         AI_SUCCESS ) // TODO: is texture loaded -> set a texture to material, or just set a vec3
-                                      // data
-                    {
-                        std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( filepath ) /
-                                                          std::filesystem::path( texturePath.C_Str() );
-
-                        MaterialDiffuseData.Material.Enabled = true;
-                        MaterialDiffuseData.Material.Texture = Texture2D::Create( imagePath );
-
-                        MESH_LOG( "aiTextureType_DIFFUSE: {}", imagePath.string() );
-                    }
-
-                    if ( aiMaterial->GetTexture( aiTextureType_NORMALS, 0, &texturePath ) == AI_SUCCESS )
-                    {
-                        std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( filepath ) /
-                                                          std::filesystem::path( texturePath.C_Str() );
-
-                        MaterialDiffuseData.Material.Enabled = true;
-                        MaterialDiffuseData.Material.Texture = Texture2D::Create( imagePath );
-
-                        MESH_LOG( "aiTextureType_NORMALS: {}", imagePath.string() );
-                    }
-
-                    MaterialRoughnessData.Roughness = roughness;
-                    if ( aiMaterial->GetTexture( aiTextureType_SHININESS, 0, &texturePath ) == AI_SUCCESS )
-                    {
-                        std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( filepath ) /
-                                                          std::filesystem::path( texturePath.C_Str() );
-
-                        MaterialDiffuseData.Material.Enabled = true;
-                        MaterialDiffuseData.Material.Texture = Texture2D::Create( imagePath );
-
-                        MESH_LOG( "aiTextureType_SHININESS: {}", imagePath.string() );
-                    }
-
-                    MaterialMetalnessData.Metalness = metalness;
-                    if ( aiMaterial->Get( "$raw.ReflectionFactor|file", aiPTI_String, 0, texturePath ) ==
-                         AI_SUCCESS )
-                    {
-                        std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( filepath ) /
-                                                          std::filesystem::path( texturePath.C_Str() );
-
-                        MaterialDiffuseData.Material.Enabled = true;
-                        MaterialDiffuseData.Material.Texture = Texture2D::Create( imagePath );
-
-                        MESH_LOG( "aiTextureType_SHININESS: {}", imagePath.string() );
-                    }
+                    SetMaterialImage( "u_UseAlbedoTexture", "u_AlbedoTexture", diffuseImage, m_Material );
+                    SetMaterialImage( "u_UseNormalTexture", "u_NormalTexture", normalsImage, m_Material );
+                    SetMaterialImage( "u_UseMetalnessTexture", "u_MetalnessTexture", metalnessImage, m_Material );
+                    SetMaterialImage( "u_UseRoughnessTexture", "u_RoughnessTexture", shininessImage, m_Material );
                 }
             }
         }
@@ -246,7 +323,7 @@ namespace Radiant
             m_VertexBuffer = VertexBuffer::Create( animatedVertices.data(),
                                                    animatedVertices.size() * sizeof( AnimatedVertex ) );
         }
-        BuildBonesHierarchy(m_Scene->mRootNode);
+        BuildBonesHierarchy( m_Scene->mRootNode );
     }
 
     void AnimatedMesh::ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
@@ -278,7 +355,7 @@ namespace Radiant
                 int   vertexId = weights[weightIndex].mVertexId;
                 float weight   = weights[weightIndex].mWeight;
                 RADIANT_VERIFY( vertexId <= vertices.size() );
-                vertices[vertexId].AddBoneData( boneID, weight );
+                vertices[vertexId].BoneInfluenceData.AddBoneData( boneID, weight );
             }
         }
 

@@ -17,12 +17,12 @@ namespace Radiant
         if ( material )
         {
             RADIANT_VERIFY( *material );
-            RT_UpdateMaterialForRendering( *material );
+            UpdateMaterialForRendering( *material );
             ( *material )->Use();
             depthTest = ( *material )->GetFlag( MaterialFlag::DepthTest );
         }
 
-        RT_BindBuffersAndPipeline( resources );
+        BindBuffersAndPipeline( resources );
 
         Rendering::SubmitCommand(
              [resources, material, depthTest]()
@@ -36,7 +36,7 @@ namespace Radiant
              } );
     }
 
-    void OpenGLRenderer::RT_SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification )
+    void OpenGLRenderer::SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification )
     {
         const auto& pipeline = specification.Pipeline;
         RADIANT_VERIFY( pipeline );
@@ -47,7 +47,7 @@ namespace Radiant
         const auto& mesh     = specification.Declration.Mesh;
         const auto& material = specification.Material;
 
-        RT_BindBuffersAndPipeline( { pipeline, mesh->GetVertexBuffer(), mesh->GetIndexBuffer() } );
+        BindBuffersAndPipeline( { pipeline, mesh->GetVertexBuffer(), mesh->GetIndexBuffer() } );
 
         const auto& shader = pipeline->GetSpecification().Shader;
         RADIANT_VERIFY( shader );
@@ -65,7 +65,7 @@ namespace Radiant
                     material->SetMat4( "u_BoneTransform", bones[i], i );
                 }
             }
-            RT_UpdateMaterialForRendering( material );
+            UpdateMaterialForRendering( material );
             shader->Use();
 
             Rendering::SubmitCommand(
@@ -219,14 +219,26 @@ namespace Radiant
     void OpenGLRenderer::RT_UpdateMaterialForRendering( const Memory::Shared<Material>& material )
     {
         RADIANT_VERIFY( material, "" );
-
         material->RT_UpdateForRendering();
+    }
+
+    void OpenGLRenderer::UpdateMaterialForRendering( const Memory::Shared<Material>& material )
+    {
+        RADIANT_VERIFY( material, "" );
+        material->UpdateForRendering();
     }
 
     void OpenGLRenderer::RT_BindBuffersAndPipeline( const RendererResources& resources )
     {
         RADIANT_VERIFY( resources.VertexBuffer && resources.IndexBuffer && resources.Pipeline, "" );
+        resources.VertexBuffer->RT_Use();
+        resources.Pipeline->RT_Use();
+        resources.IndexBuffer->RT_Use();
+    }
 
+    void OpenGLRenderer::BindBuffersAndPipeline( const RendererResources& resources )
+    {
+        RADIANT_VERIFY( resources.VertexBuffer && resources.IndexBuffer && resources.Pipeline, "" );
         resources.VertexBuffer->Use();
         resources.Pipeline->Use();
         resources.IndexBuffer->Use();

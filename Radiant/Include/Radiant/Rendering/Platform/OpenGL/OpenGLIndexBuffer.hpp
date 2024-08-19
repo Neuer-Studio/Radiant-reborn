@@ -5,22 +5,36 @@
 
 namespace Radiant
 {
-	class OpenGLIndexBuffer : public IndexBuffer
-	{
-	public:
-		OpenGLIndexBuffer(const void*, uint32_t size, OpenGLBufferUsage usage);
-		OpenGLIndexBuffer(uint32_t size, OpenGLBufferUsage usage);
-		~OpenGLIndexBuffer() { m_Buffer.Release(); }
+    class OpenGLIndexBuffer : public IndexBuffer
+    {
+    public:
+        OpenGLIndexBuffer( const void*, uint32_t size, OpenGLBufferUsage usage );
+        OpenGLIndexBuffer( uint32_t size, OpenGLBufferUsage usage );
+        ~OpenGLIndexBuffer()
+        {
+            m_Buffer.Release();
+        }
 
-		virtual void SetData() override;
-		virtual void Use(BindUsage use = BindUsage::Bind) const override;
+        virtual void SetData() override;
+        virtual void Use( BindUsage use = BindUsage::Bind ) const override;
+        virtual void RT_Use( BindUsage use = BindUsage::Bind ) const override;
 
-		virtual unsigned int GetSize() const override { return m_Buffer.Size; }
-		virtual unsigned int GetCount() const override { return m_Buffer.Size / sizeof(uint32_t); }
-		virtual RenderingID GetRenderingID() const override { return m_RenderingID; }
-	private:
-		RenderingID m_RenderingID = 0;
-		OpenGLBufferUsage m_Usage;
-		Memory::Buffer m_Buffer;
-	};
-}
+        virtual unsigned int GetSize() const override
+        {
+            return m_Buffer.Size;
+        }
+        virtual unsigned int GetCount() const override
+        {
+            return m_Buffer.Size / sizeof( uint32_t );
+        }
+        virtual RenderingID GetRenderingID() const override
+        {
+            return m_RenderingID;
+        }
+
+    private:
+        RenderingID       m_RenderingID = 0;
+        OpenGLBufferUsage m_Usage;
+        Memory::Buffer    m_Buffer;
+    };
+} // namespace Radiant

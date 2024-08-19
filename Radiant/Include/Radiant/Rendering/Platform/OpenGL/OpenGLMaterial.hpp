@@ -18,22 +18,20 @@ namespace Radiant
 
         virtual void Use() const override;
 
-        static void SetUBOMember( BindingPoint binding, const std::string& memberName, const glm::vec3& value );
-        static void SetUBOMember( BindingPoint binding, const std::string& memberName, const glm::vec2& value );
-        static void SetUBOMember( BindingPoint binding, const std::string& memberName, const glm::mat4& value );
-        static void SetUBOMember( BindingPoint binding, const std::string& memberName, float value );
-        static void SetUBOMember( BindingPoint binding, const std::string& memberName, bool value );
-
-        static void SetUBO( BindingPoint binding, const void* data, std::size_t size, std::size_t offset );
-
-        virtual void SetImage2D( const TextureDescriptor&         descriptor,
+        virtual void SetImage2D( const ImageDescriptor&           descriptor,
                                  const Memory::Shared<Texture2D>& texture2D ) const override;
-        virtual void SetImage2D( const TextureDescriptor&       descriptor,
+        virtual void SetImage2D( const ImageDescriptor&         descriptor,
+                                 const Memory::Shared<Image2D>& image2D ) const override;
+
+        virtual void SetImage2D( const std::string&               uniformName,
+                                 const Memory::Shared<Texture2D>& texture2D ) const override;
+        virtual void SetImage2D( const std::string&             uniformName,
                                  const Memory::Shared<Image2D>& image2D ) const override;
 
         virtual const SamplerUniform& GetSamplerInformation( const std::string& name ) const override;
 
         virtual void RT_UpdateForRendering() const override;
+        virtual void UpdateForRendering() const override;
 
         virtual void SetMat4( const std::string& name, const glm::mat4& value,
                               std::optional<uint32_t> arrayIndex ) const override;
@@ -49,25 +47,28 @@ namespace Radiant
                               std::optional<uint32_t> arrayIndex ) const override;
 
     private:
-        void SetUniform( const std::string& name, RadiantShaderDataType type, const void* value,
-                         std::optional<uint32_t> arrayIndex ) const;
-
         void UpdateImages() const;
         void UpdateUnifroms() const;
 
+    private:
+        using DescriptorAndImage2D   = std::pair<ImageDescriptor, Memory::Shared<Image2D>>;
+        using DescriptorAndTexture2D = std::pair<ImageDescriptor, Memory::Shared<Texture2D>>;
 
     private:
-        using DescriptorAndImage = std::pair<TextureDescriptor, Memory::Shared<Image2D>>;
+        void UploadImageToShader( const ImageDescriptor& imageDescriptor, Memory::Shared<Image2D> image2D ) const;
+
+    private:
         struct UniformParameters
         {
-            std::string Name;
-            std::any Value;
+            std::string             Name;
+            std::any                Value;
             std::optional<uint32_t> ArrayIndex;
-            RadiantShaderDataType Type;
+            RadiantShaderDataType   Type;
         };
 
-        Memory::Shared<Shader>                                      m_Shader;
-        mutable std::unordered_map<std::string, DescriptorAndImage> m_Images2D;
-        mutable std::unordered_map<std::string, UniformParameters>  m_Uniforms;
+        Memory::Shared<Shader>                                          m_Shader;
+        mutable std::unordered_map<std::string, DescriptorAndImage2D>   m_Images2D;
+        mutable std::unordered_map<std::string, DescriptorAndTexture2D> m_Textures2D;
+        mutable std::unordered_map<std::string, UniformParameters>      m_Uniforms;
     };
 } // namespace Radiant
