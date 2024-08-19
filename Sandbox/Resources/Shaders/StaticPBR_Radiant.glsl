@@ -555,7 +555,7 @@ void main()
                                                 : u_Roughness;
 
 	// Normals (either from vertex or map)
-	m_Params.Normal = normalize(vs_Input.Normal);
+	m_Params.Normal = u_UseNormalTexture ? texture(u_NormalTexture, vs_Input.TexCoord).rgb : normalize(vs_Input.Normal);
 
 	m_Params.View = normalize(vs_Input.CameraPosition - vs_Input.WorldPosition);
 	m_Params.NdotV = max(dot(m_Params.Normal, m_Params.View), 0.0);

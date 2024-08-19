@@ -568,7 +568,7 @@ float PCSS_DirectionalLight(sampler2D shadowMap, vec3 shadowCoords, float uvLigh
 void main()
 {
 	// Standard PBR inputs
-	 m_Params.Albedo = u_UseAlbedoTexture ?  texture(u_AlbedoTexture, vs_Input.TexCoord).rgb
+	m_Params.Albedo = u_UseAlbedoTexture ?  texture(u_AlbedoTexture, vs_Input.TexCoord).rgb
                                             : u_AlbedoColor;
 
     m_Params.Metalness = u_UseMetalnessTexture ? texture(u_MetalnessTexture, vs_Input.TexCoord).r
@@ -578,7 +578,7 @@ void main()
                                                 : u_Roughness;
 
 	// Normals (either from vertex or map)
-	m_Params.Normal = normalize(vs_Input.Normal);
+	m_Params.Normal = u_UseNormalTexture ? texture(u_NormalTexture, vs_Input.TexCoord).rgb : normalize(vs_Input.Normal);
 
 	m_Params.View = normalize(vs_Input.CameraPosition - vs_Input.WorldPosition);
 	m_Params.NdotV = max(dot(m_Params.Normal, m_Params.View), 0.0);
