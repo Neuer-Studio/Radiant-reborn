@@ -22,7 +22,7 @@ namespace Radiant
 	{
 	public:
 		template <typename T>
-		using EventFN = std::function<bool(const T&)>;
+		using EventFN = std::function<bool(T&)>;
 
 		explicit EventManager(Event& e)
 			: m_Event(e) {}

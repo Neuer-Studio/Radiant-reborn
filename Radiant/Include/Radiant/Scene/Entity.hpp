@@ -82,6 +82,11 @@ namespace Radiant
             GetComponent<RelationshipComponent>().ParentHandle = parent;
         }
 
+        glm::mat4 GetTransform() const
+        {
+            return GetComponent<TransformComponent>().GetTransform();
+        }
+
         std::vector<UUID>& Children()
         {
             return GetComponent<RelationshipComponent>().Children;

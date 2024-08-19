@@ -83,7 +83,7 @@ namespace Radiant
         RenderingID ShadowMapSampler;
     };
 
-    struct CompositeData // TODO: Move to RenderPass
+    struct CompositeData
     {
         Memory::Shared<Pipeline> pipeline;
         Memory::Shared<Material> material;
@@ -93,6 +93,7 @@ namespace Radiant
     {
         GeometryData  Geometry;
         GeometryData  GeometryAnimated;
+        GeometryData  SelectedGeomerty;
         CompositeData Composite;
         Shadow        Shadow;
     };
@@ -106,9 +107,8 @@ namespace Radiant
 
     struct DrawCommand
     {
-        glm::mat4                             Transform;
-        std::optional<std::vector<glm::mat4>> BoneTransforms;
-        Memory::Shared<StaticMesh>            Mesh;
+        glm::mat4                  Transform;
+        Memory::Shared<StaticMesh> Mesh;
     };
 
     struct SceneInfo
@@ -117,6 +117,7 @@ namespace Radiant
         struct RenderPassList          RenderPassList;
         Memory::Shared<Shader>         DefaultShader;
         std::vector<DrawCommand>       StaticMeshDrawList;
+        std::vector<DrawCommand>       StaticSelectedMeshDrawList;
         std::vector<DrawCommandRigged> RiggedMeshDrawList;
         Memory::Shared<Pipeline>       GridPipeline;
         Memory::Shared<Material>       GridMaterial;
@@ -230,6 +231,33 @@ namespace Radiant
             s_SceneInfo->RenderPassList.Composite.pipeline = Pipeline::Create( pipelineSpecification );
 
             s_SceneInfo->RenderPassList.Composite.material = Material::Create( pipelineSpecification.Shader );
+        }
+
+        // Selected geometry 
+
+        {
+
+            RenderPassSpecification renderPassSpec;
+            renderPassSpec.TargetFramebuffer =
+                 Framebuffer::Create( { s_SceneInfo->ViewportWidth,
+                                        s_SceneInfo->ViewportHeight,
+                                        8,
+                                        { ImageFormat::RGBA16F, ImageFormat::DEPTH32F } } );
+            renderPassSpec.DebugName = "Selected Geometry Render Pass";
+
+            PipelineSpecification pipelineSpecification;
+            pipelineSpecification.Layout = { { ShaderDataType::Float3, "a_Position" },
+                                             { ShaderDataType::Float3, "a_Normals" },
+                                             { ShaderDataType::Float2, "a_TexCoord" },
+                                             { ShaderDataType::Float3, "a_Tangent" },
+                                             { ShaderDataType::Float3, "a_Bitangent" } };
+
+            pipelineSpecification.DebugName  = "Selected-Static";
+            pipelineSpecification.RenderPass = RenderPass::Create( renderPassSpec );
+            pipelineSpecification.Shader     = Rendering::GetShaderLibrary()->Get( "SelectedGeometry.glsl" );
+
+            s_SceneInfo->RenderPassList.SelectedGeomerty.pipeline = Pipeline::Create( pipelineSpecification );
+            s_SceneInfo->RenderPassList.SelectedGeomerty.material = Material::Create( pipelineSpecification.Shader );
         }
 
         // Grid
@@ -391,6 +419,13 @@ namespace Radiant
         material->SetImage2D( descriptor, s_SceneInfo->BRDF_LUT->GetImage2D() );
     }
 
+    void SceneRendering::UploadMeshMaterials( const Memory::Shared<Material>& material )
+    {
+        material->SetImage2D( "u_EnvRadianceTex", s_SceneInfo->EnvironmentMap.Radiance );
+        material->SetImage2D( "u_EnvIrradianceTex ", s_SceneInfo->EnvironmentMap.Irradiance );
+        material->SetImage2D( "u_BRDFLUTTexture ", s_SceneInfo->BRDF_LUT->GetImage2D() );
+    }
+
     void SceneRendering::SetEnvironment( const Environment& env )
     {
         s_SceneInfo->EnvironmentMap = env;
@@ -451,7 +486,8 @@ namespace Radiant
     void SceneRendering::SubmitStaticMesh( const Memory::Shared<StaticMesh>& mesh, const glm::mat4& transform )
     {
         RADIANT_VERIFY( s_SceneInfo, "Did you call Init() ?" );
-        s_SceneInfo->StaticMeshDrawList.push_back( { transform, std::nullopt, mesh } );
+        s_SceneInfo->StaticMeshDrawList.push_back( { transform, mesh } );
+        s_SceneInfo->StaticSelectedMeshDrawList.push_back( { transform, mesh } );
     }
 
     Radiant::Memory::Shared<Radiant::Image2D> SceneRendering::GetFinalPassImage()
@@ -604,22 +640,31 @@ namespace Radiant
         {
             DrawSpecificationCommandWithMaterial command;
             command.Material = dc.Mesh->GetMaterial();
-            command.Material->SetImage2D( "u_EnvRadianceTex", s_SceneInfo->EnvironmentMap.Radiance );
-            command.Material->SetImage2D( "u_EnvIrradianceTex ", s_SceneInfo->EnvironmentMap.Irradiance );
+            UploadMeshMaterials( command.Material );
             command.Pipeline   = s_SceneInfo->RenderPassList.GeometryAnimated.pipeline;
             command.Declration = { dc.Transform, dc.BoneTransforms, dc.Mesh };
 
             Rendering::SubmitMeshWithMaterial( command );
         }
 
+        for ( const auto& dc : s_SceneInfo->StaticSelectedMeshDrawList )
+        {
+        }
+
         for ( const auto& dc : s_SceneInfo->StaticMeshDrawList )
         {
             DrawSpecificationCommandWithMaterial command;
             command.Material = dc.Mesh->GetMaterial();
-            command.Material->SetImage2D( "u_EnvRadianceTex", s_SceneInfo->EnvironmentMap.Radiance );
-            command.Material->SetImage2D( "u_EnvIrradianceTex ", s_SceneInfo->EnvironmentMap.Irradiance );
+            UploadMeshMaterials( command.Material );
             command.Pipeline   = s_SceneInfo->RenderPassList.Geometry.pipeline;
             command.Declration = { dc.Transform, std::nullopt, dc.Mesh };
+
+            if ( options.ShowAABB )
+            {
+                Rendering2D::Get().BeginScene( {} ); // TODO: move to Rendering class
+                Rendering::DrawAABB( dc.Mesh, dc.Transform );
+                Rendering2D::Get().EndScene();
+            }
 
             Rendering::SubmitMeshWithMaterial( command );
         }

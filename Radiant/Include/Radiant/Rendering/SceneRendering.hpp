@@ -40,7 +40,8 @@ namespace Radiant
 
         [[nodiscard]] static Environment CreateEnvironmentMap( const std::filesystem::path& filepath );
     private:
-        void UpdateEnvTextures(const Memory::Shared<Material>& material);
+        void UpdateEnvTextures( const Memory::Shared<Material>& material );
+        void UploadMeshMaterials( const Memory::Shared<Material>& material );
     private:
         void FlushDrawList();
         void ShadowMapPass();

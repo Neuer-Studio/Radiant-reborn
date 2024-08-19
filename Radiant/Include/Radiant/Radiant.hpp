@@ -4,11 +4,11 @@
 #include <Radiant/Core/Timestep.hpp>
 #include <Radiant/Core/Core.hpp>
 #include <Radiant/Core/Layer.hpp>
-#include <Radiant/Core/Events/Event.hpp>
 #include <Radiant/Core/Memory/Buffer.hpp>
 #include <Radiant/Core/Memory/Shared.hpp>
 #include <Radiant/Core/Application.hpp>
 #include <Radiant/Core/Camera.hpp>
+#include <Radiant/Core/Input.hpp>
 #include <Radiant/EntryPoint.hpp>
 
 // =================== Rendering =================== //
@@ -28,3 +28,12 @@
 // =================== Scene =================== //
 
 #include <Radiant/Scene/Scene.hpp>
+
+// =================== Events =================== //
+
+#include <Radiant/Core/Events/Event.hpp>
+#include <Radiant/Core/Events/MouseEvents.hpp>
+
+// =================== Math =================== //
+
+#include <Radiant/Core/Math/Ray.hpp>

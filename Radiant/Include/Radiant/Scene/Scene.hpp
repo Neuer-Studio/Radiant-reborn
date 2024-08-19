@@ -54,7 +54,7 @@ namespace Radiant
     struct SceneOptions
     {
         bool ShowGrid = true;
-        bool ShowAABB = false;
+        bool ShowAABB = true;
     };
 
     class Entity;

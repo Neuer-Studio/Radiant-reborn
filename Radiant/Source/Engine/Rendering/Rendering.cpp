@@ -126,6 +126,7 @@ namespace Radiant
                 s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/Grid.glsl" );
                 s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/ShadowMap.glsl" );
                 s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/Rendering2D.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/SelectedGeometry.glsl" );
             }
         }
 
