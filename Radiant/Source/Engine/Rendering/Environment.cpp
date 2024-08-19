@@ -1,5 +1,5 @@
 #include <Radiant/Rendering/Environment.hpp>
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 
 namespace Radiant
 {

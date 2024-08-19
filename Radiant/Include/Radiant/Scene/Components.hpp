@@ -12,88 +12,120 @@
 
 namespace Radiant
 {
-	struct IDComponent 
-	{
-		Math::UUID ID;
-	};
+    struct IDComponent
+    {
+        UUID ID;
+    };
 
-	struct TagComponent
-	{
-		std::string Tag;
+    struct TagComponent
+    {
+        std::string Tag;
 
-		TagComponent() = default;
-		TagComponent(const TagComponent& other) = default;
-		TagComponent(const std::string& tag)
-			: Tag(tag) {}
+        TagComponent()                            = default;
+        TagComponent( const TagComponent& other ) = default;
+        TagComponent( const std::string& tag ) : Tag( tag )
+        {
+        }
 
-		operator std::string& () { return Tag; }
-		operator const std::string& () const { return Tag; }
-	};
+        operator std::string&()
+        {
+            return Tag;
+        }
+        operator const std::string&() const
+        {
+            return Tag;
+        }
+    };
 
-	struct TransformComponent
-	{
-		glm::vec3 Translation = { 0.0f, 0.0f, 0.0f };
-		glm::vec3 Rotation = { 0.0f, 0.0f, 0.0f };
-		glm::vec3 Scale = { 1.0f, 1.0f, 1.0f };
+    struct TransformComponent
+    {
+        glm::vec3 Translation = { 0.0f, 0.0f, 0.0f };
+        glm::vec3 Rotation    = { 0.0f, 0.0f, 0.0f };
+        glm::vec3 Scale       = { 1.0f, 1.0f, 1.0f };
 
-		TransformComponent() = default;
-		TransformComponent(const TransformComponent& other) = default;
-		TransformComponent(const glm::vec3& translation)
-			: Translation(translation) {}
+        TransformComponent()                                  = default;
+        TransformComponent( const TransformComponent& other ) = default;
+        TransformComponent( const glm::vec3& translation ) : Translation( translation )
+        {
+        }
 
-		glm::mat4 GetTransform() const
-		{
-			return glm::translate(glm::mat4(1.0f), Translation)
-				* glm::toMat4(glm::quat(Rotation))
-				* glm::scale(glm::mat4(1.0f), Scale);
-		}
-	};
+        glm::mat4 GetTransform() const
+        {
+            return glm::translate( glm::mat4( 1.0f ), Translation ) * glm::toMat4( glm::quat( Rotation ) ) *
+                   glm::scale( glm::mat4( 1.0f ), Scale );
+        }
+    };
 
-	struct MeshComponent 
-	{
-		Memory::Shared<class Mesh> Mesh;
+    struct MeshComponent
+    {
+        Memory::Shared<class Mesh> Mesh;
 
-		MeshComponent() = default;
-		MeshComponent(const Memory::Shared<class Mesh>& mesh)
-			: Mesh(mesh) {}
+        bool              LoadAsStatic = false; // TODO: remove
+        std::vector<UUID> BoneEntityIds;
 
-		operator Memory::Shared<Radiant::Mesh>() { return Mesh; }
-	};
+        MeshComponent() = default;
+        MeshComponent( const Memory::Shared<class StaticMesh>& mesh ) : Mesh( mesh )
+        {
+        }
 
-	struct EnvironmentMap
-	{
-		Environment SceneEnvironment;
-		float Intensity = 1.0f;
-		float EnvironmentMapLod = 0.0f;
-	};
+        operator Memory::Shared<Radiant::StaticMesh>()
+        {
+            return Mesh;
+        }
+    };
 
-	struct CameraComponent
-	{
-		class Camera Camera;
-		bool Primary = true;
+    struct RelationshipComponent
+    {
+        std::optional<UUID> ParentHandle;
+        std::vector<UUID>   Children;
 
-		CameraComponent() = default;
-		CameraComponent(const CameraComponent& other) = default;
+        RelationshipComponent()                                     = default;
+        RelationshipComponent( const RelationshipComponent& other ) = default;
+        RelationshipComponent( UUID parent ) : ParentHandle( parent )
+        {
+        }
+    };
 
-		operator class Camera& () { return Camera; }
-		operator const class Camera& () const { return Camera; }
-	};
+    struct EnvironmentMap
+    {
+        Environment SceneEnvironment;
+        float       Intensity         = 1.0f;
+        float       EnvironmentMapLod = 0.0f;
+    };
 
-	struct DirectionalLightComponent
-	{
-		glm::vec3 Radiance = glm::vec3(1.0f);
-		float Intensity = 1.0f;
-		bool CastShadows = true;
-	};
+    struct CameraComponent
+    {
+        class Camera Camera;
+        bool         Primary = true;
 
-	struct PointLightComponent
-	{
-		glm::vec3 Radiance = glm::vec3(1.0f);
+        CameraComponent()                               = default;
+        CameraComponent( const CameraComponent& other ) = default;
 
-		float Intensity = 1.0f;
-		float Radius = 10.0f;
-		float Falloff = 1.0f;
-		float LightSize = 2.5f;
-	};
+        operator class Camera &()
+        {
+            return Camera;
+        }
+        operator const class Camera &() const
+        {
+            return Camera;
+        }
+    };
 
-}
+    struct DirectionalLightComponent
+    {
+        glm::vec3 Radiance    = glm::vec3( 1.0f );
+        float     Intensity   = 1.0f;
+        bool      CastShadows = true;
+    };
+
+    struct PointLightComponent
+    {
+        glm::vec3 Radiance = glm::vec3( 1.0f );
+
+        float Intensity = 1.0f;
+        float Radius    = 10.0f;
+        float Falloff   = 1.0f;
+        float LightSize = 2.5f;
+    };
+
+} // namespace Radiant

@@ -1,238 +1,392 @@
 
+#include <Radiant/Rendering/Mesh.hpp>
+#include <Radiant/Rendering/Rendering.hpp>
+
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 
-#include <Radiant/Rendering/Mesh.hpp>
+#include <Radiant/Rendering/Animation/AssimpExporter.hpp>
+
+#include <Radiant/Core/Math/Matrix.hpp>
 
 namespace Radiant
 {
 
 #define MESH_DEBUG_LOG 1
 #if MESH_DEBUG_LOG
-#define MESH_LOG(...) RA_TRACE(__VA_ARGS__)
+#define MESH_LOG( ... ) RA_TRACE( __VA_ARGS__ )
 #else
-#define MESH_LOG(...)
+#define MESH_LOG( ... )
 #endif
-	glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix)
-	{
-		glm::mat4 result;
-		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
-		result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
-		result[0][1] = matrix.b1; result[1][1] = matrix.b2; result[2][1] = matrix.b3; result[3][1] = matrix.b4;
-		result[0][2] = matrix.c1; result[1][2] = matrix.c2; result[2][2] = matrix.c3; result[3][2] = matrix.c4;
-		result[0][3] = matrix.d1; result[1][3] = matrix.d2; result[2][3] = matrix.d3; result[3][3] = matrix.d4;
-		return result;
-	}
 
-	struct LogStream : public Assimp::LogStream
-	{
-		static void Initialize()
-		{
-			if (Assimp::DefaultLogger::isNullLogger())
-			{
-				Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE);
-				Assimp::DefaultLogger::get()->attachStream(new LogStream, Assimp::Logger::Err | Assimp::Logger::Warn);
-			}
-		}
+    struct LogStream : public Assimp::LogStream // TOOD: move to new cpp file
+    {
+        static void Initialize()
+        {
+            if ( Assimp::DefaultLogger::isNullLogger() )
+            {
+                Assimp::DefaultLogger::create( "", Assimp::Logger::VERBOSE );
+                Assimp::DefaultLogger::get()->attachStream( new LogStream,
+                                                            Assimp::Logger::Err | Assimp::Logger::Warn );
+            }
+        }
 
-		void write(const char* message) override
-		{
-			RA_ERROR("Assimp error: {0}", message);
-		}
-	};
+        void write( const char* message ) override
+        {
+            RA_ERROR( "Assimp error: {0}", message );
+        }
+    };
 
-	static constexpr unsigned int s_ImportFlags =
-		aiProcess_CalcTangentSpace |
-		aiProcess_Triangulate |
-		aiProcess_SortByPType |
-		aiProcess_GenNormals |
-		aiProcess_GenUVCoords |
-		aiProcess_OptimizeMeshes |
-		aiProcess_ValidateDataStructure;
+    static constexpr unsigned int s_ImportFlags =
+         aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_GenNormals |
+         aiProcess_GenUVCoords | aiProcess_OptimizeMeshes | aiProcess_ValidateDataStructure;
 
-	Mesh::Mesh(const std::filesystem::path& filepath)
-	{
-		LogStream::Initialize();
-		RADIANT_VERIFY(Utils::FileSystem::Exists(filepath));
-		RA_TRACE("Loading mesh: {0}", filepath.string().c_str());
+    namespace
+    {
+        glm::vec3 GetAlbedoColor( const aiMaterial* material )
+        {
+            aiColor3D aiColor;
+            if ( material->Get( AI_MATKEY_COLOR_DIFFUSE, aiColor ) == aiReturn_SUCCESS )
+            {
+                return { aiColor.r, aiColor.g, aiColor.b };
+            }
 
-		m_Name = Utils::FileSystem::GetFileName(filepath);
+            return { 0.0, 0.0, 0.0 };
+        }
 
-		static const auto s_Importer = std::make_unique<Assimp::Importer>();
+        float GetRoughness( const aiMaterial* material )
+        {
+            aiColor3D aiColor;
+            float     shininess;
+            if ( material->Get( AI_MATKEY_SHININESS, shininess ) != aiReturn_SUCCESS )
+            {
+                shininess = 80.0f; // Default value
+            }
 
-		const aiScene* scene = s_Importer->ReadFile(filepath.string(), s_ImportFlags);
-		m_Submeshes.reserve(scene->mNumMeshes);
+            return 1.0f - glm::sqrt( shininess / 100.0f );
+        }
 
-		uint32_t vertexCount = 0;
-		uint32_t indexCount = 0;
+        float GetMetalness( const aiMaterial* material )
+        {
+            aiColor3D aiColor;
+            float     metalness;
+            if ( material->Get( AI_MATKEY_REFLECTIVITY, metalness ) != aiReturn_SUCCESS )
+            {
+                metalness = 0.0f;
+            }
 
-		for (size_t m = 0; m < scene->mNumMeshes; m++)
-		{
-			aiMesh* mesh = scene->mMeshes[m];
+            return metalness;
+        }
 
-			Submesh& submesh = m_Submeshes.emplace_back();
-			submesh.BaseVertex = vertexCount;
-			submesh.BaseIndex = indexCount;
-			submesh.MaterialIndex = mesh->mMaterialIndex;
-			submesh.IndexCount = mesh->mNumFaces * 3;
+        Memory::Shared<Texture2D> GetDiffuseImage( const std::filesystem::path& pathAsset,
+                                                 const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->GetTexture( aiTextureType_DIFFUSE, 0, &texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
 
-			vertexCount += mesh->mNumVertices;
-			indexCount += submesh.IndexCount;
+                MESH_LOG( "aiTextureType_DIFFUSE: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
 
-			RADIANT_VERIFY(mesh->HasPositions(), "Meshes require positions.");
-			RADIANT_VERIFY(mesh->HasNormals(), "Meshes require normals.");
+            return nullptr;
+        }
 
-			auto& aabb = submesh.BoundingBox;
-			aabb.Min = { FLT_MAX, FLT_MAX, FLT_MAX };
-			aabb.Max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
-			for (int i = 0; i < mesh->mNumVertices; i++)
-			{
-				Vertex vertex;
-				vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-				vertex.Normals = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+        Memory::Shared<Texture2D> GetNormalsImage( const std::filesystem::path& pathAsset,
+                                                 const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->GetTexture( aiTextureType_NORMALS, 0, &texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
 
-				aabb.Min.x = glm::min(vertex.Position.x, aabb.Min.x);
-				aabb.Min.y = glm::min(vertex.Position.y, aabb.Min.y);
-				aabb.Min.z = glm::min(vertex.Position.z, aabb.Min.z);
-				aabb.Max.x = glm::max(vertex.Position.x, aabb.Max.x);
-				aabb.Max.y = glm::max(vertex.Position.y, aabb.Max.y);
-				aabb.Max.z = glm::max(vertex.Position.z, aabb.Max.z);
+                MESH_LOG( "aiTextureType_NORMALS: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
 
-				if (mesh->HasTangentsAndBitangents())
-				{
-					vertex.Tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
-					vertex.Bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
-				}
+            return nullptr;
+        }
 
-				if (mesh->HasTextureCoords(0))
-				{
-					vertex.TexCoords = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-				}
+        Memory::Shared<Texture2D> GetShininessImage( const std::filesystem::path& pathAsset,
+                                                   const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->GetTexture( aiTextureType_SHININESS, 0, &texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
 
-				m_StaticVertices.push_back(vertex);
-			}
+                MESH_LOG( "aiTextureType_SHININESS: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
 
-			m_VertexBuffer = VertexBuffer::Create(m_StaticVertices.data(), m_StaticVertices.size() * sizeof(Vertex));
+            return nullptr;
+        }
 
-			for (int i = 0; i < mesh->mNumFaces; i++)
-			{
-				RADIANT_VERIFY(mesh->mFaces[i].mNumIndices == 3, "Must have 3 indices.");
-				Index index;
-				index = { mesh->mFaces[i].mIndices[0], mesh->mFaces[i].mIndices[1], mesh->mFaces[i].mIndices[2] };
+        Memory::Shared<Texture2D> GetMetalnessImage( const std::filesystem::path& pathAsset,
+                                                   const aiMaterial*            material )
+        {
+            aiString texturePath;
+            if ( material->Get( "$raw.ReflectionFactor|file", aiPTI_String, 0, texturePath ) == AI_SUCCESS )
+            {
+                std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory( pathAsset ) /
+                                                  std::filesystem::path( texturePath.C_Str() );
 
-				m_Indices.push_back(index);
-			}
+                MESH_LOG( "$raw.ReflectionFactor|file: {}", imagePath.string() );
+                return Texture2D::Create( imagePath );
+            }
 
-			m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+            return nullptr;
+        }
 
-			RADIANT_VERIFY(scene->HasMaterials());
-			if (scene->HasMaterials())
-			{
-				MESH_LOG("=====================================", filepath.string());
-				MESH_LOG("====== Materials - {0} ======", filepath.string());
-				MESH_LOG("=====================================", filepath.string());
+        void SetMaterialImage( const std::string& uniformNameToggle, const std::string& uniformNameImage, const Memory::Shared<Texture2D>& image,
+                               const Memory::Shared<Material>& material )
+        {
+            if (image.Raw() != nullptr)
+            {
+                material->SetBool(uniformNameToggle, true);
+                ImageDescriptor desc;
+                desc.Name = uniformNameImage;
+                material->SetImage2D(desc, image);
+            }
+            else
+            {
+                material->SetBool(uniformNameToggle, false);
+            }
 
-				for (unsigned int i = 0; i < scene->mNumMaterials; i++)
-				{
-					const aiMaterial* aiMaterial = scene->mMaterials[i];
-					aiString texturePath;
-					aiColor3D aiColor;
+        }
+    } // namespace
 
-					MaterialDiffuseData.AlbedoColor = { 0.0, 0.0,0.0 };
+    Mesh::Mesh( const std::filesystem::path& filepath ) : m_AssetPath( filepath )
+    {
+        LogStream::Initialize();
 
-					if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == aiReturn_SUCCESS)
-						MaterialDiffuseData.AlbedoColor = { aiColor.r, aiColor.g, aiColor.b };
-					float shininess, metalness;
-					if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
-						shininess = 80.0f; // Default value
+        RADIANT_VERIFY( Utils::FileSystem::Exists( filepath ) );
+        RA_TRACE( "Loading mesh: {1}", filepath.string().c_str() );
+        m_Name = Utils::FileSystem::GetFileName( filepath );
 
-					if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
-						metalness = 0.0f;
-					float roughness = 1.0f - glm::sqrt(shininess / 100.0f);
+        m_Importer           = std::make_shared<Assimp::Importer>();
+        const aiScene* scene = m_Importer->ReadFile( filepath.string(), s_ImportFlags );
+        m_Scene              = scene;
 
-					if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)//TODO: is texture loaded -> set a texture to material, or just set a vec3 data
-					{
-						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
+        m_MeshShader = scene->mAnimations != nullptr
+                            ? Rendering::GetShaderLibrary()->Get( "AnimPBR_Radiant.glsl" )
+                            : Rendering::GetShaderLibrary()->Get( "StaticPBR_Radiant.glsl" );
+        m_Material   = Material::Create( m_MeshShader );
 
-						MaterialDiffuseData.Material.Enabled = true;
-						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
+        m_Submeshes.reserve( scene->mNumMeshes );
 
-						MESH_LOG("aiTextureType_DIFFUSE: {}", imagePath.string());
-					}
+        uint32_t vertexCount = 0;
+        uint32_t indexCount  = 0;
 
-					if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == AI_SUCCESS)
-					{
-						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
+        m_GlobalInverseTransform =
+             glm::inverse( Math::Matrix::AssimpAIMat4toGLMMat4( scene->mRootNode->mTransformation ) );
 
-						MaterialDiffuseData.Material.Enabled = true;
-						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
+        for ( size_t m = 0; m < scene->mNumMeshes; m++ )
+        {
+            aiMesh* mesh = scene->mMeshes[m];
 
-						MESH_LOG("aiTextureType_NORMALS: {}", imagePath.string());
-					}
+            Submesh& submesh      = m_Submeshes.emplace_back();
+            submesh.BaseVertex    = vertexCount;
+            submesh.BaseIndex     = indexCount;
+            submesh.MaterialIndex = mesh->mMaterialIndex;
+            submesh.IndexCount    = mesh->mNumFaces * 3;
 
-					MaterialRoughnessData.Roughness = roughness;
-					if (aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &texturePath) == AI_SUCCESS)
-					{
-						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
+            vertexCount += mesh->mNumVertices;
+            indexCount += submesh.IndexCount;
 
-						MaterialDiffuseData.Material.Enabled = true;
-						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
+            RADIANT_VERIFY( mesh->HasPositions(), "Meshes require positions." );
+            RADIANT_VERIFY( mesh->HasNormals(), "Meshes require normals." );
 
-						MESH_LOG("aiTextureType_SHININESS: {}", imagePath.string());
-					}
+            auto& aabb = submesh.BoundingBox;
+            aabb.Min   = { FLT_MAX, FLT_MAX, FLT_MAX };
+            aabb.Max   = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
-					MaterialMetalnessData.Metalness = metalness;
-					if (aiMaterial->Get("$raw.ReflectionFactor|file", aiPTI_String, 0, texturePath) == AI_SUCCESS)
-					{
-						std::filesystem::path imagePath = Utils::FileSystem::GetFileDirectory(filepath) / std::filesystem::path(texturePath.C_Str());
+            for ( int i = 0; i < mesh->mNumVertices; i++ )
+            {
+                StaticVertex vertex;
+                vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+                vertex.Normals  = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
-						MaterialDiffuseData.Material.Enabled = true;
-						MaterialDiffuseData.Material.Texture = Texture2D::Create(imagePath);
+                /*aabb.Min.x = glm::min(vertex.Position.x, aabb.Min.x);
+                aabb.Min.y = glm::min(vertex.Position.y, aabb.Min.y);
+                aabb.Min.z = glm::min(vertex.Position.z, aabb.Min.z);
+                aabb.Max.x = glm::max(vertex.Position.x, aabb.Max.x);
+                aabb.Max.y = glm::max(vertex.Position.y, aabb.Max.y);
+                aabb.Max.z = glm::max(vertex.Position.z, aabb.Max.z);*/
 
-						MESH_LOG("aiTextureType_SHININESS: {}", imagePath.string());
-					}
-				}
-			}
-		}
+                if ( mesh->HasTangentsAndBitangents() )
+                {
+                    vertex.Tangent   = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+                    vertex.Bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+                }
 
-		TraverseNodes(scene->mRootNode);
+                if ( mesh->HasTextureCoords( 0 ) )
+                {
+                    vertex.TexCoords = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+                }
 
-		for (size_t i = 0; i < m_StaticVertices.size(); i++)
-		{
-			auto& vertex = m_StaticVertices[i];
-			MESH_LOG("Vertex: {0}", i);
-			MESH_LOG("Position: {0}, {1}, {2}", vertex.Position.x, vertex.Position.y, vertex.Position.z);
-			MESH_LOG("Normal: {0}, {1}, {2}", vertex.Normals.x, vertex.Normals.y, vertex.Normals.z);
-			MESH_LOG("Binormal: {0}, {1}, {2}", vertex.Bitangent.x, vertex.Bitangent.y, vertex.Bitangent.z);
-			MESH_LOG("Tangent: {0}, {1}, {2}", vertex.Tangent.x, vertex.Tangent.y, vertex.Tangent.z);
-			MESH_LOG("TexCoord: {0}, {1}", vertex.TexCoords.x, vertex.TexCoords.y);
-			MESH_LOG("--");
-		}
-	}
+                m_StaticVertices.push_back( vertex );
+            }
 
-	void Mesh::Use() const
-	{
-		m_VertexBuffer->Use();
-		m_IndexBuffer->Use();
-	}
+            for ( int i = 0; i < mesh->mNumFaces; i++ )
+            {
+                RADIANT_VERIFY( mesh->mFaces[i].mNumIndices == 3, "Must have 3 indices." );
+                Index index;
+                index = { mesh->mFaces[i].mIndices[0], mesh->mFaces[i].mIndices[1], mesh->mFaces[i].mIndices[2] };
 
-	void Mesh::TraverseNodes(aiNode* node, const glm::mat4& parentTransform, uint32_t level)
-	{
-		glm::mat4 transform = parentTransform * Mat4FromAssimpMat4(node->mTransformation);
-		for (uint32_t i = 0; i < node->mNumMeshes; i++)
-		{
-			uint32_t mesh = node->mMeshes[i];
-			auto& submesh = m_Submeshes[mesh];
-			//submesh.NodeName = node->mName.C_Str();
-			submesh.Transform = transform;
-		}
+                m_Indices.push_back( index );
+            }
 
-		// HZ_MESH_LOG("{0} {1}", LevelToSpaces(level), node->mName.C_Str());
+            m_IndexBuffer = IndexBuffer::Create( m_Indices.data(), m_Indices.size() * sizeof( Index ) );
 
-		for (uint32_t i = 0; i < node->mNumChildren; i++)
-			TraverseNodes(node->mChildren[i], transform, level + 1);
-	}
-}
+            RADIANT_VERIFY( scene->HasMaterials() );
+            if ( scene->HasMaterials() )
+            {
+                MESH_LOG( "=====================================", filepath.string() );
+                MESH_LOG( "====== Materials - {0} ======", filepath.string() );
+                MESH_LOG( "=====================================", filepath.string() );
+
+                for ( unsigned int i = 0; i < scene->mNumMaterials; i++ )
+                {
+                    const aiMaterial* aiMaterial = scene->mMaterials[i];
+                    aiString          texturePath;
+
+                    glm::vec3 albedoColor = GetAlbedoColor( aiMaterial );
+                    float     metalness   = GetMetalness( aiMaterial );
+                    float     roughness   = GetRoughness( aiMaterial );
+
+                    const auto diffuseImage   = GetDiffuseImage( m_AssetPath, aiMaterial );
+                    const auto normalsImage   = GetNormalsImage( m_AssetPath, aiMaterial );
+                    const auto shininessImage = GetShininessImage( m_AssetPath, aiMaterial );
+                    const auto metalnessImage = GetMetalnessImage( m_AssetPath, aiMaterial );
+
+                    m_Material->SetVec3( "u_AlbedoColor", albedoColor );
+                    m_Material->SetFloat( "u_Metalness", metalness );
+                    m_Material->SetFloat( "u_Roughness", roughness );
+
+                    SetMaterialImage( "u_UseAlbedoTexture", "u_AlbedoTexture", diffuseImage, m_Material );
+                    SetMaterialImage( "u_UseNormalTexture", "u_NormalTexture", normalsImage, m_Material );
+                    SetMaterialImage( "u_UseMetalnessTexture", "u_MetalnessTexture", metalnessImage, m_Material );
+                    SetMaterialImage( "u_UseRoughnessTexture", "u_RoughnessTexture", shininessImage, m_Material );
+                }
+            }
+        }
+
+        TraverseNodes( scene->mRootNode );
+    }
+
+    void Mesh::TraverseNodes( aiNode* node, const glm::mat4& parentTransform, uint32_t level )
+    {
+        glm::mat4 transform = parentTransform * Math::Matrix::AssimpAIMat4toGLMMat4( node->mTransformation );
+        for ( uint32_t i = 0; i < node->mNumMeshes; i++ )
+        {
+            uint32_t mesh     = node->mMeshes[i];
+            auto&    submesh  = m_Submeshes[mesh];
+            submesh.NodeName  = node->mName.C_Str();
+            submesh.Transform = transform;
+        }
+
+        for ( uint32_t i = 0; i < node->mNumChildren; i++ )
+            TraverseNodes( node->mChildren[i], transform, level + 1 );
+    }
+
+    //************************ AnimatedMesh **************************//
+
+    AnimatedMesh::AnimatedMesh( const std::filesystem::path& filepath ) : Mesh( filepath )
+    {
+        for ( size_t m = 0; m < m_Scene->mNumMeshes; m++ )
+        {
+            aiMesh*                     mesh = m_Scene->mMeshes[m];
+            std::vector<AnimatedVertex> animatedVertices;
+
+            for ( int i = 0; i < mesh->mNumVertices; i++ )
+            {
+
+                // NOTE: Actually it is worth to optimize it somehow, at the moment in order not to create several
+                // times
+                //  the same StaticVertex, we declared it globally, which is also used in StaticMesh, and here we
+                //  just throw in AnimatedVertex
+
+                AnimatedVertex vertex;
+                vertex.StaticVertexData = m_StaticVertices[i];
+                animatedVertices.push_back( vertex );
+            }
+
+            ExtractBoneWeightForVertices( animatedVertices, mesh, m_Scene );
+            m_VertexBuffer = VertexBuffer::Create( animatedVertices.data(),
+                                                   animatedVertices.size() * sizeof( AnimatedVertex ) );
+        }
+        BuildBonesHierarchy( m_Scene->mRootNode );
+    }
+
+    void AnimatedMesh::ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
+                                                     const aiScene* scene )
+    {
+        for ( int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex )
+        {
+            int         boneID   = -1;
+            std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
+            if ( m_BoneInfo.find( boneName ) == m_BoneInfo.end() )
+            {
+                Animation::BoneInfo newBoneInfo;
+                newBoneInfo.ID = m_BoneInfo.size();
+                newBoneInfo.BoneOffset =
+                     Math::Matrix::AssimpAIMat4toGLMMat4( mesh->mBones[boneIndex]->mOffsetMatrix );
+                m_BoneInfo[boneName] = newBoneInfo;
+                boneID               = newBoneInfo.ID;
+            }
+            else
+            {
+                boneID = m_BoneInfo[boneName].ID;
+            }
+            RADIANT_VERIFY( boneID != -1 );
+            auto weights    = mesh->mBones[boneIndex]->mWeights;
+            int  numWeights = mesh->mBones[boneIndex]->mNumWeights;
+
+            for ( int weightIndex = 0; weightIndex < numWeights; ++weightIndex )
+            {
+                int   vertexId = weights[weightIndex].mVertexId;
+                float weight   = weights[weightIndex].mWeight;
+                RADIANT_VERIFY( vertexId <= vertices.size() );
+                vertices[vertexId].BoneInfluenceData.AddBoneData( boneID, weight );
+            }
+        }
+
+        auto exporter = Animation::Exporter();
+        m_Skeleton    = exporter.ImportSkeleton( m_AssetPath.string() ).value();
+        m_Animations.push_back( exporter.ImportAnimation( m_AssetPath.string(), m_Skeleton ).value() );
+
+        m_AnimationController =
+             std::make_unique<Animation::AnimationController>( m_Animations.back(), m_Skeleton );
+    }
+
+    void AnimatedMesh::BuildBonesHierarchy( const aiNode* node, std::optional<uint32_t> parentIndex )
+    {
+        m_BonesHierarchy_RAW.push_back( { node->mName.C_Str(), parentIndex } );
+
+        uint32_t currentIndex = m_BonesHierarchy_RAW.size() - 1;
+
+        for ( uint32_t i = 0; i < node->mNumChildren; ++i )
+        {
+            BuildBonesHierarchy( node->mChildren[i], currentIndex );
+        }
+    }
+
+    //****************************************************//
+
+    //************************ StaticMesh **************************//
+
+    StaticMesh::StaticMesh( const std::filesystem::path& filepath ) : Mesh( filepath )
+    {
+        m_VertexBuffer =
+             VertexBuffer::Create( m_StaticVertices.data(), m_StaticVertices.size() * sizeof( StaticVertex ) );
+    }
+
+} // namespace Radiant

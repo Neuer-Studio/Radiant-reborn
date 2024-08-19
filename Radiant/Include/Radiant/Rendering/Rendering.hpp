@@ -10,66 +10,59 @@
 
 namespace Radiant
 {
-	struct DrawDeclarationCommand
-	{
-		glm::mat4 Transform;
-		Memory::Shared<Mesh> Mesh;
-	};
+    class Rendering : public Memory::RefCounted
+    {
+    public:
+        virtual ~Rendering();
 
-	struct DrawSpecificationCommandWithMaterial
-	{
-		explicit DrawSpecificationCommandWithMaterial() = default;
+        static void Clear( const std::array<float,4>& rgba );
+        static void SubmitMesh( const DrawDeclarationCommand&   specification,
+                                const Memory::Shared<Pipeline>& pipeline,
+                                const Memory::Shared<Material>& Material );
+        static void SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification );
+        static void DrawPrimitive( Primitives primitive = Primitives::Triangle, uint32_t count = 3,
+                                   bool depthTest = true );
+        static void SetLineWidth( float width = 1.0f );
+        static void DrawLine( const glm::vec3& p1, const glm::vec3& p2, float lineWidth = 1.0f );
+        static void DrawAABB( const Math::AABB& aabb, const glm::mat4& transform );
+        static void DrawAABB( const Memory::Shared<Mesh>& mesh, const glm::mat4& transform );
 
-		DrawDeclarationCommand Declration;
-		Memory::Shared<Material> Material;
-	};
+        static void BeginRenderPass( Memory::Shared<RenderPass>& renderPass, bool clear = true );
+        static void EndRenderPass();
 
-	class Rendering : public Memory::RefCounted
-	{
-	public:
-		virtual ~Rendering();
+        [[nodiscard]] static Environment CreateEnvironmentMap( const std::filesystem::path& filepath );
 
-		static void Clear(float rgba[4]);
-		static void SubmitMesh(const DrawDeclarationCommand& specification, const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& Material);
-		static void SubmitMeshWithMaterial(const DrawSpecificationCommandWithMaterial& specification, const Memory::Shared<Pipeline>& pipeline);
-		static void DrawPrimitive(Primitives primitive = Primitives::Triangle, uint32_t count = 3, bool depthTest = true);
-		static void SetLineWidth(float width = 1.0f);
-		static void DrawLine(const glm::vec3& p1, const glm::vec3& p2, float lineWidth = 1.0f);
-		static void DrawAABB(const Math::AABB& aabb, const glm::mat4& transform);
-		static void DrawAABB(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform);
+        [[nodiscard]] static const Memory::Shared<Texture2D>& GetWhiteTexure();
 
-		static void BeginRenderPass(Memory::Shared <RenderPass>& renderPass, bool clear = true);
-		static void EndRenderPass();
-		
-		[[nodiscard]] static Environment CreateEnvironmentMap(const std::filesystem::path& filepath);
+    public:
+        [[nodiscard]] static Memory::Shared<RenderingContext> Initialize( GLFWwindow* window );
+        [[nodiscard]] static Memory::Shared<RenderingContext> GetRenderingContext();
 
-		[[nodiscard]] static const Memory::Shared<Texture2D>& GetWhiteTexure();
-	public:
-		[[nodiscard]] static Memory::Shared<RenderingContext> Initialize(GLFWwindow * window);
-		[[nodiscard]] static Memory::Shared<RenderingContext> GetRenderingContext();
+        [[nodiscard]] static const ShaderLibrary* GetShaderLibrary();
 
-		[[nodiscard]] static const ShaderLibrary* GetShaderLibrary();
+    public:
+        static void SubmitFullscreenQuad( const Memory::Shared<Pipeline>&                pipeline,
+                                          const std::optional<Memory::Shared<Material>>& material );
 
-	public:
-		static void SubmitFullscreenQuad(const Memory::Shared<Pipeline>& pipeline, const Memory::Shared<Material>& material);
-	public:
-		template <typename FuncT>
-		static void SubmitCommand(FuncT&& func)
-		{
-			auto renderCMD = [](void* ptr)
-			{
-				auto pFunc = (FuncT*)ptr;
+    public:
+        template <typename FuncT>
+        static void SubmitCommand( FuncT&& func )
+        {
+            auto renderCMD = []( void* ptr )
+            {
+                auto pFunc = (FuncT*)ptr;
 
-				(*pFunc)();
+                ( *pFunc )();
 
-				pFunc->~FuncT();
-			};
+                pFunc->~FuncT();
+            };
 
-			auto storageBuffer = GetRenderingCommandBuffer().AddCommand(renderCMD, sizeof(func));
-			new (storageBuffer) FuncT(std::forward<FuncT>(func));
-		}
+            auto storageBuffer = GetRenderingCommandBuffer().AddCommand( renderCMD, sizeof( func ) );
+            new ( storageBuffer ) FuncT( std::forward<FuncT>( func ) );
+        }
 
-		[[nodiscard]]  static Memory::CommandBuffer& GetRenderingCommandBuffer();
-	private:
-	};
-}
+        [[nodiscard]] static Memory::CommandBuffer& GetRenderingCommandBuffer();
+
+    private:
+    };
+} // namespace Radiant

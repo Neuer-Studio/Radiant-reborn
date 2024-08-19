@@ -1,145 +1,312 @@
 #include <Radiant/Scene/Scene.hpp>
 #include <Radiant/Scene/Entity.hpp>
+#include <Radiant/Rendering/Animation/Skeleton.hpp> //TODO: remove and use component system for bone transform
 
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Radiant
 {
 
-	Scene::Scene(const std::string& sceneName)
-		: m_SceneName(sceneName)
-	{
-	
-	}
+    Scene::Scene( const std::string& sceneName ) : m_SceneName( sceneName )
+    {
+    }
 
-	Scene::~Scene()
-	{
-	}
+    Scene::~Scene()
+    {
+    }
 
-	Radiant::Entity Scene::CreateEntity(const std::string& name /*= ""*/)
-	{
-		auto entity = Entity{m_Registry.create(), this};
-		auto& idComponent = entity.AddComponent<IDComponent>();
-		idComponent.ID = {};
-		entity.AddComponent<TransformComponent>();
-		if (!name.empty())
-			entity.AddComponent<TagComponent>(name);
+    Radiant::Entity Scene::CreateEntity( const std::string& name /*= ""*/ )
+    {
+        return CreateChildEntity( std::nullopt, name );
+    }
 
-		return entity;
-	}
+    Radiant::Entity Scene::CreateChildEntity( const std::optional<Entity>& parent,
+                                              const std::string&           name /*= "" */ )
+    {
+        auto  entity      = Entity{ m_Registry.create(), this };
+        auto& idComponent = entity.AddComponent<IDComponent>();
+        idComponent.ID    = UUID();
 
-	Entity Scene::GetMainCameraEntity()
-	{
-		auto view = m_Registry.view<CameraComponent>();
-		for (const auto& entity : view)
-		{
-			auto& comp = view.get<CameraComponent>(entity);
-			if (comp.Primary)
-				return { entity, this };
-		}
-		return {};
-	}
+        entity.AddComponent<TransformComponent>();
+        if ( !name.empty() )
+        {
+            entity.AddComponent<TagComponent>( name );
+        }
 
-	void Scene::OnUpdate(const SceneUpdateInformation& information)
-	{
-	/*	Entity& cameraEntity = GetMainCameraEntity();
-		if (!cameraEntity)
-			return;*/
+        entity.AddComponent<RelationshipComponent>();
+        if ( parent )
+        {
+            entity.SetParent( *parent );
+        }
 
-		auto dirLight = m_Registry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
-		for (auto entity : dirLight)
-		{
-			auto [transformComponent, lightComponent] = dirLight.get<TransformComponent, DirectionalLightComponent>(entity);
-			glm::vec3 direction = -glm::normalize(glm::mat3(transformComponent.GetTransform()) * glm::vec3(1.0f));
-			m_LightEnvironment.DirectionalLights =
-			{
-				direction,
-				lightComponent.Radiance,
-				lightComponent.Intensity,
-				lightComponent.CastShadows
-			};
-		}
+        m_EntityIDMap[idComponent.ID] = entity;
+        return entity;
+    }
 
-		// Point lights
-		{
-			auto pointLights = m_Registry.group<PointLightComponent>(entt::get<TransformComponent>);
-			uint32_t pointLightIndex = 0;
-			for (auto entity : pointLights)
-			{
-				auto [transformComponent, lightComponent] = pointLights.get<TransformComponent, PointLightComponent>(entity);
-				glm::vec3 direction = transformComponent.Translation; //TODO: flag paneloutliner only translation
-				m_LightEnvironment.PointLights.resize(pointLights.size());
-				m_LightEnvironment.PointLights[pointLightIndex++] =
-				{
-					direction,
-					lightComponent.Radiance,
-					lightComponent.Intensity,
-					lightComponent.Radius,
-					lightComponent.Falloff,
-					lightComponent.LightSize,
-				};
-			}
-		}
+    std::optional<Radiant::Entity> Scene::TryGetDescendantEntityWithTag( Entity& entity, const std::string& tag )
+    {
+        if ( entity )
+        {
+            if ( entity.GetComponent<TagComponent>().Tag == tag )
+                return entity;
 
-		auto envMap = m_Registry.group<EnvironmentMap>(entt::get<TransformComponent>);
-		for (auto entity : envMap)
-		{
-			auto [transformComponent, envMapComponent] = envMap.get<TransformComponent, EnvironmentMap>(entity);
-			EnvironmentAttributes attrs;
-			attrs.EnvironmentMapLod = envMapComponent.EnvironmentMapLod;
-			attrs.Intensity = envMapComponent.Intensity;
+            for ( const auto& childId : entity.Children() )
+            {
+                const auto& descendant =
+                     TryGetDescendantEntityWithTag( *( TryGetEntityWithUUID( childId ) ), tag );
+                if ( descendant )
+                    return descendant;
+            }
+        }
+        return std::nullopt;
+    }
 
-			SceneRendering::Get().SetEnvironmentAttributes(attrs);
-		}
+    void Scene::BuildMeshBoneEntityIds( Entity& parentEntity )
+    {
+        if ( parentEntity.HasComponent<MeshComponent>() )
+        {
+            auto& mc   = parentEntity.GetComponent<MeshComponent>();
+            auto  mesh = mc.Mesh;
+            if ( mesh && mesh->IsRigged() )
+            {
+                mc.BoneEntityIds = FindBoneEntityIds( parentEntity, mesh.As<AnimatedMesh>() );
+            }
+        }
+    }
 
-		auto mesh = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
-		for (auto entity : mesh)
-		{
-			auto [transformComponent, meshComponent] = mesh.get<TransformComponent, MeshComponent>(entity);
-			if (meshComponent.Mesh)
-			{
-				SceneRendering::Get().SubmitMesh(meshComponent, transformComponent.GetTransform());
-			}
-		}
+    std::optional<Radiant::Entity> Scene::TryGetEntityWithUUID( const UUID& uuid ) const
+    {
+        if ( const auto iter = m_EntityIDMap.find( uuid ); iter != m_EntityIDMap.end() )
+            return iter->second;
 
-		SceneRendering::Get().BeginScene(this, information.Camera);
-		SceneRendering::Get().OnUpdate(information.TimeStep);
-		SceneRendering::Get().SetSceneVeiwPortSize({ information.Width, information.Height });
-		SceneRendering::Get().EndScene();
+        return std::nullopt;
+    }
 
-	}
+    Entity Scene::GetMainCameraEntity()
+    {
+        auto view = m_Registry.view<CameraComponent>();
+        for ( const auto& entity : view )
+        {
+            auto& comp = view.get<CameraComponent>( entity );
+            if ( comp.Primary )
+                return { entity, this };
+        }
+        return {};
+    }
 
-	void Scene::SetEnvironment(const Environment& env)
-	{
-		SceneRendering::Get().SetEnvironment(env);
-	}
+    void Scene::OnUpdate( const SceneUpdateInformation& information )
+    {
+        /*	Entity& cameraEntity = GetMainCameraEntity();
+                if (!cameraEntity)
+                        return;*/
 
-	Environment Scene::CreateEnvironmentScene(const std::filesystem::path& filepath) const
-	{
-		return SceneRendering::Get().CreateEnvironmentMap(filepath);
-	}
+        auto dirLight = m_Registry.group<DirectionalLightComponent>( entt::get<TransformComponent> );
+        for ( auto entity : dirLight )
+        {
+            auto [transformComponent, lightComponent] =
+                 dirLight.get<TransformComponent, DirectionalLightComponent>( entity );
+            glm::vec3 direction =
+                 -glm::normalize( glm::mat3( transformComponent.GetTransform() ) * glm::vec3( 1.0f ) );
+            m_LightEnvironment.DirectionalLights = { direction, lightComponent.Radiance, lightComponent.Intensity,
+                                                     lightComponent.CastShadows };
+        }
 
-	void Scene::SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const
-	{
-		SceneRendering::Get().SubmitMesh(mesh, transform);
-	}
+        // Point lights
+        {
+            auto     pointLights     = m_Registry.group<PointLightComponent>( entt::get<TransformComponent> );
+            uint32_t pointLightIndex = 0;
+            for ( auto entity : pointLights )
+            {
+                auto [transformComponent, lightComponent] =
+                     pointLights.get<TransformComponent, PointLightComponent>( entity );
+                glm::vec3 direction = transformComponent.Translation; // TODO: flag paneloutliner only translation
+                m_LightEnvironment.PointLights.resize( pointLights.size() );
+                m_LightEnvironment.PointLights[pointLightIndex++] = {
+                     direction,
+                     lightComponent.Radiance,
+                     lightComponent.Intensity,
+                     lightComponent.Radius,
+                     lightComponent.Falloff,
+                     lightComponent.LightSize,
+                };
+            }
+        }
 
-	const Radiant::Memory::Shared<Radiant::Image2D>& Scene::GetFinalPassImage() const
-	{
-		return SceneRendering::Get().GetFinalPassImage();
-	}
+        auto envMap = m_Registry.group<EnvironmentMap>( entt::get<TransformComponent> );
+        for ( auto entity : envMap )
+        {
+            auto [transformComponent, envMapComponent] = envMap.get<TransformComponent, EnvironmentMap>( entity );
+            EnvironmentAttributes attrs;
+            attrs.EnvironmentMapLod = envMapComponent.EnvironmentMapLod;
+            attrs.Intensity         = envMapComponent.Intensity;
 
-	void Scene::SetEnvMapRotation(float rotation)
-	{
-		SceneRendering::Get().SetEnvMapRotation(rotation);
-	}
+            SceneRendering::Get().SetEnvironmentAttributes( attrs );
+        }
 
-	void Scene::SetIBLContribution(float value)
-	{
-		SceneRendering::Get().SetIBLContribution(value);
-	}
+        auto meshs = m_Registry.group<MeshComponent>( entt::get<TransformComponent> );
+        for ( auto entity : meshs )
+        {
+            auto [transformComponent, meshComponent] = meshs.get<TransformComponent, MeshComponent>( entity );
+            if ( meshComponent.Mesh )
+            {
+                const auto& mesh = meshComponent.Mesh;
+                SubmitMesh( mesh, GetModelSpaceBoneTransforms(meshComponent.BoneEntityIds, mesh ), transformComponent.GetTransform() );
+            }
+        }
+        UpdateAnimation( information.TimeStep );
 
-}
+        SceneRendering::Get().BeginScene( this, information.Camera );
+        SceneRendering::Get().OnUpdate( information.TimeStep );
+        SceneRendering::Get().SetSceneVeiwPortSize( { information.Width, information.Height } );
+        SceneRendering::Get().EndScene();
+    }
+
+    void Scene::SetEnvironment( const Environment& env )
+    {
+        SceneRendering::Get().SetEnvironment( env );
+    }
+
+    Environment Scene::CreateEnvironmentScene( const std::filesystem::path& filepath ) const
+    {
+        return SceneRendering::Get().CreateEnvironmentMap( filepath );
+    }
+
+    void Scene::SubmitMesh( const Memory::Shared<Mesh>&                  mesh,
+                            const std::optional<std::vector<glm::mat4>>& boneTransforms,
+                            const glm::mat4&                             transform ) const
+    {
+        if ( mesh->IsRigged() && boneTransforms )
+        {
+            auto& boneTransformsValue = boneTransforms.value();
+            SceneRendering::Get().SubmitAnimatedMesh( mesh, boneTransformsValue, transform );
+        }
+        else
+        {
+            SceneRendering::Get().SubmitStaticMesh( mesh, transform );
+        }
+    }
+
+    const Radiant::Memory::Shared<Radiant::Image2D>& Scene::GetFinalPassImage() const
+    {
+        return SceneRendering::Get().GetFinalPassImage();
+    }
+
+    void Scene::SetEnvMapRotation( float rotation )
+    {
+        SceneRendering::Get().SetEnvMapRotation( rotation );
+    }
+
+    void Scene::SetIBLContribution( float value )
+    {
+        SceneRendering::Get().SetIBLContribution( value );
+    }
+
+    [[nodiscard]] Radiant::Entity Scene::InstantiateMesh( const Memory::Shared<Mesh>&  mesh,
+                                                          const std::optional<Entity>& parentEntity )
+    {
+        const auto& skeleton = mesh.As<AnimatedMesh>()->GetSkeleton();
+        if ( !mesh->IsRigged() )
+        {
+            return parentEntity.value();
+        }
+        BuildMeshEntityHierarchy( parentEntity.value(), mesh );
+        Entity e = *parentEntity;
+        BuildMeshBoneEntityIds( e );
+    }
+
+    void Scene::BuildMeshEntityHierarchy( const Entity& rootEntity, const Memory::Shared<AnimatedMesh>& mesh )
+    {
+        const auto& raw_bones = mesh->GetBonesHierarchy_RAW();
+
+        std::vector<Entity> entities( raw_bones.size() );
+
+        for ( uint32_t i = 0; i < raw_bones.size(); ++i )
+        {
+            const auto& [boneName, parentIndex] = raw_bones[i];
+
+            Entity parentEntity = parentIndex.has_value() ? entities[parentIndex.value()] : rootEntity;
+            entities[i]         = CreateChildEntity( parentEntity, boneName );
+        }
+    }
+
+    std::optional<std::vector<glm::mat4>>
+    Scene::GetModelSpaceBoneTransforms( const std::vector<UUID>&            boneEntityIds,
+                                        const Memory::Shared<AnimatedMesh>& mesh )
+    {
+        // std::vector<glm::mat4> boneTransforms( mesh->GetBoneInfo().size() );
+        std::vector<glm::mat4> boneTransforms( 100, glm::mat4( 1.0 ) );
+
+        if ( mesh->IsRigged() )
+        {
+            const auto& skeleton = mesh->GetSkeleton();
+            RADIANT_VERIFY( boneEntityIds.size() == skeleton.BoneCount(),
+                            "Wrong number of boneEntityIds for mesh skeleton!" );
+
+            for ( auto i = 0; i < skeleton.BoneCount(); ++i )
+            {
+                const auto boneEntity     = TryGetEntityWithUUID( boneEntityIds[i] );
+                glm::mat4  localTransform = boneEntity
+                                                 ? boneEntity->GetComponent<TransformComponent>().GetTransform()
+                                                 : glm::identity<glm::mat4>();
+
+                auto parentIndex = skeleton.GetParentBoneIndex( i );
+                boneTransforms[i] =
+                     ( !parentIndex.has_value() ) ? localTransform : boneTransforms[*parentIndex] * localTransform;
+            }
+        }
+        return boneTransforms;
+    }
+
+    void Scene::UpdateAnimation( Timestep ts )
+    {
+        const auto& view =
+             GetAllEntitiesWith<MeshComponent>(); // TODO: Use AnimationComponent instead of MeshComponent
+        for ( const auto& entity : view )
+        {
+            Entity e    = { entity, this };
+            auto&  anim = e.GetComponent<MeshComponent>();
+            if (!anim.Mesh || !anim.Mesh->IsRigged())
+            {
+                continue;
+            }
+            const auto& animationController = anim.Mesh.As<AnimatedMesh>()->GetAnimationController();
+            animationController->OnUpdate(ts); //TODO: get from AnimationComponent
+
+            for ( size_t i = 0; i < anim.BoneEntityIds.size(); ++i )
+            {
+                auto boneTransformEntity = TryGetEntityWithUUID( anim.BoneEntityIds[i] );
+                if ( boneTransformEntity )
+                {
+                    // Note: we're assuming there is always a transform component
+                    auto& transform       = boneTransformEntity->GetComponent<TransformComponent>();
+                    transform.Translation = animationController->GetTranslation( i );
+                    transform.Rotation    = glm::eulerAngles( animationController->GetRotation( i ) );
+                    transform.Scale       = animationController->GetScale( i );
+                }
+            }
+        }
+    }
+
+    std::vector<UUID> Scene::FindBoneEntityIds( Entity& parent, const Memory::Shared<AnimatedMesh>& mesh )
+    {
+        std::vector<UUID> boneEntityIds;
+        // given a parent entity, find descendant entities holding the transforms for the specified mesh's bones
+        if ( mesh )
+        {
+            const auto& bonesInfo = mesh->GetSkeleton().GetBonesInfo();
+            for ( const auto& boneInfo : bonesInfo )
+            {
+                const auto& e = TryGetDescendantEntityWithTag( parent, boneInfo.BoneName );
+                boneEntityIds.emplace_back( e ? e->GetUUID() : UUID( 0 ) );
+            }
+        }
+        return boneEntityIds;
+    }
+
+} // namespace Radiant

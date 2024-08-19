@@ -151,11 +151,15 @@ namespace Radiant
 		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_WRAP_R, GL_REPEAT);
 		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glSamplerParameteri(m_SamplerRendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		m_Loaded = true;
 	}
 
 	void OpenGLImage2D::Release()
 	{
 		glDeleteTextures(1, &m_RenderingID);
+
+		m_Loaded = false;
 	}
 
 }

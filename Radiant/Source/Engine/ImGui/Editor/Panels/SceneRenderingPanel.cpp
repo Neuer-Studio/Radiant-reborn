@@ -1,7 +1,7 @@
 #include <Radiant/ImGui/Editor/Panels/SceneRenderingPanel.hpp>
 #include <Radiant/Rendering/RendererAPI.hpp>
 #include <Radiant/Scene/Scene.hpp>
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 
 #include <imgui/imgui.h>
 

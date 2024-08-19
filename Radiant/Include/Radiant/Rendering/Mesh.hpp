@@ -5,123 +5,236 @@
 #include <Radiant/Rendering/Material.hpp>
 #include <Radiant/Core/Math/AABB.hpp>
 
+#include <Radiant/Rendering/Animation/AssimpExporter.hpp>
+#include <Radiant/Rendering/Animation/Skeleton.hpp>
+#include <Radiant/Rendering/Animation/AnimationController.hpp>
+
 #include <glm/glm.hpp>
+
+#include <Radiant/Rendering/Animation/BoneInfo.hpp>
 
 struct aiNode;
 struct aiAnimation;
 struct aiNodeAnim;
 struct aiScene;
+struct aiMesh;
 
 namespace Assimp
 {
-	class Importer;
+    class Importer;
 }
 
 namespace Radiant
 {
-	struct Vertex {
-		glm::vec3 Position;
-		glm::vec3 Normals;
-		glm::vec2 TexCoords;
-		glm::vec3 Tangent;
-		glm::vec3 Bitangent;
-	};
+    static constexpr uint32_t MAX_BONE_INFLUENCE = 4U;
 
-	struct Index
-	{
-		uint32_t V1, V2, V3;
-	};
+    struct StaticVertex
+    {
+        glm::vec3 Position;
+        glm::vec3 Normals;
+        glm::vec2 TexCoords;
+        glm::vec3 Tangent;
+        glm::vec3 Bitangent;
+    };
 
-	enum class TextureType
-	{
-		None = 0,
-		Diffuse,
-		Specular, 
-		Normal,
-	};
+    struct BoneInfluence
+    {
+        BoneInfluence()
+        {
+            SetDataToDefault();
+        }
 
-	struct Submesh
-	{
-		uint32_t BaseVertex;
-		uint32_t BaseIndex;
-		uint32_t MaterialIndex;
-		uint32_t IndexCount;
-		Math::AABB BoundingBox;
+        std::array<int, MAX_BONE_INFLUENCE>   IDs;
+        std::array<float, MAX_BONE_INFLUENCE> Weights;
 
-		glm::mat4 Transform;
-	};
+        void SetDataToDefault()
+        {
+            IDs.fill( -1 );
+            Weights.fill( 0 );
+        }
 
-	class Mesh : public Memory::RefCounted
-	{
-	public:
-		Mesh(const std::filesystem::path& filepath);
+        void AddBoneData( int id, float weight )
+        {
+            for ( uint32_t i = 0; i < MAX_BONE_INFLUENCE; i++ )
+            {
+                if ( IDs[i] < 0 )
+                {
+                    IDs[i]     = id;
+                    Weights[i] = weight;
 
-		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
-		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
+                    return;
+                }
+            }
+            RA_WARN( "Vertex has more than four bones/weights affecting it, extra data will be discarded "
+                     "(BoneID={0}, Weight={1})",
+                     id, weight );
+        }
+    };
 
-		const std::string& GetName() const { return m_Name; }
+    struct AnimatedVertex
+    {
+        AnimatedVertex()
+        {
+        }
 
-		void Use() const;
-		uint32_t GetIndexCount() const { return m_IndexBuffer->GetCount(); }
+        StaticVertex  StaticVertexData;
+        BoneInfluence BoneInfluenceData;
+    };
 
-		const auto& GetVertexBuffer() const { return m_VertexBuffer; }
-		const auto& GetIndexBuffer() const { return m_IndexBuffer; }
-	private:
-		void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);
-	private:
-		std::vector<Submesh> m_Submeshes;
+    struct Index
+    {
+        uint32_t V1, V2, V3;
+    };
 
-		Memory::Shared<VertexBuffer> m_VertexBuffer;
-		Memory::Shared<IndexBuffer> m_IndexBuffer;
-		Memory::Shared<Material> m_Material;
+    enum class TextureType
+    {
+        None = 0,
+        Diffuse,
+        Specular,
+        Normal,
+    };
 
-		std::vector<Vertex> m_StaticVertices;
-		std::vector<Index> m_Indices;
+    struct Submesh
+    {
+        uint32_t   BaseVertex;
+        uint32_t   BaseIndex;
+        uint32_t   MaterialIndex;
+        uint32_t   IndexCount;
+        Math::AABB BoundingBox;
 
-		std::string m_Name;
-		std::filesystem::path m_AssetPath;
+        std::string NodeName;
+        std::string MeshName;
+        glm::mat4   Transform;
+    };
 
-		//Note: Enabled - flag: is texture has been loaded
+    class Mesh : public Memory::RefCounted
+    {
+    protected:
+        Mesh( const std::filesystem::path& filepath );
 
-		struct BaseMeshMaterial
-		{
-			bool Enabled = false;
-			Memory::Shared<Texture2D> Texture;
-		};
+    public:
+        virtual ~Mesh() = default;
+        std::vector<Submesh>& GetSubmeshes()
+        {
+            return m_Submeshes;
+        }
+        const std::vector<Submesh>& GetSubmeshes() const
+        {
+            return m_Submeshes;
+        }
 
-		struct
-		{
-			BaseMeshMaterial Material;
-			glm::vec3 AlbedoColor;
-		} MaterialDiffuseData;
+        const std::string& GetName() const
+        {
+            return m_Name;
+        }
 
-		struct
-		{
-			BaseMeshMaterial Material;
-		} MaterialNormalData;
+        uint32_t GetIndexCount() const
+        {
+            return m_IndexBuffer->GetCount();
+        }
 
-		struct
-		{
-			BaseMeshMaterial Material;
-			float Roughness;
-		} MaterialRoughnessData;
+        const auto& GetVertexBuffer() const
+        {
+            return m_VertexBuffer;
+        }
+        const auto& GetIndexBuffer() const
+        {
+            return m_IndexBuffer;
+        }
 
-		struct
-		{
-			BaseMeshMaterial Material;
-			float Metalness;
-		} MaterialMetalnessData;
-	private:
-		friend class Rendering;
-	};
+        const auto& GetGlobalInverseTransform() const
+        {
+            return m_GlobalInverseTransform;
+        }
 
-	class StaticMesh : public Mesh
-	{
-	public:
-	};
-	
-	class AnimatedMesh : public Mesh
-	{
-	public:
-	};
-}
+        const auto& GetMaterial() const { return m_Material; }
+
+        virtual bool IsRigged() const = 0;
+
+    private:
+        void TraverseNodes( aiNode* node, const glm::mat4& parentTransform = glm::mat4( 1.0f ),
+                            uint32_t level = 0 );
+    protected:
+        std::string           m_Name;
+        std::filesystem::path m_AssetPath;
+
+        const aiScene*                    m_Scene = nullptr;
+        std::shared_ptr<Assimp::Importer> m_Importer;
+        std::vector<StaticVertex>         m_StaticVertices;
+        Memory::Shared<VertexBuffer>      m_VertexBuffer;
+
+    private:
+        glm::mat4                   m_GlobalInverseTransform;
+        std::vector<Submesh>        m_Submeshes;
+        Memory::Shared<IndexBuffer> m_IndexBuffer;
+        Memory::Shared<Material>    m_Material;
+        Memory::Shared<Shader>      m_MeshShader;
+        std::vector<Index>          m_Indices;
+
+    private:
+        friend class Rendering;
+    };
+
+    class StaticMesh : public Mesh
+    {
+    public:
+        StaticMesh( const std::filesystem::path& filepath );
+
+        virtual bool IsRigged() const override
+        {
+            return false;
+        }
+    };
+
+    class AnimatedMesh : public Mesh
+    {
+    public:
+        AnimatedMesh( const std::filesystem::path& filepath );
+
+        const auto& GetSkeleton() const
+        {
+            return m_Skeleton;
+        }
+
+        auto& GetBoneInfo()
+        {
+            return m_BoneInfo;
+        }
+
+        const auto& GetAnimationController() const
+        {
+            return m_AnimationController;
+        }
+
+        virtual bool IsRigged() const override
+        {
+            return true;
+        }
+
+        // NOTE:
+        // The function is not related to the Skeleton class,
+        // here we get all the names of nodes and their parents in order to correctly build the hierarchy in
+        // the SceneHierarchyPanel,
+        // unlike Skeleton,
+        // where we get only the bones that will be animated
+        const auto& GetBonesHierarchy_RAW() const
+        {
+            return m_BonesHierarchy_RAW;
+        }
+
+    private:
+        void ExtractBoneWeightForVertices( std::vector<AnimatedVertex>& vertices, aiMesh* mesh,
+                                           const aiScene* scene );
+
+    private:
+        void BuildBonesHierarchy( const aiNode* node, std::optional<uint32_t> parentIndex = std::nullopt );
+
+    private:
+        Animation::Skeleton                                  m_Skeleton;
+        std::vector<Animation::Animation>                    m_Animations;
+        std::unique_ptr<Animation::AnimationController>      m_AnimationController;
+        std::unordered_map<std::string, Animation::BoneInfo> m_BoneInfo;
+
+        std::vector<std::pair<std::string, std::optional<uint32_t>>> m_BonesHierarchy_RAW;
+    };
+} // namespace Radiant

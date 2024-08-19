@@ -2,93 +2,150 @@
 
 #include <Radiant/Core/Camera.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
+// #include <Radiant/Scene/Entity.hpp>
 
 #include <entt/entt.hpp>
 
 namespace Radiant
 {
-	struct Environment;
-	struct SceneRendering;
-	class Entity;
+    struct Environment;
+    struct SceneRendering;
+    class Entity;
 
-	struct DirectionalLight
-	{
-		glm::vec3 Direction;
-		alignas(16) glm::vec3 Radiance; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
-		
-		float Intensity;
-		bool CastShadows;
-	};
+    struct DirectionalLight
+    {
+        glm::vec3 Direction;
+        alignas( 16 ) glm::vec3 Radiance; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
 
-	struct PointLight
-	{
-		glm::vec3 Direction;
-		alignas(16) glm::vec3 Radiance; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
+        float Intensity;
+        bool  CastShadows;
+    };
 
-		float Intensity;
-		float Radius;
-		float Falloff;
-		float LightSize;
-	};
+    struct PointLight
+    {
+        glm::vec3 Direction;
+        alignas( 16 ) glm::vec3 Radiance; // NOTE: GLSL interprets vec3 (12bytes) as vec4 (16bytes)
 
-	struct LightEnvironment
-	{
-		DirectionalLight DirectionalLights;
-		std::vector<PointLight> PointLights;
+        float Intensity;
+        float Radius;
+        float Falloff;
+        float LightSize;
+    };
 
-		[[nodiscard]] uint32_t GetPointLightsSize() const { return (uint32_t)(PointLights.size() * sizeof(PointLight)); }
-	};
+    struct LightEnvironment
+    {
+        DirectionalLight        DirectionalLights;
+        std::vector<PointLight> PointLights;
 
-	struct SceneUpdateInformation
-	{
-		Timestep TimeStep;
-		Camera Camera;
-		uint32_t Width;
-		uint32_t Height;
-	};
+        [[nodiscard]] uint32_t GetPointLightsSize() const
+        {
+            return (uint32_t)( PointLights.size() * sizeof( PointLight ) );
+        }
+    };
 
-	struct SceneOptions
-	{
-		bool ShowGrid = true;
-		bool ShowAABB = false;
-	};
+    struct SceneUpdateInformation
+    {
+        Timestep TimeStep;
+        Camera   Camera;
+        uint32_t Width;
+        uint32_t Height;
+    };
 
-	class Scene : public Memory::RefCounted
-	{
-	public:
-		Scene(const std::string& sceneName);
-		~Scene();
+    struct SceneOptions
+    {
+        bool ShowGrid = true;
+        bool ShowAABB = false;
+    };
 
-		Entity CreateEntity(const std::string& name = "");
-		Entity GetMainCameraEntity();
+    class Entity;
+    using EntityMap = std::unordered_map<UUID, Entity>;
 
-		void OnUpdate(const SceneUpdateInformation& information);
-		void SetEnvironment(const Environment& env);
-		Environment CreateEnvironmentScene(const std::filesystem::path& filepath) const;
-		LightEnvironment GetLightEnvironment() const { return m_LightEnvironment; }
-		const SceneOptions GetSceneOptions() const { return m_Options; }
+    class Scene : public Memory::RefCounted
+    {
+    public:
+        Scene( const std::string& sceneName );
+        ~Scene();
 
-		const auto& GetSceneUpdateInfo() const { return m_Information; }
+        [[nodiscard]] Entity CreateEntity( const std::string& name = "" );
+        [[nodiscard]] Entity CreateChildEntity( const std::optional<Entity>& parent,
+                                                const std::string&           name = "" );
 
-		inline const uint32_t GetSceneSamplesCount() const { return m_SamplesCount; }
+        void BuildMeshBoneEntityIds( Entity& parentEntity ); // TODO
 
-		void SubmitMesh(const Memory::Shared<Mesh>& mesh, const glm::mat4& transform) const;
-		const Memory::Shared<Image2D>& GetFinalPassImage() const;
-		void SetEnvMapRotation(float rotation);
-		void SetIBLContribution(float value);
+        [[nodiscard]] std::optional<Radiant::Entity> TryGetDescendantEntityWithTag( Entity&            entity,
+                                                                                    const std::string& tag );
 
-	private:
-		SceneOptions m_Options;
-		uint32_t m_SamplesCount = 2;
+        std::vector<UUID> Scene::FindBoneEntityIds( Entity& parent, const Memory::Shared<AnimatedMesh>& mesh );
 
-		std::string m_SceneName;
-		entt::registry m_Registry;
+        std::optional<Radiant::Entity> TryGetEntityWithUUID( const UUID& uuid ) const;
 
-		LightEnvironment m_LightEnvironment;
-		SceneUpdateInformation m_Information;
+        [[nodiscard]] Entity GetMainCameraEntity();
 
-		friend class Entity;
-		friend class PanelOutliner;
-		friend class SceneRenderingPanel;
-	};
-}
+        void                           OnUpdate( const SceneUpdateInformation& information );
+        void                           SetEnvironment( const Environment& env );
+        [[nodiscard]] Environment      CreateEnvironmentScene( const std::filesystem::path& filepath ) const;
+        [[nodiscard]] LightEnvironment GetLightEnvironment() const
+        {
+            return m_LightEnvironment;
+        }
+        const SceneOptions GetSceneOptions() const
+        {
+            return m_Options;
+        }
+
+        const auto& GetSceneUpdateInfo() const
+        {
+            return m_Information;
+        }
+
+        inline const uint32_t GetSceneSamplesCount() const
+        {
+            return m_SamplesCount;
+        }
+
+        UUID GetUUID() const
+        {
+            return m_SceneID;
+        }
+
+        void                           SubmitMesh( const Memory::Shared<Mesh>&                  mesh,
+                                                   const std::optional<std::vector<glm::mat4>>& boneTransforms,
+                                                   const glm::mat4&                             transform ) const;
+        const Memory::Shared<Image2D>& GetFinalPassImage() const;
+        void                           SetEnvMapRotation( float rotation );
+        void                           SetIBLContribution( float value );
+
+        [[nodiscard]] Entity InstantiateMesh( const Memory::Shared<Mesh>&  mesh,
+                                              const std::optional<Entity>& parentEntity );
+        void BuildMeshEntityHierarchy( const Entity& rootEntity, const Memory::Shared<AnimatedMesh>& mesh );
+
+        template <typename... Components>
+        auto GetAllEntitiesWith()
+        {
+            return m_Registry.view<Components...>();
+        }
+
+    private:
+        [[nodiscard]] std::optional<std::vector<glm::mat4>>
+        GetModelSpaceBoneTransforms(const std::vector<UUID>& boneEntityIds, const Memory::Shared<AnimatedMesh>& mesh );
+
+        void UpdateAnimation( Timestep ts );
+
+    private:
+        UUID      m_SceneID;
+        EntityMap m_EntityIDMap;
+
+        SceneOptions m_Options;
+        uint32_t     m_SamplesCount = 2;
+
+        std::string    m_SceneName;
+        entt::registry m_Registry;
+
+        LightEnvironment       m_LightEnvironment;
+        SceneUpdateInformation m_Information;
+
+        friend class Entity;
+        friend class SceneHierarchyPanel;
+        friend class SceneRenderingPanel;
+    };
+} // namespace Radiant

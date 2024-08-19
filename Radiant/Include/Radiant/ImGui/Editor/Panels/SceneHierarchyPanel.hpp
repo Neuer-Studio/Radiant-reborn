@@ -5,10 +5,10 @@
 
 namespace Radiant
 {
-	class PanelOutliner final : public Memory::RefCounted
+	class SceneHierarchyPanel final : public Memory::RefCounted
 	{
 	public:
-		PanelOutliner(const Memory::Shared<Scene>& scene = nullptr);
+		SceneHierarchyPanel(const Memory::Shared<Scene>& scene = nullptr);
 		void SetContext(const Memory::Shared<Scene>& scene);
 
 		void DrawComponentsUI(const std::string& ButtonName = "ADD", float x = 40, float y = 25);

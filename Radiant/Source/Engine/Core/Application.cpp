@@ -91,7 +91,7 @@ namespace Radiant
 			s_RenderingContext->EndFrame();
 
 			float time = glfwGetTime();
-			m_Timestep = time - m_LastFrameTime;
+			m_Timestep = Timestep(time - m_LastFrameTime);
 			m_LastFrameTime = time;
 		}
 		OnShutdown();

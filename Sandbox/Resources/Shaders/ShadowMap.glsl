@@ -9,6 +9,9 @@ layout (location = 2) in vec2 a_TexCoord;
 layout (location = 3) in vec3 a_Tangent;
 layout (location = 4) in vec3 a_Bitangent;
 
+layout (location = 5) in ivec4 a_BoneIndices;
+layout (location = 6) in vec4 a_BoneWeights;
+
 layout (location = 0) uniform mat4 u_Transform; 
 layout (location = 1) uniform mat4 u_ViewProjection; // should be outside ubo (ortho matrix)
 

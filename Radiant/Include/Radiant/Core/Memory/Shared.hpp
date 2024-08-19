@@ -114,8 +114,8 @@ namespace Radiant::Memory
 		T& operator*() { return *m_Instance; }
 		const T& operator*() const { return *m_Instance; }
 
-		T* Ptr() { return  m_Instance; }
-		const T* Ptr() const { return  m_Instance; }
+		T* Raw() { return  m_Instance; }
+		const T* Raw() const { return  m_Instance; }
 
 		void Reset(T* instance = nullptr)
 		{
