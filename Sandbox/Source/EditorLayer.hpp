@@ -4,7 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <Radiant/Scene/Entity.hpp>
-#include <Radiant/Scene/SceneRendering.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
 #include <Radiant/ImGui/Editor/Panels/SceneHierarchyPanel.hpp>
 #include <Radiant/ImGui/Editor/Panels/SceneRenderingPanel.hpp>
 #include <ImGUI/imgui.h>
