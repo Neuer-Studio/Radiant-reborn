@@ -9,6 +9,7 @@
 #include <Radiant/Core/Camera.hpp>
 
 #include <Radiant/Rendering/Environment.hpp>
+#include <Radiant/Core/Serialization/SerializationProvider.hpp>
 
 namespace Radiant
 {
@@ -56,7 +57,7 @@ namespace Radiant
         }
     };
 
-    struct MeshComponent
+    struct MeshComponent SERIALIZABLE_CLASS_MAKE
     {
         Memory::Shared<class Mesh> Mesh;
 
@@ -64,7 +65,8 @@ namespace Radiant
         std::vector<UUID> BoneEntityIds;
 
         MeshComponent() = default;
-        MeshComponent( const Memory::Shared<class StaticMesh>& mesh ) : Mesh( mesh )
+        MeshComponent( const Memory::Shared<class StaticMesh>& mesh )
+             : Mesh( mesh )
         {
         }
 
@@ -86,7 +88,7 @@ namespace Radiant
         }
     };
 
-    struct EnvironmentMap
+    struct EnvironmentMapComponent
     {
         Environment SceneEnvironment;
         float       Intensity         = 1.0f;

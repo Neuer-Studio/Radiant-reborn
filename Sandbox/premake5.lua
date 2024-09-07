@@ -24,9 +24,11 @@ project "Sandbox"
 
     links{
         "Radiant",
+        "yaml-cpp",
         "GLFW",
         "Glad",
     }
+
     filter "configurations:Debug"
         defines { "RADIANT_CONFIG_DEBUG" }
         symbols "On"

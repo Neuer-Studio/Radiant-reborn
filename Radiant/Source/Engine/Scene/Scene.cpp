@@ -10,15 +10,18 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <Radiant/Core/Serialization/Serialization.hpp>
+
 namespace Radiant
 {
-
     Scene::Scene( const std::string& sceneName ) : m_SceneName( sceneName )
     {
+        
     }
 
     Scene::~Scene()
     {
+        GetSerializationSceneString();
     }
 
     Radiant::Entity Scene::CreateEntity( const std::string& name /*= ""*/ )
@@ -138,10 +141,11 @@ namespace Radiant
             }
         }
 
-        auto envMap = m_Registry.group<EnvironmentMap>( entt::get<TransformComponent> );
+        auto envMap = m_Registry.group<EnvironmentMapComponent>( entt::get<TransformComponent> );
         for ( auto entity : envMap )
         {
-            auto [transformComponent, envMapComponent] = envMap.get<TransformComponent, EnvironmentMap>( entity );
+            auto [transformComponent, envMapComponent] =
+                 envMap.get<TransformComponent, EnvironmentMapComponent>( entity );
             EnvironmentAttributes attrs;
             attrs.EnvironmentMapLod = envMapComponent.EnvironmentMapLod;
             attrs.Intensity         = envMapComponent.Intensity;
@@ -156,7 +160,8 @@ namespace Radiant
             if ( meshComponent.Mesh )
             {
                 const auto& mesh = meshComponent.Mesh;
-                SubmitMesh( mesh, GetModelSpaceBoneTransforms(meshComponent.BoneEntityIds, mesh ), transformComponent.GetTransform() );
+                SubmitMesh( mesh, GetModelSpaceBoneTransforms( meshComponent.BoneEntityIds, mesh ),
+                            transformComponent.GetTransform() );
             }
         }
         UpdateAnimation( information.TimeStep );
@@ -235,6 +240,11 @@ namespace Radiant
         }
     }
 
+    std::string Scene::GetSerializationSceneString()
+    {
+        return SceneSerialize::GetSerializedScene_STRING( this );
+    }
+
     std::optional<std::vector<glm::mat4>>
     Scene::GetModelSpaceBoneTransforms( const std::vector<UUID>&            boneEntityIds,
                                         const Memory::Shared<AnimatedMesh>& mesh )
@@ -271,12 +281,12 @@ namespace Radiant
         {
             Entity e    = { entity, this };
             auto&  anim = e.GetComponent<MeshComponent>();
-            if (!anim.Mesh || !anim.Mesh->IsRigged())
+            if ( !anim.Mesh || !anim.Mesh->IsRigged() )
             {
                 continue;
             }
             const auto& animationController = anim.Mesh.As<AnimatedMesh>()->GetAnimationController();
-            animationController->OnUpdate(ts); //TODO: get from AnimationComponent
+            animationController->OnUpdate( ts ); // TODO: get from AnimationComponent
 
             for ( size_t i = 0; i < anim.BoneEntityIds.size(); ++i )
             {
@@ -307,6 +317,67 @@ namespace Radiant
             }
         }
         return boneEntityIds;
+    }
+
+    serialized_str SceneSerialize::GetSerializedScene_STRING( Memory::Weak<Scene> scene )
+    {
+        Serialization::YamlWriter        writer;
+        std::vector<Serialization::Node> entities;
+        writer.AddValue( "Scene", scene->GetSceneName() );
+
+        const auto& allMeshEntitys = scene->GetAllEntitiesWith<MeshComponent>();
+        for ( const auto& e : allMeshEntitys )
+        {
+            Entity entity( e, scene.Raw() );
+
+            const auto& uuid = entity.GetUUID();
+            const auto& mesh = entity.GetComponent<MeshComponent>();
+            const auto& tag  = entity.GetComponent_S<TagComponent>();
+
+            const std::string tagStr = tag.has_value() ? tag.value().get() : std::string( "" );
+
+            Serialization::Node nodeEntity;
+            nodeEntity.AddValue( "Mesh", uuid.ToString() );
+            Serialization::Node tagComponent1;
+            tagComponent1.AddValue( "Tag", tagStr );
+            nodeEntity.AddChildNode( "TagComponent", tagComponent1 );
+            Serialization::Node assetPath;
+            assetPath.AddValue( "Asset", mesh.Mesh->GetAssetPath().string() );
+            nodeEntity.AddChildNode( "AssetPath", assetPath );
+
+            entities.push_back( nodeEntity );
+        }
+
+        const auto& skybox = scene->GetAllEntitiesWith<EnvironmentMapComponent>();
+        for ( const auto& e : skybox )
+        {
+            Entity entity( e, scene.Raw() );
+
+            const auto& uuid = entity.GetUUID();
+            const auto& mesh = entity.GetComponent<EnvironmentMapComponent>();
+            const auto& tag  = entity.GetComponent_S<TagComponent>();
+
+            const std::string tagStr = tag.has_value() ? tag.value().get() : std::string( "" );
+
+            Serialization::Node nodeEntity;
+            nodeEntity.AddValue( "Environment", uuid.ToString() );
+            Serialization::Node tagComponent1;
+            tagComponent1.AddValue( "Tag", tagStr );
+            nodeEntity.AddChildNode( "TagComponent", tagComponent1 );
+            Serialization::Node assetPath;
+            assetPath.AddValue( "Asset", mesh.SceneEnvironment.FilePath );
+            nodeEntity.AddChildNode( "AssetPath", assetPath );
+
+            entities.push_back( nodeEntity );
+        }
+
+        writer.AddArray( "Entities", entities );
+
+        //  writer.SaveToFile( "output.yaml" );
+
+        std::cout << "Data saved to output.yaml" << std::endl;
+
+        return "";
     }
 
 } // namespace Radiant

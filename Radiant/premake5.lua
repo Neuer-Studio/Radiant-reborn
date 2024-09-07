@@ -38,6 +38,9 @@ project "Radiant"
         "../ThirdParty/Glad/include/",
         "../ThirdParty/stb/include/",
         "../ThirdParty/assimp/include",
+        "../ThirdParty/yaml-cpp/include",
+      -- "../ThirdParty/boost/",
+        --"../ThirdParty/boost/preprocessor",
         "../ThirdParty/ImGUI/",
         "%{IncludeDir.entt}",
         
@@ -47,6 +50,7 @@ project "Radiant"
     links
     {
         "ImGui",
+        "yaml-cpp",
         
         "%{LibraryDir.shaderc_Debug}",
         "%{LibraryDir.spirv_cross_core_Debug}",
@@ -59,6 +63,7 @@ project "Radiant"
         "%{LibraryDir.OGLCompiler_Debug}",
     }
 
+    defines { "YAML_CPP_STATIC_DEFINE" }
     filter "configurations:Debug"
         defines { "RADIANT_CONFIG_DEBUG" }
         symbols "On"

@@ -3,7 +3,7 @@
 workspace "Radiant"
     configurations { "Debug", "Release" }
     architecture "x64"
-    startproject "Sanxbox"
+    startproject "Sandbox"
 
     language "C++"
 	cppdialect "C++17"
@@ -13,6 +13,15 @@ workspace "Radiant"
 	externalanglebrackets "On"
 	externalwarnings "Off"
 	warnings "Off"
+
+filter "configurations:Debug"
+    runtime "Debug"
+    symbols "On"
+
+filter "configurations:Release"
+    runtime "Release"
+    optimize "On"
+
 
 
 group "ThirdParty"

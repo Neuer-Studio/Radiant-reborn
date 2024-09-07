@@ -151,6 +151,8 @@ namespace Radiant
 
         virtual bool IsRigged() const = 0;
 
+        std::filesystem::path GetAssetPath() const { return m_AssetPath; }//TODO: temp untill we have metadata
+
     private:
         void TraverseNodes( aiNode* node, const glm::mat4& parentTransform = glm::mat4( 1.0f ),
                             uint32_t level = 0 );

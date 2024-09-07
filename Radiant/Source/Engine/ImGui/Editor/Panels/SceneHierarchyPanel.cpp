@@ -265,7 +265,7 @@ namespace Radiant
                     if ( ImGui::MenuItem( "Environment map" ) )
                     {
                         auto entity = m_Context->CreateEntity( "Environment map" );
-                        entity.AddComponent<EnvironmentMap>();
+                        entity.AddComponent<EnvironmentMapComponent>();
                     }
 
                     ImGui::EndMenu();
@@ -428,9 +428,9 @@ namespace Radiant
                                             }*/
                                         } );
 
-        DrawComponentUI<EnvironmentMap>(
+        DrawComponentUI<EnvironmentMapComponent>(
              "Environment Map", entity,
-             [&]( EnvironmentMap& em )
+             [&]( EnvironmentMapComponent& em )
              {
                  auto& envScene = em.SceneEnvironment;
                  UI::BeginPropertyGrid();

@@ -49,6 +49,15 @@ namespace Radiant
 			layer->OnDetach();
 			delete layer;
 		}
+
+#if defined( RADIANT_CONFIG_DEBUG )
+		struct dummy;
+		const auto activeins = Memory::Shared<dummy>::DEBUG_GetLiveObjects();
+		for (const auto& ins : activeins)
+		{
+			RA_DEBUG( "{} still alive!", ins.first);
+		}
+#endif
 	}
 
 	void Application::PushLayer(Layer* layer)

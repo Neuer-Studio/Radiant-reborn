@@ -2,7 +2,6 @@
 
 #include <Radiant/Core/Camera.hpp>
 #include <Radiant/Rendering/Mesh.hpp>
-// #include <Radiant/Scene/Entity.hpp>
 
 #include <entt/entt.hpp>
 
@@ -66,6 +65,8 @@ namespace Radiant
         Scene( const std::string& sceneName );
         ~Scene();
 
+        std::string GetSceneName() const { return m_SceneName; }
+
         [[nodiscard]] Entity CreateEntity( const std::string& name = "" );
         [[nodiscard]] Entity CreateChildEntity( const std::optional<Entity>& parent,
                                                 const std::string&           name = "" );
@@ -125,12 +126,22 @@ namespace Radiant
             return m_Registry.view<Components...>();
         }
 
+        template <typename T>
+        auto GetAllComponentsOfType()
+        {
+            std::vector<T*> components;
+            m_Registry.view<T>().each( [&components]( auto entity, T& component )
+                                       { components.push_back( &component ); } );
+
+            return components;
+        }
+
+        std::string GetSerializationSceneString();
     private:
         [[nodiscard]] std::optional<std::vector<glm::mat4>>
         GetModelSpaceBoneTransforms(const std::vector<UUID>& boneEntityIds, const Memory::Shared<AnimatedMesh>& mesh );
 
         void UpdateAnimation( Timestep ts );
-
     private:
         UUID      m_SceneID;
         EntityMap m_EntityIDMap;
@@ -147,5 +158,11 @@ namespace Radiant
         friend class Entity;
         friend class SceneHierarchyPanel;
         friend class SceneRenderingPanel;
+    };
+
+    class SceneSerialize
+    {
+    public:
+        static serialized_str GetSerializedScene_STRING(Memory::Weak<Scene> scene);
     };
 } // namespace Radiant

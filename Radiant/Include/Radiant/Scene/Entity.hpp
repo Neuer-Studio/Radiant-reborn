@@ -37,16 +37,36 @@ namespace Radiant
         }
 
         template <typename T>
-        const T& GetComponent() const
+        [[depricated]] const T& GetComponent() const
         {
             RADIANT_VERIFY( HasComponent<T>() );
             return m_Scene->m_Registry.get<T>( m_EntityHandle );
         }
 
         template <typename T>
-        T& GetComponent()
+        [[depricated]] T& GetComponent()
         {
             RADIANT_VERIFY( HasComponent<T>() );
+            return m_Scene->m_Registry.get<T>( m_EntityHandle );
+        }
+
+        template <typename T>
+        const std::optional<std::reference_wrapper<const T>> GetComponent_S() const
+        {
+            if ( !HasComponent<T>() )
+            {
+                return std::nullopt;
+            }
+            return m_Scene->m_Registry.get<T>( m_EntityHandle );
+        }
+
+        template <typename T>
+        std::optional<std::reference_wrapper<T>> GetComponent_S()
+        {
+            if ( !HasComponent<T>() )
+            {
+                return std::nullopt;
+            }
             return m_Scene->m_Registry.get<T>( m_EntityHandle );
         }
 

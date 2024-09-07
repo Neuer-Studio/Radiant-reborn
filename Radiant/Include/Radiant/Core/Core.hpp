@@ -30,6 +30,7 @@ decltype(auto) initializeDefaultValue() {
 }
 
 #define RA_GET_VALUE(var) var.value_or(initializeDefaultValue<decltype(var)::value_type>())
+#define IS_DERIVED_bool(T, X) (std::is_base_of<X, T>::value)
 
 #if defined(RADIANT_PLATFORM_WINDOWS)
 #define RADIANT_DEBUG_BREAK __debugbreak()
@@ -56,4 +57,10 @@ namespace Radiant
 {
 	template <typename T>
 	using Unique = std::unique_ptr<T>;
+}
+
+
+namespace Radiant
+{
+	using serialized_str = std::string;
 }
