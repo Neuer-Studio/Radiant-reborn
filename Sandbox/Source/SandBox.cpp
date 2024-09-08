@@ -1,5 +1,5 @@
-#include <Radiant/Radiant.hpp>
 #include "EditorLayer.hpp"
+#include <Radiant/EntryPoint.hpp>
 
 class Sandbox : public Radiant::Application
 {

@@ -30,7 +30,7 @@ namespace Radiant
         }
 
         template <typename T, typename... Args>
-        T& AddComponent( Args&&... args )
+        [[nodiscard]]T& AddComponent( Args&&... args )
         {
             RADIANT_VERIFY( !HasComponent<T>() );
             return m_Scene->m_Registry.emplace<T>( m_EntityHandle, std::forward<Args>( args )... );

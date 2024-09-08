@@ -16,7 +16,6 @@ namespace Radiant
 {
     Scene::Scene( const std::string& sceneName ) : m_SceneName( sceneName )
     {
-        
     }
 
     Scene::~Scene()
@@ -24,13 +23,31 @@ namespace Radiant
         GetSerializationSceneString();
     }
 
-    Radiant::Entity Scene::CreateEntity( const std::string& name /*= ""*/ )
+    [[nodiscard]] Entity Scene::CreateEntity( const std::string& name /*= ""*/ )
     {
         return CreateChildEntity( std::nullopt, name );
     }
 
-    Radiant::Entity Scene::CreateChildEntity( const std::optional<Entity>& parent,
-                                              const std::string&           name /*= "" */ )
+    [[nodiscard]] Entity Scene::CreateEntityWithID( const UUID& uuid, const std::string& name )
+    {
+        auto  entity      = Entity{ m_Registry.create(), this };
+        auto& idComponent = entity.AddComponent<IDComponent>();
+        idComponent.ID    = uuid; // NOTE: maybe use std::move?
+
+        entity.AddComponent<TransformComponent>();
+        if ( !name.empty() )
+            entity.AddComponent<TagComponent>( name );
+
+        entity.AddComponent<RelationshipComponent>();
+
+        RADIANT_VERIFY( m_EntityIDMap.find( uuid ) == m_EntityIDMap.end() );
+        m_EntityIDMap[uuid] = entity;
+
+        return entity;
+    }
+
+    [[nodiscard]] Entity Scene::CreateChildEntity( const std::optional<Entity>& parent,
+                                                   const std::string&           name /*= "" */ )
     {
         auto  entity      = Entity{ m_Registry.create(), this };
         auto& idComponent = entity.AddComponent<IDComponent>();
@@ -378,6 +395,55 @@ namespace Radiant
         std::cout << "Data saved to output.yaml" << std::endl;
 
         return "";
+    }
+
+    //******************************************************************//
+    //******************************************************************//
+    //******************************************************************//
+
+    std::optional<Radiant::Memory::Shared<Radiant::Scene>>
+    SceneDeserialize::GetDeserializedScene_Object( const serialized_str& context )
+    {
+        Deserialization::NodeReader reader;
+        reader.LoadFromFile( "output.yaml" );
+
+        const auto& sceneYAML = reader.GetValue( "Scene" );
+        if ( sceneYAML )
+        {
+            auto scene = MAKE_SHARE_OBJECT( Scene, std::any_cast<std::string>( *sceneYAML ) );
+
+            auto entities = reader.GetChildNodes( "Entities" );
+            RA_DEBUG( "Number of entities: {}", entities->size() );
+
+            for ( const auto& entity : *entities )
+            {
+                const auto meshValue = entity.GetValue( "Mesh" );
+                if ( meshValue )
+                {
+                    uint64_t uuidValue = std::stoull( std::any_cast<std::string>( *meshValue ), nullptr, 0 );
+                    UUID     uuid( uuidValue );
+                    auto&    e             = scene->CreateEntityWithID( uuid, "should be tag component there" );
+                    auto&    component     = e.AddComponent<MeshComponent>();
+                    component.LoadAsStatic = true;
+
+                    const auto assetPath = entity.GetChildNodes( "AssetPath" );
+
+                    for ( const auto& assetData : *assetPath )
+                    {
+                        const auto assetValue = assetData.GetValue( "Asset" );
+                        if ( assetValue )
+                        {
+                            std::string path = std::any_cast<std::string>( *assetValue );
+                            component.Mesh   = MAKE_SHARE_OBJECT( StaticMesh, path );
+                        }
+                    }
+                }
+            }
+
+            return scene;
+        }
+
+        return std::nullopt;
     }
 
 } // namespace Radiant

@@ -19,15 +19,16 @@ namespace Radiant::Serialization
 
         void AddArray( const std::string& key, const std::vector<Node>& array );
 
-        std::string toString() const
+        std::string ToString() const
         {
             return YAML::Dump( m_YamlNode );
         }
 
-        void saveToFile( const std::string& filename ) const
+        void SaveToFile( const std::string& filename ) const
         {
+            Radiant::Utils::FileSystem::WriteContentToFile(filename, ToString());
             std::ofstream fout( filename );
-            fout << toString();
+            fout << ToString();
             fout.close();
         }
 
@@ -55,12 +56,12 @@ namespace Radiant::Serialization
 
         std::string ToYaml() const
         {
-            return m_RootNode.toString();
+            return m_RootNode.ToString();
         }
 
         void SaveToFile( const std::string& filename ) const
         {
-            m_RootNode.saveToFile( filename );
+            m_RootNode.SaveToFile( filename );
         }
 
     private:
@@ -74,94 +75,23 @@ namespace Radiant::Deserialization
     class NodeReader
     {
     public:
-        // Метод для чтения YAML файла
-        bool LoadFromFile( const std::string& filename )
-        {
-            YAML::Node fileNode = YAML::LoadFile( filename );
-            RADIANT_VERIFY( fileNode ); // Проверяем, что файл успешно загружен
+        NodeReader() = default;
+        explicit NodeReader(const serialized_str& context);
+        bool LoadFromFile(const std::string& filename);
 
-            m_YamlNode = fileNode;
-            ParseNode( m_YamlNode );
-            return true;
-        }
+        std::optional<std::any> GetValue(const std::string& key) const;
 
-        // Получить значение по ключу
-        std::any GetValue( const std::string& key ) const
-        {
-            auto it = m_Values.find( key );
-            if ( it != m_Values.end() )
-            {
-                return it->second;
-            }
-            return {};
-        }
+        std::optional<std::vector<NodeReader>> GetChildNodes(const std::string& key) const;
 
-        // Получить дочерние узлы по ключу
-        std::vector<NodeReader> GetChildNodes( const std::string& key ) const
-        {
-            auto it = m_ChildNodes.find( key );
-            if ( it != m_ChildNodes.end() )
-            {
-                return it->second;
-            }
-            return {};
-        }
-
-        // Проверить, существует ли значение по ключу
-        bool HasValue( const std::string& key ) const
-        {
-            return m_Values.find( key ) != m_Values.end();
-        }
-
-        // Проверить, существуют ли дочерние узлы по ключу
-        bool HasChildNodes( const std::string& key ) const
-        {
-            return m_ChildNodes.find( key ) != m_ChildNodes.end();
-        }
+        bool HasValue(const std::string& key) const;
+        bool HasChildNodes(const std::string& key) const;
 
     private:
         YAML::Node                                               m_YamlNode;
         std::unordered_map<std::string, std::any>                m_Values;
         std::unordered_map<std::string, std::vector<NodeReader>> m_ChildNodes;
 
-        // Рекурсивный метод для разбора YAML-узла
-        void ParseNode( const YAML::Node& node )
-        {
-            RADIANT_VERIFY( node.IsDefined() ); // Проверяем, что узел определен
-
-            for ( const auto& it : node )
-            {
-                std::string key = it.first.as<std::string>();
-
-                if ( it.second.IsScalar() )
-                {
-                    // Если это одиночное значение (например, Scene: Test Scene)
-                    m_Values[key] = it.second.as<std::string>();
-                }
-                else if ( it.second.IsSequence() )
-                {
-                    // Если это список сущностей (Entities)
-                    std::vector<NodeReader> childNodes;
-                    for ( const auto& child : it.second )
-                    {
-                        NodeReader childNode;
-                        childNode.ParseNode( child );
-                        childNodes.push_back( childNode );
-                    }
-                    m_ChildNodes[key] = childNodes;
-                }
-                else if ( it.second.IsMap() )
-                {
-                    // Если это объект (например, каждый Entity)
-                    NodeReader childNode;
-                    childNode.ParseNode( it.second );
-                    m_ChildNodes[key].push_back( childNode );
-                }
-                else
-                {
-                    RADIANT_VERIFY( false ); // Неожиданный тип данных
-                }
-            }
-        }
+        void ParseNode(const YAML::Node& node);
+        void MakeContext(const YAML::Node& node);
     };
 } // namespace Radiant::Deserialization

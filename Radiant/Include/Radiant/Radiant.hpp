@@ -9,7 +9,6 @@
 #include <Radiant/Core/Application.hpp>
 #include <Radiant/Core/Camera.hpp>
 #include <Radiant/Core/Input.hpp>
-#include <Radiant/EntryPoint.hpp>
 
 // =================== Rendering =================== //
 

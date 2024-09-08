@@ -65,9 +65,13 @@ namespace Radiant
         Scene( const std::string& sceneName );
         ~Scene();
 
-        std::string GetSceneName() const { return m_SceneName; }
+        std::string GetSceneName() const
+        {
+            return m_SceneName;
+        }
 
         [[nodiscard]] Entity CreateEntity( const std::string& name = "" );
+        [[nodiscard]] Entity CreateEntityWithID( const UUID& uuid, const std::string& name );
         [[nodiscard]] Entity CreateChildEntity( const std::optional<Entity>& parent,
                                                 const std::string&           name = "" );
 
@@ -137,11 +141,14 @@ namespace Radiant
         }
 
         std::string GetSerializationSceneString();
+
     private:
         [[nodiscard]] std::optional<std::vector<glm::mat4>>
-        GetModelSpaceBoneTransforms(const std::vector<UUID>& boneEntityIds, const Memory::Shared<AnimatedMesh>& mesh );
+        GetModelSpaceBoneTransforms( const std::vector<UUID>&            boneEntityIds,
+                                     const Memory::Shared<AnimatedMesh>& mesh );
 
         void UpdateAnimation( Timestep ts );
+
     private:
         UUID      m_SceneID;
         EntityMap m_EntityIDMap;
@@ -163,6 +170,13 @@ namespace Radiant
     class SceneSerialize
     {
     public:
-        static serialized_str GetSerializedScene_STRING(Memory::Weak<Scene> scene);
+        static serialized_str GetSerializedScene_STRING( Memory::Weak<Scene> scene );
+    };
+
+    class SceneDeserialize
+    {
+    public:
+        static std::optional<Radiant::Memory::Shared<Radiant::Scene>>
+        GetDeserializedScene_Object( const serialized_str& context );
     };
 } // namespace Radiant
