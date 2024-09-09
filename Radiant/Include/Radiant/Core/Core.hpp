@@ -53,7 +53,7 @@ decltype( auto ) initializeDefaultValue()
         Radiant::LogWarn( "Verify failed: {} at {}:{}", #cond, __FILE__, __LINE__ );                              \
     }
 
-#define MAKE_SHARE_OBJECT( type, value ) Memory::Shared<type>::Create( value );
+#define MAKE_SHARED_OBJECT( type, value ) Memory::Shared<type>::Create( value );
 
 namespace Radiant
 {

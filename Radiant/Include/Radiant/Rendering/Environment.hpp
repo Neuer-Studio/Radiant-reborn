@@ -10,7 +10,7 @@ namespace Radiant
         Memory::Shared<Image2D> Radiance;
         Memory::Shared<Image2D> Irradiance;
 
-        static Environment Create( const std::string& filepath );
+        static Environment Create( const std::filesystem::path& filepath );
     };
 
     struct EnvironmentAttributes

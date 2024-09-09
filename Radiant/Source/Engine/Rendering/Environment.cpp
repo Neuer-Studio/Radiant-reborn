@@ -3,8 +3,8 @@
 
 namespace Radiant
 {
-	Environment Environment::Create(const std::string& filepath)
-	{
-		return SceneRendering::CreateEnvironmentMap(filepath);
-	}
-}
+    Environment Environment::Create( const std::filesystem::path& filepath )
+    {
+        return SceneRendering::CreateEnvironmentMap( filepath );
+    }
+} // namespace Radiant

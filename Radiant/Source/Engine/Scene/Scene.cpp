@@ -14,6 +14,50 @@
 
 namespace Radiant
 {
+    namespace
+    {
+        template <typename T>
+        static std::optional<T> GetData( const Deserialization::NodeReader& node, const std::string& nodeName,
+                                         const std::string& valueName )
+        {
+            const auto nodeData = node.GetChildNodes( nodeName );
+
+            for ( const auto& nodeIT : *nodeData )
+            {
+                const auto value = nodeIT.GetValue( valueName );
+                if ( value )
+                {
+                    T v = std::any_cast<T>( *value );
+
+                    return v;
+                }
+            }
+
+            return std::nullopt;
+        }
+
+        static std::optional<std::filesystem::path> GetAssetPath( const Deserialization::NodeReader& node )
+        {
+            return GetData<std::string>( node, "AssetPath", "Asset" );
+        }
+
+
+        static std::optional<std::string> GetTag( const Deserialization::NodeReader& node )
+        {
+            return GetData<std::string>( node, "TagComponent", "Tag" );
+        }
+
+        static Entity CreateEntity( Memory::Weak<Scene> scene, const Deserialization::NodeReader& node, const std::any& value )
+        {
+            uint64_t uuidValue = std::stoull( std::any_cast<std::string>( value ) );
+            UUID     uuid( uuidValue );
+            auto&    e = scene->CreateEntityWithID( uuid, GetTag(node).value() );
+
+            return e;
+        }
+
+    } // namespace
+
     Scene::Scene( const std::string& sceneName ) : m_SceneName( sceneName )
     {
     }
@@ -401,6 +445,8 @@ namespace Radiant
     //******************************************************************//
     //******************************************************************//
 
+    // In the future this function will be much more concise! At the moment this is all BETA version, we need
+    // metadata for correct processing, as well as macros that will help to serialize it all.
     std::optional<Radiant::Memory::Shared<Radiant::Scene>>
     SceneDeserialize::GetDeserializedScene_Object( const serialized_str& context )
     {
@@ -410,32 +456,48 @@ namespace Radiant
         const auto& sceneYAML = reader.GetValue( "Scene" );
         if ( sceneYAML )
         {
-            auto scene = MAKE_SHARE_OBJECT( Scene, std::any_cast<std::string>( *sceneYAML ) );
+            auto scene = MAKE_SHARED_OBJECT( Scene, std::any_cast<std::string>( *sceneYAML ) );
 
             auto entities = reader.GetChildNodes( "Entities" );
             RA_DEBUG( "Number of entities: {}", entities->size() );
 
             for ( const auto& entity : *entities )
             {
-                const auto meshValue = entity.GetValue( "Mesh" );
-                if ( meshValue )
                 {
-                    uint64_t uuidValue = std::stoull( std::any_cast<std::string>( *meshValue ), nullptr, 0 );
-                    UUID     uuid( uuidValue );
-                    auto&    e             = scene->CreateEntityWithID( uuid, "should be tag component there" );
-                    auto&    component     = e.AddComponent<MeshComponent>();
-                    component.LoadAsStatic = true;
-
-                    const auto assetPath = entity.GetChildNodes( "AssetPath" );
-
-                    for ( const auto& assetData : *assetPath )
+                    const auto meshValue = entity.GetValue( "Mesh" );
+                    if ( meshValue )
                     {
-                        const auto assetValue = assetData.GetValue( "Asset" );
-                        if ( assetValue )
+                        auto  e                = CreateEntity( scene.Raw(), entity, *meshValue );
+                        auto& component        = e.AddComponent<MeshComponent>();
+                        component.LoadAsStatic = true;
+
+                        const auto assetPath = GetAssetPath( entity );
+
+                        if ( assetPath )
                         {
-                            std::string path = std::any_cast<std::string>( *assetValue );
-                            component.Mesh   = MAKE_SHARE_OBJECT( StaticMesh, path );
+                            component.Mesh = MAKE_SHARED_OBJECT( StaticMesh, *assetPath );
                         }
+
+                        continue;
+                    }
+                }
+
+                {
+                    const auto envValue = entity.GetValue( "Environment" );
+
+                    if ( envValue )
+                    {
+                        auto  e                = CreateEntity( scene.Raw(), entity , *envValue );
+                        auto& component        = e.AddComponent<EnvironmentMapComponent>();
+
+                        const auto assetPath = GetAssetPath( entity );
+
+                        if ( assetPath )
+                        {
+                            component.SceneEnvironment = Environment::Create(*assetPath);
+                        }
+
+                        continue;
                     }
                 }
             }
