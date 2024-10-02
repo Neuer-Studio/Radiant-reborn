@@ -1,0 +1,317 @@
+#include <glad/glad.h>
+
+#include <Radiant/Rendering/VertexBuffer.hpp>
+#include <Radiant/Rendering/IndexBuffer.hpp>
+#include <Radiant/Rendering/Pipeline.hpp>
+#include <Radiant/Rendering/Rendering.hpp>
+#include <Radiant/Rendering/Shader.hpp>
+#include <Radiant/Rendering/Texture.hpp>
+#include <Radiant/Rendering/Platform/OpenGL/OpenGLRenderer.hpp>
+#include <Radiant/Rendering/SceneRendering.hpp>
+#include <Radiant/Rendering/2D/Rendering2D.hpp>
+
+namespace Radiant
+{
+    // =================================================================== //
+    // ========================= Rendering API =========================== //
+
+    static RenderingAPIType s_RenderingAPI = RenderingAPIType::None;
+
+    const RenderingAPIType RendererAPI::GetAPI()
+    {
+        return s_RenderingAPI;
+    }
+
+    void RendererAPI::SetAPI( RenderingAPIType api )
+    {
+        s_RenderingAPI = api;
+    }
+
+    // ========================= Rendering API =========================== //
+    // =================================================================== //
+
+    struct QuadData
+    {
+        Common::Memory::Shared<VertexBuffer> FullscreenQuadVertexBuffer;
+        Common::Memory::Shared<IndexBuffer>  FullscreenQuadIndexBuffer;
+    };
+
+    struct RenderingData
+    {
+        QuadData                           QuadInfo;
+        Common::Memory::Shared<RenderPass> ActiveRenderPass;
+        Common::Memory::Shared<Texture2D>  TextureWhite; // = Texture2D::Create(information);
+
+        ShaderLibrary* s_ShaderLibrary = nullptr;
+    };
+
+    static RenderingData* s_RenderingData = nullptr;
+
+    static Common::Memory::Shared<RenderingContext> s_RenderingContext     = nullptr;
+    static Common::Memory::Shared<RendererAPI>      s_RenderingAPIPlatform = nullptr;
+    static Common::Memory::CommandBuffer            s_CommandBuffer;
+
+    Rendering::~Rendering()
+    {
+        delete s_RenderingData->s_ShaderLibrary;
+        delete s_RenderingData;
+
+        s_CommandBuffer.Execute();
+    }
+
+    Common::Memory::Shared<RenderingContext> Rendering::Initialize( GLFWwindow* window )
+    {
+        switch ( RendererAPI::GetAPI() )
+        {
+            case RenderingAPIType::OpenGL:
+            {
+                s_RenderingAPIPlatform = Common::Memory::Shared<OpenGLRenderer>::Create();
+                break;
+            }
+
+                /* case RenderingAPIType::Vulkan:
+                 {
+                     s_RenderingAPIPlatform = Memory::Shared<Vulk>::Create();
+                     break;
+                 }*/
+        }
+        RADIANT_VERIFY( s_RenderingAPIPlatform );
+        s_RenderingContext = RenderingContext::Create( window );
+
+        s_RenderingData                  = new RenderingData();
+        s_RenderingData->s_ShaderLibrary = new ShaderLibrary();
+
+        // NOTE(Danya): Create fullscreen quad
+        float x     = -1;
+        float y     = -1;
+        float width = 2, height = 2;
+        struct QuadVertex
+        {
+            glm::vec3 Position;
+            glm::vec2 TexCoord;
+        };
+
+        QuadVertex* data = new QuadVertex[4];
+
+        data[0].Position = glm::vec3( x, y, 0.1f );
+        data[0].TexCoord = glm::vec2( 0, 0 );
+
+        data[1].Position = glm::vec3( x + width, y, 0.1f );
+        data[1].TexCoord = glm::vec2( 1, 0 );
+
+        data[2].Position = glm::vec3( x + width, y + height, 0.1f );
+        data[2].TexCoord = glm::vec2( 1, 1 );
+
+        data[3].Position = glm::vec3( x, y + height, 0.1f );
+        data[3].TexCoord = glm::vec2( 0, 1 );
+
+        s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer =
+             VertexBuffer::Create( data, 4 * sizeof( QuadVertex ) );
+        uint32_t indices[6] = {
+             0, 1, 2, 2, 3, 0,
+        };
+        s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer =
+             IndexBuffer::Create( indices, 6 * sizeof( uint32_t ) );
+
+        // Load Shaders
+
+        {
+            // Compute shaders
+
+            {
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/equirect2cube_cs.glsl" );
+            }
+
+            // Regular shaders
+            {
+
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/Skybox.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/AnimPBR_Radiant.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/StaticPBR_Radiant.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/SceneComposite.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/SceneCompositeMSAA.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/Grid.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/ShadowMap.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/Rendering2D.glsl" );
+                s_RenderingData->s_ShaderLibrary->Load( "Resources/Shaders/SelectedGeometry.glsl" );
+            }
+        }
+
+        SceneRendering::Get().Init();
+        Rendering2D::Get().Init();
+
+        uint32_t                   whiteTextureData = 0xffffffff;
+        Texture2DCreateInformation information;
+        information.Width       = 1;
+        information.Height      = 1;
+        information.Format      = ImageFormat::RGBA;
+        information.Buffer.Data = &whiteTextureData;
+
+        s_RenderingData->TextureWhite = Texture2D::Create( information );
+
+        return s_RenderingContext;
+    }
+
+    Common::Memory::Shared<Radiant::RenderingContext> Rendering::GetRenderingContext()
+    {
+        return s_RenderingContext;
+    }
+
+    const Radiant::ShaderLibrary* Rendering::GetShaderLibrary()
+    {
+        return s_RenderingData->s_ShaderLibrary;
+    }
+
+    void Rendering::SubmitFullscreenQuad( const Common::Memory::Shared<Pipeline>&                pipeline,
+                                          const std::optional<Common::Memory::Shared<Material>>& material )
+    {
+        if ( !pipeline )
+            return;
+        s_RenderingAPIPlatform->RT_SubmitFullscreenQuad( { pipeline,
+                                                           s_RenderingData->QuadInfo.FullscreenQuadVertexBuffer,
+                                                           s_RenderingData->QuadInfo.FullscreenQuadIndexBuffer },
+                                                         material );
+    }
+
+    Common::Memory::CommandBuffer& Rendering::GetRenderingCommandBuffer()
+    {
+        return s_CommandBuffer;
+    }
+
+    void Rendering::Clear( const std::array<float, 4>& rgba )
+    {
+        s_RenderingAPIPlatform->Clear( rgba );
+    }
+
+    void Rendering::SubmitMeshWithMaterial( const DrawSpecificationCommandWithMaterial& specification )
+    {
+        s_RenderingAPIPlatform->SubmitMeshWithMaterial( specification );
+    }
+
+    void Rendering::SubmitMesh( const DrawDeclarationCommand&           specification,
+                                const Common::Memory::Shared<Pipeline>& pipeline,
+                                const Common::Memory::Shared<Material>& material )
+    {
+        RADIANT_VERIFY( pipeline );
+
+        RADIANT_VERIFY( specification.Mesh );
+
+        const auto& mesh = specification.Mesh;
+        mesh->GetVertexBuffer()->Use();
+        pipeline->Use();
+        mesh->GetIndexBuffer()->Use();
+
+        RADIANT_VERIFY( material );
+
+        for ( const Submesh& submesh : mesh->GetSubmeshes() )
+        {
+
+            // Update transform
+            material->SetMat4( "u_Transform", specification.Transform * submesh.Transform );
+            material->Use();
+
+            Rendering::SubmitCommand(
+                 [submesh]()
+                 {
+                     glEnable( GL_DEPTH_TEST );
+                     glDrawElementsBaseVertex( GL_TRIANGLES, submesh.IndexCount, GL_UNSIGNED_INT,
+                                               (void*)( sizeof( uint32_t ) * submesh.BaseIndex ),
+                                               submesh.BaseVertex );
+                     glDisable( GL_DEPTH_TEST );
+                 } );
+        }
+    }
+
+    void Rendering::DrawPrimitive( Primitives primitive, uint32_t count, bool depthTest )
+    {
+        Rendering::SubmitCommand( [primitive, count, depthTest]()
+                                  { s_RenderingAPIPlatform->DrawPrimitive( primitive, count, depthTest ); } );
+    }
+
+    void Rendering::SetLineWidth( float width /*= 1.0f*/ )
+    {
+        Rendering::SubmitCommand( [width]() { s_RenderingAPIPlatform->SetLineWidth( width ); } );
+    }
+
+    void Rendering::DrawAABB( const Common::Math::AABB& aabb, const glm::mat4& transform )
+    {
+        // https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=1368910cd52dcb700947890fcc846f367548df68
+
+        // bottom
+        DrawLine( transform * glm::vec4( aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0 ) );
+
+        DrawLine( transform * glm::vec4( aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0 ) );
+
+        // top
+        DrawLine( transform * glm::vec4( aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0 ),
+                  transform * glm::vec4( aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0 ),
+                  transform * glm::vec4( aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0 ),
+                  transform * glm::vec4( aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0 ),
+                  transform * glm::vec4( aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0 ) );
+
+        // bringing the sides together
+        DrawLine( transform * glm::vec4( aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0 ) );
+        DrawLine( transform * glm::vec4( aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0 ),
+                  transform * glm::vec4( aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0 ) );
+    }
+
+    void Rendering::DrawAABB( const Common::Memory::Shared<Mesh>& mesh, const glm::mat4& transform )
+    {
+        for ( int i = 0; i < mesh->GetSubmeshes().size(); i++ )
+        {
+            DrawAABB( mesh->GetSubmeshes()[i].BoundingBox, transform );
+        }
+    }
+
+    void Rendering::DrawLine( const glm::vec3& p1, const glm::vec3& p2, float lineWidth )
+    {
+        Rendering2D::Get().DrawLine( p1, p2, lineWidth );
+    }
+
+    void Rendering::BeginRenderPass( Common::Memory::Shared<RenderPass>& renderPass, bool clear /*= true*/ )
+    {
+        RADIANT_VERIFY( renderPass, "Render pass cannot be null!" );
+
+        // TODO: Convert all of this into a render command buffer
+        s_RenderingData->ActiveRenderPass = renderPass;
+
+        renderPass->GetSpecification().TargetFramebuffer->Use();
+        if ( clear )
+        {
+            static std::array<float, 4> rgba = { 0.4f, 0.3f, 0.1f, 1.0f }; // TODO: Get from Specification
+            Rendering::Clear( rgba );
+        }
+    }
+
+    void Rendering::EndRenderPass()
+    {
+        RADIANT_VERIFY( s_RenderingData->ActiveRenderPass,
+                        "No active render pass! Have you called EndRenderPass() twice?" );
+        s_RenderingData->ActiveRenderPass->GetSpecification().TargetFramebuffer->Use( BindUsage::Unbind );
+        s_RenderingData->ActiveRenderPass = nullptr;
+    }
+
+    Radiant::Environment Rendering::CreateEnvironmentMap( const std::filesystem::path& filepath )
+    {
+        return s_RenderingAPIPlatform->CreateEnvironmentMap( filepath );
+    }
+
+    const Common::Memory::Shared<Texture2D>& Rendering::GetWhiteTexure()
+    {
+        return s_RenderingData->TextureWhite;
+    }
+} // namespace Radiant

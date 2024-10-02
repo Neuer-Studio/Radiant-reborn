@@ -28,5 +28,12 @@ group "ThirdParty"
 include "ThirdParty/"
 group ""
 
+group "Engine"
 include "Radiant/"
+group ""
+
+group "Tests"
+include "Tests/"
+group ""
+
 include "Sandbox/"
