@@ -13,10 +13,10 @@
 
 namespace Radiant
 {
-    class EditorLayer : public Layer
+    class EditorLayer : public Common::Layer
     {
     public:
-        EditorLayer() : Layer( "EditorLayer" ), m_EditorCamera( 1920, 1080 )
+        EditorLayer() : Common::Layer( "EditorLayer" ), m_EditorCamera( 1920, 1080 )
         {
         }
 
@@ -24,27 +24,29 @@ namespace Radiant
         virtual void OnDetach()
         {
         }
-        virtual void OnUpdate( Timestep ts ) override;
+        virtual void OnUpdate( Common::Timestep ts ) override;
 
-        virtual void OnEvent( Radiant::Event& e ) override;
+        virtual void OnEvent( Common::Event& e ) override;
 
         virtual void OnImGuiRender() override;
 
     private:
-        bool OnMouseButtonPressed( MouseButtonPressedEvent& e );
+        bool OnMouseButtonPressed( Common::MouseButtonPressedEvent& e );
+
     private:
         void LoadScene();
+
     private:
-        Memory::Shared<Scene> m_Scene;
-        ImVec2                m_ViewportSize;
-        Camera                m_EditorCamera;
-        Entity*               m_SelectedEntity = nullptr; // TEMP
-        glm::vec2             m_ViewportBounds[2];
+        Common::Memory::Shared<Scene> m_Scene;
+        ImVec2                        m_ViewportSize;
+        Camera                        m_EditorCamera;
+        Entity*                       m_SelectedEntity = nullptr; // TEMP
+        glm::vec2                     m_ViewportBounds[2];
 
         std::pair<uint32_t, uint32_t> m_MouseClick;
 
-        Memory::Shared<SceneHierarchyPanel> m_SceneHierarchyPanel;
-        Memory::Shared<SceneRenderingPanel> m_SceneRenderingPanel;
+        Common::Memory::Shared<SceneHierarchyPanel> m_SceneHierarchyPanel;
+        Common::Memory::Shared<SceneRenderingPanel> m_SceneRenderingPanel;
     };
 
 } // namespace Radiant

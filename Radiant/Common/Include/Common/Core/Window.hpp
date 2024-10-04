@@ -17,12 +17,12 @@ namespace Common
 		bool VSync = true;
 	};
 
-	class Window : public Memory::RefCounted
+	class Window : public Common::Memory::RefCounted
 	{
 	public:
 		virtual ~Window() = default;
 
-		using EventCallbackFn = std::function<void(Event&)>;
+		using EventCallbackFn = std::function<void(Common::Event&)>;
 
 		[[nodiscard]] virtual const std::string& GetTitle() const = 0;
 		virtual void SetTitle(const std::string& title) = 0;
@@ -39,6 +39,6 @@ namespace Common
 
 		virtual void SetEventCallback(const EventCallbackFn& e) = 0;
 
-		static Memory::Shared<Window> Create(const WindowSpecification& specification);
+		static Common::Memory::Shared<Window> Create(const WindowSpecification& specification);
 	};
 }

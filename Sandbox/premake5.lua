@@ -10,17 +10,18 @@ project "Sandbox"
     }
 
     includedirs {
-        "../Radiant/Include/",
+        "%{wks.location}/Radiant/Radiant/Include/",
+        "%{wks.location}/Radiant/Common/Include/",
 
-        "../ThirdParty/spdlog/include/",
-        "../ThirdParty/GLFW/include/",
-        "../ThirdParty/Glad/include/",
-        "../ThirdParty/glm/",
-        "../ThirdParty/",
+        "%{wks.location}/ThirdParty/spdlog/include/",
+        "%{wks.location}/ThirdParty/GLFW/include/",
+        "%{wks.location}/ThirdParty/Glad/include/",
+        "%{wks.location}/ThirdParty/glm/",
+        "%{wks.location}/ThirdParty/",
         "%{IncludeDir.entt}",
     }
 
-    defines { "INCLUDE_HEADERS=#include <Radiant/Radiant.hpp>" }
+    defines { "INCLUDE_HEADERS=#include <Radiant/Radiant.hpp>","YAML_CPP_STATIC_DEFINE" }
 
     links{
         "Radiant",

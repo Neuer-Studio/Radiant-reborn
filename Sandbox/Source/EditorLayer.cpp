@@ -5,7 +5,7 @@ namespace Radiant
 
     void EditorLayer::OnAttach()
     {
-      //  m_Scene = Memory::Shared<Scene>::Create( "Test Scene" );
+        //  m_Scene = Memory::Shared<Scene>::Create( "Test Scene" );
 
         LoadScene();
 
@@ -15,7 +15,7 @@ namespace Radiant
         m_SceneRenderingPanel = new SceneRenderingPanel( m_Scene );
     }
 
-    void EditorLayer::OnUpdate( Timestep ts )
+    void EditorLayer::OnUpdate( Common::Timestep ts )
     {
         m_EditorCamera.OnUpdate( ts );
 
@@ -28,15 +28,16 @@ namespace Radiant
         m_Scene->OnUpdate( info );
     }
 
-    void EditorLayer::OnEvent( Radiant::Event& e )
+    void EditorLayer::OnEvent( Common::Event& e )
     {
         m_EditorCamera.OnEvent( e );
 
-        EventManager eventManager( e );
-        eventManager.Notify<EventWindowResize>( [this]( const EventWindowResize& e ) -> bool { return false; } );
+        Common::EventManager eventManager( e );
+        eventManager.Notify<Common::EventWindowResize>( [this]( const Common::EventWindowResize& e ) -> bool
+                                                        { return false; } );
 
-        eventManager.Notify<MouseButtonPressedEvent>( [this]( MouseButtonPressedEvent& e ) -> bool
-                                                      { return this->OnMouseButtonPressed( e ); } );
+        eventManager.Notify<Common::MouseButtonPressedEvent>( [this]( Common::MouseButtonPressedEvent& e ) -> bool
+                                                              { return this->OnMouseButtonPressed( e ); } );
     }
 
     void EditorLayer::OnImGuiRender()
@@ -138,9 +139,12 @@ namespace Radiant
         ImGui::End();
     }
 
-    bool EditorLayer::OnMouseButtonPressed( MouseButtonPressedEvent& e )
+    bool EditorLayer::OnMouseButtonPressed( Common::MouseButtonPressedEvent& e )
     {
-        if ( e.GetMouseButton() != MouseButton::Left || Input::Keyboard::IsKeyPressed( KeyCode::LeftControl ) )
+        if ( e.GetMouseButton() != Common::MouseButton::Left ||
+             Common::Input::Keyboard::IsKeyPressed(
+                  Common::KeyCode::LeftControl,
+                  Radiant::Application::GetInstance().GetWindow()->GetNativeWindow() ) )
         {
             return false;
         }
@@ -186,7 +190,7 @@ namespace Radiant
 
     void EditorLayer::LoadScene()
     {
-        m_Scene = *SceneDeserialize::GetDeserializedScene_Object("");
+        m_Scene = *SceneDeserialize::GetDeserializedScene_Object( "" );
     }
 
 } // namespace Radiant

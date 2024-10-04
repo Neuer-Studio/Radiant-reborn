@@ -101,7 +101,7 @@ namespace Common::Memory
 
         template <typename FuncDestroy>
         Shared( T* instance, const std::function<FuncDestroy>& destructor )
-             : m_Instance( instance ), m_PtrDeleterFunction( []() { destructor(); } )
+             : m_Instance( instance ), m_PtrDeleterFunction( [destructor]() { destructor(); } )
         {
             static_assert( std::is_base_of<RefCounted, T>::value, "Class is not RefCounted!" );
 
